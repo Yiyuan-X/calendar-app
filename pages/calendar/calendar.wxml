@@ -1,0 +1,260 @@
+<!--pages/calendar/calendar.wxml — 日历页（全部预处理字段）-->
+<view class="page-container">
+  <!-- 月份导航 -->
+  <view class="month-nav">
+    <view class="nav-btn" bindtap="prevMonth">
+      <text class="nav-arrow">‹</text>
+    </view>
+    <view class="month-title" bindtap="goToToday">
+      <text class="year-text">{{currentYear}}</text>
+      <text class="month-text">{{currentMonth}}月</text>
+    </view>
+    <view class="nav-btn" bindtap="nextMonth">
+      <text class="nav-arrow">›</text>
+    </view>
+  </view>
+
+  <!-- 星期标题 -->
+  <view class="week-header">
+    <view class="week-day-item" wx:for="{{weekDays}}" wx:key="index">
+      <text class="week-day-text {{item.isWeekend ? 'weekend' : ''}}">{{item.name}}</text>
+    </view>
+  </view>
+
+  <!-- 日历网格 -->
+  <view class="calendar-grid">
+    <view
+      class="{{item.cellClass}}"
+      wx:for="{{calendarData}}"
+      wx:key="dateStr"
+      bindtap="onDayTap"
+      data-date="{{item.dateStr}}"
+      data-info="{{item}}"
+    >
+      <!-- 日期数字 -->
+      <text class="day-number">{{item.day}}</text>
+
+      <!-- 标记文字（节气/农历/节日/重要日子）— 仅当月日期显示 -->
+      <text
+        class="marker {{item.markerType === 'solar-term' ? 'solar-term-marker' : (item.markerType === 'festival' ? 'festival-marker ' + item.festivalMarkerClass : (item.markerType === 'event' ? 'event-marker' : 'lunar-marker'))}}"
+        wx:if="{{item.isCurrentMonth && item.markerText}}"
+      >{{item.markerText}}</text>
+
+      <!-- 今天圆点（非圆形数字模式时使用） -->
+      <view class="today-dot" wx:if="{{item.isToday}}"></view>
+
+      <!-- 多节日圆点指示器 -->
+      <view class="festival-dots" wx:if="{{item.showMultiDots}}">
+        <view class="dot dot-red" wx:if="{{item.hasRedFestival}}"></view>
+        <view class="dot dot-purple" wx:if="{{item.hasBuddhist}}"></view>
+        <view class="dot dot-gold" wx:if="{{item.hasGoldFestival}}"></view>
+      </view>
+    </view>
+  </view>
+
+  <!-- 选中日期详情面板 -->
+  <view class="detail-panel" wx:if="{{selectedDate}}">
+    <view class="panel-header">
+      <view class="panel-date">
+        <text class="panel-solar">{{selectedDate.year}}年{{selectedDate.month}}月{{selectedDate.day}}日</text>
+        <text class="panel-weekday">星期{{selectedDate.weekNameShort}}</text>
+      </view>
+      <view class="panel-lunar" wx:if="{{selectedDate.lunarDisplay}}">
+        <text class="lunar-year">{{selectedDate.ganzhiYear}}年</text>
+        <text class="lunar-animal">·{{selectedDate.animalYear}}年·</text>
+        <text class="lunar-date">{{selectedDate.lunarDisplay}}</text>
+      </view>
+    </view>
+
+    <!-- 节气信息 + 养生指南 -->
+    <view class="info-card card solar-term-card" wx:if="{{selectedDate.solarTermName && selectedDate.solarTermHealth}}">
+      <view class="card-label tag tag-green">
+        <text>节气 · 养生</text>
+      </view>
+
+      <!-- 节气名称 + 简介 -->
+      <view class="st-header">
+        <text class="info-name st-name">{{selectedDate.solarTermName}}</text>
+        <text class="st-desc">{{selectedDate.solarTermHealth.desc}}</text>
+      </view>
+
+      <!-- 气候特点 -->
+      <view class="st-section">
+        <text class="st-label">🌤 气候</text>
+        <text class="st-text">{{selectedDate.solarTermHealth.climate}}</text>
+      </view>
+
+      <!-- 养生要点 -->
+      <view class="st-section">
+        <text class="st-label">💚 养生</text>
+        <text class="st-text">{{selectedDate.solarTermHealth.health}}</text>
+      </view>
+
+      <!-- 饮食建议 -->
+      <view class="st-section">
+        <text class="st-label">🍲 食疗</text>
+        <text class="st-text">{{selectedDate.solarTermHealth.diet}}</text>
+      </view>
+
+      <!-- 起居提醒 -->
+      <view class="st-section">
+        <text class="st-label">🏠 起居</text>
+        <text class="st-text">{{selectedDate.solarTermHealth.lifestyle}}</text>
+      </view>
+
+      <!-- 养生金句 -->
+      <view class="st-tip">
+        <text class="tip-text">✨ {{selectedDate.solarTermHealth.tip}}</text>
+      </view>
+    </view>
+
+    <!-- 节日列表 -->
+    <view class="info-card card" wx:if="{{selectedDate.festivals.length > 0}}">
+      <view
+        class="festival-item"
+        wx:for="{{selectedDate.festivals}}"
+        wx:key="name"
+        bindtap="goToFestivalDetail"
+        data-festival="{{item}}"
+      >
+        <view class="festival-tag {{item.tagClass}}">
+          <text>{{item.categoryText}}</text>
+        </view>
+        <view class="festival-content">
+          <text class="festival-name">{{item.name}}</text>
+          <text class="festival-desc" wx:if="{{item.description}}">{{item.description}}</text>
+          <text class="festival-quote" wx:if="{{item.quote}}">「{{item.quote}}」</text>
+        </view>
+        <text class="arrow">›</text>
+      </view>
+    </view>
+
+    <!-- 当天备注 -->
+    <view class="info-card card note-card" wx:if="{{selectedNote}}" bindtap="goToNotes">
+      <view class="card-label tag tag-gray">
+        <text>备注</text>
+      </view>
+      <text class="note-preview">{{selectedNote.content}}</text>
+      <text class="edit-hint">点击编辑 ›</text>
+    </view>
+
+    <!-- 添加备注按钮 -->
+    <view class="add-note-btn" wx:if="{{!selectedNote}}" bindtap="goToNotes">
+      <text class="add-note-icon">✎</text>
+      <text>给这一天写点什么</text>
+    </view>
+
+    <!-- 添加重要日子快捷入口 -->
+    <view class="add-event-from-calendar" bindtap="goToAddEventWithDate">
+      <text class="add-event-icon">+</text>
+      <text>将这天设为重要日子</text>
+    </view>
+
+    <!-- ==================== 黄历资料（始终显示） ==================== -->
+    <view class="huangli-card card" wx:if="{{selectedDate}}">
+      <!-- 顶部：干支 + 建除 + 星宿 + 纳音 -->
+      <view class="hl-header">
+        <view class="hl-ganzhi">
+          <text class="hl-day-gz">{{selectedDate.huangli.dayGanZhi || '—'}}</text>
+          <text class="hl-month-gz">{{selectedDate.huangli.monthGanZhi || '—'}}月</text>
+        </view>
+        <view class="hl-badges">
+          <view class="hl-badge {{selectedDate.huangli.jianChuLuck === '吉' ? 'badge-luck-good' : (selectedDate.huangli.jianChuLuck === '凶' ? 'badge-luck-bad' : 'badge-luck-normal')}}">
+            <text>{{selectedDate.huangli.jianChu || '—'}}日</text>
+          </view>
+          <view class="hl-badge badge-xiu">
+            <text>{{selectedDate.huangli.xiu || '—'}}宿</text>
+          </view>
+          <view class="hl-badge badge-nayin">
+            <text>{{selectedDate.huangli.naYin || '—'}}</text>
+          </view>
+        </view>
+      </view>
+
+      <!-- 佛历 + 斋日 -->
+      <view class="hl-foli">
+        <view class="foli-left">
+          <text class="foli-icon">☸</text>
+          <text class="foli-year">{{selectedDate.huangli.foLiText || '—'}}</text>
+        </view>
+        <view class="foli-right" wx:if="{{selectedDate.huangli.isFoHuiRi || selectedDate.huangli.isShiZhai}}">
+          <view class="zhai-tag {{selectedDate.huangli.isShiZhai ? 'zhai-shi' : 'zhai-liu'}}" wx:if="{{selectedDate.huangli.isFoHuiRi}}">
+            <text>{{selectedDate.huangli.zhaiDayName || '斋日'}}</text>
+          </view>
+        </view>
+      </view>
+
+      <!-- 宜忌区域 -->
+      <view class="hl-yiji-section" wx:if="{{selectedDate.huangli.yi && selectedDate.huangli.ji}}">
+        <view class="hl-yi-group">
+          <text class="hl-yiji-label yi-label">宜</text>
+          <view class="hl-yiji-tags">
+            <text
+              class="yi-tag"
+              wx:for="{{selectedDate.huangli.yi}}"
+              wx:key="*this"
+            >{{item}}</text>
+          </view>
+        </view>
+        <view class="hl-ji-group">
+          <text class="hl-yiji-label ji-label">忌</text>
+          <view class="hl-yiji-tags">
+            <text
+              class="ji-tag"
+              wx:for="{{selectedDate.huangli.ji}}"
+              wx:key="*this"
+            >{{item}}</text>
+          </view>
+        </view>
+      </view>
+
+      <!-- 冲煞 + 五行 + 方位神 -->
+      <view class="hl-details-grid" wx:if="{{selectedDate.huangli.chongText}}">
+        <view class="hl-detail-item">
+          <text class="detail-label">冲煞</text>
+          <text class="detail-value value-warn">{{selectedDate.huangli.chongText}}</text>
+        </view>
+        <view class="hl-detail-item">
+          <text class="detail-label">五行</text>
+          <text class="detail-value">{{selectedDate.huangli.yinYang || ''}}{{selectedDate.huangli.wuXing || ''}}</text>
+        </view>
+        <view class="hl-detail-item">
+          <text class="detail-label">财神</text>
+          <text class="detail-value value-highlight">{{selectedDate.huangli.caiShen || ''}}</text>
+        </view>
+        <view class="hl-detail-item">
+          <text class="detail-label">喜神</text>
+          <text class="detail-value">{{selectedDate.huangli.xiShen || ''}}</text>
+        </view>
+        <view class="hl-detail-item">
+          <text class="detail-label">福神</text>
+          <text class="detail-value">{{selectedDate.huangli.fuShen || ''}}</text>
+        </view>
+        <view class="hl-detail-item">
+          <text class="detail-label">星宿</text>
+          <text class="detail-value {{selectedDate.huangli.xiuLuck === '吉' ? 'value-good' : (selectedDate.huangli.xiuLuck === '凶' ? 'value-bad' : '')}}">{{selectedDate.huangli.xiu || ''}}（{{selectedDate.huangli.xiuLuck || ''}}）</text>
+        </view>
+      </view>
+
+      <!-- 彭祖百忌 -->
+      <view class="hl-pengzu" wx:if="{{selectedDate.huangli.pengZuGan || selectedDate.huangli.pengZuZhi}}">
+        <view class="pengzu-title">
+          <text class="pengzu-icon">📜</text>
+          <text class="pengzu-text">彭祖百忌</text>
+        </view>
+        <view class="pengzu-items">
+          <text class="pengzu-item" wx:if="{{selectedDate.huangli.pengZuGan}}">{{selectedDate.huangli.dayGan}} {{selectedDate.huangli.pengZuGan}}</text>
+          <text class="pengzu-item" wx:if="{{selectedDate.huangli.pengZuZhi}}">{{selectedDate.huangli.dayZhi}} {{selectedDate.huangli.pengZuZhi}}</text>
+        </view>
+      </view>
+
+      <!-- 建除说明 -->
+      <view class="hl-jianchu-desc" wx:if="{{selectedDate.huangli.jianChuDesc}}">
+        <text class="jianchu-desc-text">💡 {{selectedDate.huangli.jianChuDesc.text}}</text>
+      </view>
+    </view>
+  </view>
+
+  <!-- 底部留白 -->
+  <view class="bottom-spacer safe-area-bottom"></view>
+</view>

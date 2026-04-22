@@ -1,0 +1,134 @@
+/* pages/settings/settings.wxss — 设置页面样式（Apple 风格） */
+
+.page-container {
+  min-height: 100vh;
+  background: #F5F5F7;
+  padding: 0 24rpx 120rpx;
+}
+
+/* ==================== 页面标题 ==================== */
+.page-header {
+  padding: 36rpx 0 28rpx;
+}
+
+.page-title {
+  font-size: 34rpx;
+  font-weight: 700;
+  color: #1D1D1F;
+  display: block;
+  letter-spacing: 0.5rpx;
+}
+
+.page-subtitle {
+  font-size: 23rpx;
+  color: #86868B;
+  margin-top: 8rpx;
+  display: block;
+  line-height: 1.5;
+}
+
+/* ==================== 设置分组 ==================== */
+.settings-group {
+  background: #FFFFFF;
+  border-radius: 20rpx;
+  overflow: hidden;
+  box-shadow: 0 2rpx 16rpx rgba(0, 0, 0, 0.04);
+  margin-bottom: 24rpx;
+}
+
+.setting-item {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 28rpx 24rpx;
+  border-bottom: 1rpx solid #F0F0F2;
+  transition: background 0.15s ease;
+}
+
+.setting-item:last-child {
+  border-bottom: none;
+}
+
+.setting-item:active {
+  background: #FAFAFA;
+}
+
+.setting-left {
+  display: flex;
+  align-items: center;
+  gap: 18rpx;
+  flex: 1;
+  min-width: 0;
+}
+
+.setting-icon-wrap {
+  width: 56rpx;
+  height: 56rpx;
+  border-radius: 14rpx;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
+.liuzhai-icon { background: linear-gradient(135deg, #F3E8FF, #EDE4FC); }
+.lunar-icon { background: linear-gradient(135deg, #FFF9EC, #FFF3D6); }
+.buddhist-icon { background: linear-gradient(135deg, #F3E8FF, #EDE4FC); }
+
+.setting-icon {
+  font-size: 26rpx;
+  line-height: 1;
+}
+
+.setting-info {
+  flex: 1;
+  min-width: 0;
+}
+
+.setting-name {
+  font-size: 28rpx;
+  font-weight: 600;
+  color: #1D1D1F;
+  display: block;
+  line-height: 1.35;
+}
+
+.setting-desc {
+  font-size: 22rpx;
+  color: #AEAEB2;
+  margin-top: 4rpx;
+  display: block;
+  line-height: 1.45;
+}
+
+/* switch 组件微调 */
+setting-item switch {
+  transform: scale(0.95);
+}
+
+/* ==================== 说明卡片 ==================== */
+.tips-card {
+  background: #FFFFFF;
+  border-radius: 18rpx;
+  padding: 24rpx 24rpx;
+  box-shadow: 0 2rpx 12rpx rgba(0, 0, 0, 0.03);
+}
+
+.tips-title {
+  font-size: 25rpx;
+  font-weight: 600;
+  color: #1D1D1F;
+  display: block;
+  margin-bottom: 10rpx;
+}
+
+.tips-text {
+  font-size: 23rpx;
+  color: #86868B;
+  line-height: 1.7;
+  display: block;
+}
+
+.bottom-spacer {
+  height: 60rpx;
+}

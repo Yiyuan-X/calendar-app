@@ -1,0 +1,143 @@
+<!--pages/add-event/add-event.wxml-->
+<view class="page-container">
+  <!-- 标题 -->
+  <view class="page-header">
+    <text class="page-title">{{isEdit ? '编辑' : '添加'}}重要日子</text>
+    <text class="page-subtitle">记录每一个值得铭记的时刻</text>
+  </view>
+
+  <!-- 表单 -->
+  <view class="form-section">
+    <!-- 名称输入 -->
+    <view class="form-item">
+      <text class="form-label">名称</text>
+      <input
+        class="form-input"
+        placeholder="例如：生日、纪念日、发工资..."
+        value="{{formData.name}}"
+        bindinput="onNameInput"
+        maxlength="20"
+        confirm-type="done"
+      />
+      <text class="input-count">{{formData.name.length}}/20</text>
+    </view>
+
+    <!-- 日期选择 -->
+    <view class="form-item">
+      <text class="form-label">日期</text>
+      <picker
+        mode="date"
+        value="{{formData.date}}"
+        start="1900-01-01"
+        end="2100-12-31"
+        bindchange="onDateChange"
+      >
+        <view class="picker-value">
+          <text class="{{formData.date ? 'value-text' : 'placeholder'}}">{{formData.date || '选择日期'}}</text>
+          <text class="picker-arrow">›</text>
+        </view>
+      </picker>
+    </view>
+
+    <!-- 分类选择 -->
+    <view class="form-item">
+      <text class="form-label">分类</text>
+      <view class="category-list">
+        <view
+          class="category-item {{formData.category === item.key ? 'active' : ''}}"
+          wx:for="{{categories}}"
+          wx:key="key"
+          data-key="{{item.key}}"
+          bindtap="onCategoryTap"
+        >
+          <text class="category-icon">{{item.icon}}</text>
+          <text class="category-name">{{item.name}}</text>
+        </view>
+      </view>
+    </view>
+
+    <!-- 计时模式 -->
+    <view class="form-item">
+      <text class="form-label">计时方式</text>
+      <view class="mode-switch">
+        <view
+          class="mode-option {{formData.isCountdown ? 'active' : ''}}"
+          bindtap="onModeSwitch"
+          data-mode="true"
+        >
+          <text class="mode-title">倒计时</text>
+          <text class="mode-desc">距离那天还有多久</text>
+        </view>
+        <view
+          class="mode-option {{!formData.isCountdown ? 'active' : ''}}"
+          bindtap="onModeSwitch"
+          data-mode="false"
+        >
+          <text class="mode-title">正计时</text>
+          <text class="mode-desc">已经过去多少天</text>
+        </view>
+      </view>
+    </view>
+
+    <!-- 备注（可选） -->
+    <view class="form-item">
+      <text class="form-label">备注（可选）</text>
+      <textarea
+        class="form-textarea"
+        placeholder="写一句话，记录这个日子的意义..."
+        value="{{formData.remark}}"
+        bindinput="onRemarkInput"
+        maxlength="100"
+        auto-height
+      ></textarea>
+      <text class="input-count textarea-count">{{formData.remark.length}}/100</text>
+    </view>
+
+    <!-- 提醒开关 -->
+    <view class="form-item switch-item">
+      <view class="switch-left">
+        <text class="form-label">打开时提醒</text>
+        <text class="switch-hint">每次打开小程序时提醒你</text>
+      </view>
+      <switch
+        checked="{{formData.remind}}"
+        color="#007AFF"
+        bindchange="onRemindSwitch"
+      />
+    </view>
+  </view>
+
+  <!-- 预览卡片 -->
+  <view class="preview-section" wx:if="{{formData.name && formData.date}}">
+    <text class="preview-label">预览效果</text>
+    <view class="preview-card card">
+      <view class="preview-left">
+        <view class="preview-dot {{getCategoryColor(formData.category)}}"></view>
+        <text class="preview-title">{{formData.name || '未命名'}}</text>
+      </view>
+      <view class="preview-right">
+        <text class="preview-days">{{previewDays >= 0 ? previewDays : Math.abs(previewDays)}}</text>
+        <text class="preview-unit">{{previewDays >= 0 ? '天' : '天前'}}</text>
+      </view>
+    </view>
+  </view>
+
+  <!-- 操作按钮 -->
+  <view class="action-section">
+    <button
+      class="save-btn {{canSave ? '' : 'disabled'}}"
+      disabled="{{!canSave}}"
+      bindtap="onSave"
+    >
+      {{isEdit ? '保存修改' : '创建'}}
+    </button>
+    <button
+      class="delete-btn-text"
+      wx:if="{{isEdit}}"
+      bindtap="onDelete"
+    >删除这个日子</button>
+  </view>
+
+  <!-- 底部留白 -->
+  <view class="bottom-spacer safe-area-bottom"></view>
+</view>

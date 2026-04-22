@@ -1,0 +1,124 @@
+/* pages/notes/notes.wxss —— 优化版 */
+
+.page-container {
+  min-height: 100vh;
+  padding: 0 32rpx;
+  background: var(--bg-color);
+}
+
+/* ===== 日期头部 ===== */
+.date-header {
+  padding: 32rpx 0 24rpx;
+  display: flex;
+  align-items: baseline;
+  gap: 16rpx;
+}
+
+.date-main {
+  font-size: 38rpx;
+  font-weight: 700;
+  color: var(--text-primary);
+  letter-spacing: 1rpx;
+}
+
+.date-sub {
+  font-size: 26rpx;
+  color: var(--text-secondary);
+  font-weight: 500;
+}
+
+/* ===== 编辑区域 — 更精致的卡片 ===== */
+.editor-section {
+  padding: 0 !important;
+  overflow: hidden;
+  border-radius: var(--radius-xl) !important;
+}
+
+.note-editor {
+  width: 100%;
+  min-height: 320rpx;
+  max-height: 60vh;
+  padding: 32rpx;
+  font-size: 31rpx;
+  color: var(--text-primary);
+  line-height: 1.8;
+  background: transparent;
+  border: none;
+  font-weight: 400;
+  letter-spacing: 0.5rpx;
+}
+
+.editor-footer {
+  display: flex;
+  justify-content: flex-end;
+  padding: 0 32rpx 20rpx;
+  border-top: 1rpx solid rgba(0,0,0,0.04);
+  padding-top: 16rpx;
+}
+
+.char-count {
+  font-size: 22rpx;
+  color: var(--text-tertiary);
+}
+
+/* ===== 提示文字 ===== */
+.tips-section {
+  margin-top: 20rpx;
+  text-align: center;
+}
+
+.tips-text {
+  font-size: 25rpx;
+  color: var(--text-tertiary);
+  line-height: 1.6;
+  letter-spacing: 0.5rpx;
+}
+
+/* ===== 保存区域 ===== */
+.save-section {
+  margin-top: 44rpx;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 18rpx;
+  padding-bottom: 20rpx;
+}
+
+.save-btn {
+  width: 100%;
+  height: 96rpx;
+  background: var(--text-primary);
+  color: #ffffff;
+  font-size: 33rpx;
+  font-weight: 600;
+  border-radius: var(--radius-lg);
+  border: none;
+  letter-spacing: 6rpx;
+  transition: opacity 0.15s;
+}
+
+.save-btn.disabled {
+  opacity: 0.25;
+}
+
+.save-btn::after {
+  border: none;
+}
+
+.clear-btn {
+  font-size: 26rpx;
+  color: var(--festival-red);
+  background: transparent;
+  padding: 14rpx 36rpx;
+  border: none;
+  font-weight: 500;
+  letter-spacing: 1rpx;
+}
+
+.clear-btn::after {
+  border: none;
+}
+
+.bottom-spacer {
+  height: 60rpx;
+}

@@ -1,0 +1,201 @@
+<!--pages/index/index.wxml — 首页：日历 + 节日 + 倒计时 + 金句-->
+<view class="page-container">
+  <!-- 顶部：今日信息 + 金句（左右布局） -->
+  <view class="header-section">
+    <view class="header-top-row">
+      <!-- 左侧：日期信息 -->
+      <view class="header-left">
+        <view class="today-header">
+          <text class="today-date">{{todayInfo.month}}月{{todayInfo.day}}日</text>
+          <text class="today-lunar">{{todayInfo.lunarMonth}}{{todayInfo.lunarDay}}</text>
+          <text class="today-ganzhi" wx:if="{{todayInfo.ganzhiYear}}"> {{todayInfo.ganzhiYear}}年</text>
+        </view>
+        <!-- 今日节日标签 -->
+        <view class="festival-tags-row" wx:if="{{todayFestivals.length > 0}}">
+          <view class="festival-tag {{item.tagClass}}" wx:for="{{todayFestivals}}" wx:key="name">
+            {{item.name}}
+          </view>
+        </view>
+      </view>
+      <!-- 右侧：每日金句 -->
+      <view class="header-quote">
+        <text class="quote-text-inline">「{{dailyQuote}}」</text>
+      </view>
+    </view>
+  </view>
+
+  <!-- 今日节气养生提示 -->
+  <view class="solar-term-health-card" wx:if="{{todaySolarTermHealth}}">
+    <view class="sth-header">
+      <text class="sth-tag">🌿 {{todaySolarTermName}}</text>
+      <text class="sth-desc">{{todaySolarTermHealth.desc}}</text>
+    </view>
+    <view class="sth-body">
+      <text class="sth-item">💚 {{todaySolarTermHealth.health}}</text>
+      <text class="sth-item">🍲 {{todaySolarTermHealth.diet}}</text>
+      <text class="sth-tip-line">✨ {{todaySolarTermHealth.tip}}</text>
+    </view>
+  </view>
+
+  <!-- 当前节气（非当天）的简短提示 -->
+  <view class="solar-term-health-card sth-mini" wx:elif="{{currentSolarTermName}}">
+    <text class="sth-mini-text">🌿 当前节气：{{currentSolarTermName}} — {{currentSolarTermTip}}</text>
+  </view>
+
+  <!-- 日历主体（与日历页一致） -->
+  <view class="calendar-card">
+    <!-- 月份导航 -->
+    <view class="month-nav">
+      <view class="nav-btn" bindtap="prevMonth">
+        <text class="nav-arrow">‹</text>
+      </view>
+      <view class="month-title" bindtap="goToToday">
+        <text class="year-text">{{currentYear}}</text>
+        <text class="month-text">{{currentMonth}}月</text>
+        <text class="today-hint" wx:if="{{currentYear === todayInfo.year && currentMonth === todayInfo.month}}"> · 今天</text>
+      </view>
+      <view class="nav-btn" bindtap="nextMonth">
+        <text class="nav-arrow">›</text>
+      </view>
+    </view>
+
+    <!-- 星期头 -->
+    <view class="week-header">
+      <view class="week-day-item" wx:for="{{weekDays}}" wx:key="name">
+        <text class="week-day-text {{item.isWeekend ? 'weekend' : ''}}">{{item.name}}</text>
+      </view>
+    </view>
+
+    <!-- 日期网格（与日历页一致的格子风格） -->
+    <view class="calendar-grid">
+      <view
+        class="{{item.cellClass}}"
+        wx:for="{{calendarData}}"
+        wx:key="dateStr"
+        data-date="{{item.dateStr}}"
+        data-info="{{item}}"
+        bindtap="onDayTap"
+      >
+        <text class="day-number">{{item.day}}</text>
+        <!-- 标记文字（节气/农历/节日/重要日子） -->
+        <text
+          class="marker {{item.markerType === 'solar-term' ? 'solar-term-marker' : (item.markerType === 'festival' ? 'festival-marker ' + item.festivalMarkerClass : (item.markerType === 'event' ? 'event-marker' : 'lunar-marker'))}}"
+          wx:if="{{item.isCurrentMonth && item.markerText}}"
+        >{{item.markerText}}</text>
+        <!-- 多节日圆点指示器 -->
+        <view class="festival-dots" wx:if="{{item.showMultiDots}}">
+          <view class="dot dot-red" wx:if="{{item.hasRedFestival}}"></view>
+          <view class="dot dot-purple" wx:if="{{item.hasBuddhist}}"></view>
+          <view class="dot dot-gold" wx:if="{{item.hasGoldFestival}}"></view>
+        </view>
+      </view>
+    </view>
+  </view>
+
+  <!-- 重要日子倒计时（展示名称 + 目标日期） -->
+  <view class="section-block">
+    <view class="section-header">
+      <text class="section-icon">⏳</text>
+      <text class="section-title">重要日子</text>
+      <view class="add-btn-small" bindtap="goToAddEventWithDate">
+        <text>+</text>
+      </view>
+    </view>
+
+    <view class="events-list" wx:if="{{upcomingEvents.length > 0}}">
+      <view
+        class="event-item"
+        wx:for="{{upcomingEvents}}"
+        wx:key="id"
+        data-event="{{item}}"
+        bindlongpress="onDeleteEvent"
+        bindtap="goToEditEvent"
+      >
+        <view class="event-main">
+          <view class="event-top-row">
+            <view class="event-dot {{item.dotClass}}"></view>
+            <text class="event-name">{{item.name}}</text>
+            <text class="event-category-tag">{{item.categoryName}}</text>
+          </view>
+          <view class="event-bottom-row">
+            <text class="event-target-date">{{item.displayDate}}</text>
+            <view class="event-countdown-area">
+              <text class="event-subtitle {{item.isCountdown ? '' : 'past'}}">{{item.subtitleText}}</text>
+              <text class="event-days {{!item.isCountdown ? 'past' : ''}}">{{item.daysAway}}</text>
+              <text class="event-unit">天</text>
+            </view>
+          </view>
+        </view>
+      </view>
+    </view>
+
+    <view class="empty-add-area" wx:else bindtap="goToAddEvent">
+      <text class="add-icon-large">+</text>
+      <text class="add-text">添加重要日子</text>
+    </view>
+  </view>
+
+  <!-- 近期节日（列表式：展示节日名称 + 类型 + 描述） -->
+  <view class="section-block" wx:if="{{upcomingFestivals.length > 0}}">
+    <view class="section-header">
+      <text class="section-icon">📌</text>
+      <text class="section-title">近期节日</text>
+    </view>
+
+    <view class="festivals-list-v">
+      <view
+        class="festival-card {{item.chipColor}}"
+        wx:for="{{upcomingFestivals}}"
+        wx:key="{{index}}"
+        data-festival="{{item}}"
+        bindtap="goToFestivalDetail"
+      >
+        <view class="fc-left">
+          <view class="fc-date-box">
+            <text class="fc-month">{{item.festMonth}}</text>
+            <text class="fc-day">{{item.festDay}}</text>
+          </view>
+          <view class="fc-countdown-badge {{item.countdownClass}}">{{item.countdownText}}</view>
+        </view>
+
+        <view class="fc-right">
+          <view class="fc-name-row">
+            <text class="fc-name">{{item.displayName}}</text>
+            <text class="fc-type-tag" wx:if="{{item.typeLabel}}">{{item.typeLabel}}</text>
+          </view>
+          <text class="fc-desc" wx:if="{{item.displayDesc}}">{{item.displayDesc}}</text>
+          <text class="fc-desc fc-desc-alt" wx:elif="{{item.lunarDateText}}">{{item.lunarDateText}}</text>
+        </view>
+      </view>
+    </view>
+  </view>
+
+
+  <!-- 功过格入口 -->
+  <view class="merit-entry" bindtap="goToMerit">
+    <view class="merit-left">
+      <text class="merit-icon">☯️</text>
+      <view class="merit-info">
+        <text class="merit-title">功过格</text>
+        <text class="merit-subtitle">了凡四训 · 每日善恶行记录</text>
+      </view>
+    </view>
+    <view class="merit-right" wx:if="{{meritTodayNet !== null}}">
+      <text class="merit-net {{meritTodayNet >= 0 ? 'net-positive' : 'net-negative'}}">{{meritTodayNet >= 0 ? '+' : ''}}{{meritTodayNet}}</text>
+      <text class="merit-arrow">›</text>
+    </view>
+    <text class="merit-arrow-alone" wx:else>›</text>
+  </view>
+
+  <!-- 设置入口 -->
+  <view class="settings-entry" bindtap="goToSettings">
+    <text class="settings-icon">⚙️</text>
+    <text class="settings-text">显示设置</text>
+    <text class="settings-arrow">›</text>
+  </view>
+
+  <!-- 底部签名 -->
+  <view class="footer-signature">
+    <text>岁时记 · 记录时光</text>
+  </view>
+</view>

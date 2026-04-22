@@ -1,0 +1,74 @@
+<!--pages/settings/settings.wxml — 设置页面-->
+<view class="page-container">
+  <!-- 标题 -->
+  <view class="page-header">
+    <text class="page-title">显示设置</text>
+    <text class="page-subtitle">选择在日历上展示的佛教与传统日期</text>
+  </view>
+
+  <!-- 设置列表 -->
+  <view class="settings-group">
+    <!-- 六斋日 -->
+    <view class="setting-item">
+      <view class="setting-left">
+        <view class="setting-icon-wrap liuzhai-icon">
+          <text class="setting-icon">🪷</text>
+        </view>
+        <view class="setting-info">
+          <text class="setting-name">六斋日</text>
+          <text class="setting-desc">每月初八、十四、十五、廿三、月末两日</text>
+        </view>
+      </view>
+      <switch
+        checked="{{showLiuZhai}}"
+        color="#AF52DE"
+        bindchange="onSwitchLiuZhai"
+      />
+    </view>
+
+    <!-- 农历初一/十五 -->
+    <view class="setting-item">
+      <view class="setting-left">
+        <view class="setting-icon-wrap lunar-icon">
+          <text class="setting-icon">🌙</text>
+        </view>
+        <view class="setting-info">
+          <text class="setting-name">农历初一 / 十五</text>
+          <text class="setting-desc">每月初一和十五在日历上标记显示</text>
+        </view>
+      </view>
+      <switch
+        checked="{{showLunarFestivals}}"
+        color="#DAA520"
+        bindchange="onSwitchLunarFestivals"
+      />
+    </view>
+
+    <!-- 佛教纪念日 -->
+    <view class="setting-item">
+      <view class="setting-left">
+        <view class="setting-icon-wrap buddhist-icon">
+          <text class="setting-icon">☸️</text>
+        </view>
+        <view class="setting-info">
+          <text class="setting-name">佛教纪念日</text>
+          <text class="setting-desc">佛诞日、涅槃日、观音菩萨圣诞等</text>
+        </view>
+      </view>
+      <switch
+        checked="{{showBuddhistFestivals}}"
+        color="#AF52DE"
+        bindchange="onSwitchBuddhistFestivals"
+      />
+    </view>
+  </view>
+
+  <!-- 说明区域 -->
+  <view class="tips-card">
+    <text class="tips-title">说明</text>
+    <text class="tips-text">关闭后，对应日期的标记将不会出现在日历格子上。固定节日（如劳动节、国庆节）和农历传统节日（如春节、中秋）始终显示，不受此设置影响。</text>
+  </view>
+
+  <!-- 底部留白 -->
+  <view class="bottom-spacer"></view>
+</view>

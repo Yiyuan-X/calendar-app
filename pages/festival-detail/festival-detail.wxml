@@ -1,0 +1,62 @@
+<!--pages/festival-detail/festival-detail.wxml-->
+<view class="page-container">
+  <!-- 头部 -->
+  <view class="detail-header">
+    <view class="header-tag {{festivalInfo.tagClass}}">
+      <text>{{categoryText}}</text>
+    </view>
+    <text class="header-name">{{festivalInfo.name}}</text>
+    <text class="header-date" wx:if="{{festivalInfo.lunarDate}}">{{festivalInfo.lunarDate}}</text>
+    <text class="header-solar" wx:else>{{festivalInfo.date}}</text>
+  </view>
+
+  <!-- 金句卡片 -->
+  <view class="quote-card" wx:if="{{festivalQuote}}">
+    <view class="quote-decoration">"</view>
+    <text class="quote-content">{{festivalQuote}}</text>
+  </view>
+
+  <!-- 描述 -->
+  <view class="desc-section card" wx:if="{{festivalInfo.description}}">
+    <text class="desc-text">{{festivalInfo.description}}</text>
+  </view>
+
+  <!-- 节日信息卡片 -->
+  <view class="info-section">
+    <!-- 倒计时 -->
+    <view class="info-row">
+      <text class="info-label">距离这天</text>
+      <view class="info-value-highlight">
+        <text class="highlight-number">{{daysAway >= 0 ? daysAway : '已过去' + Math.abs(daysAway) + '天'}}</text>
+        <text class="highlight-unit" wx:if="{{daysAway >= 0}}">天</text>
+      </view>
+    </view>
+
+    <!-- 类型 -->
+    <view class="info-row">
+      <text class="info-label">类型</text>
+      <text class="info-value">{{typeText}}</text>
+    </view>
+
+    <!-- 农历日期 -->
+    <view class="info-row" wx:if="{{festivalInfo.lunarDate}}">
+      <text class="info-label">农历</text>
+      <text class="info-value">{{festivalInfo.lunarDate}}</text>
+    </view>
+
+    <!-- 公历日期 -->
+    <view class="info-row">
+      <text class="info-label">公历</text>
+      <text class="info-value">{{festivalInfo.date}}</text>
+    </view>
+  </view>
+
+  <!-- 添加为重要日子 -->
+  <view class="action-card" bindtap="addAsEvent">
+    <text class="action-icon">+</text>
+    <text class="action-text">将此日设为重要日子</text>
+  </view>
+
+  <!-- 底部留白 -->
+  <view class="bottom-spacer safe-area-bottom"></view>
+</view>

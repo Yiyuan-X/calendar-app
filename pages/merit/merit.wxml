@@ -1,0 +1,394 @@
+<!--pages/merit/merit.wxml — 功过格（了凡四训）-->
+<view class="page-container">
+
+  <!-- 日期头部 + 引文 -->
+  <view class="header-section">
+    <view class="date-header">
+      <text class="date-main">{{displayDate}}</text>
+      <text class="date-sub">{{weekdayText}}</text>
+    </view>
+
+    <!-- 了凡四训每日引文 -->
+    <view class="quote-card" wx:if="{{dailyQuote}}">
+      <text class="quote-mark">「</text>
+      <text class="quote-text">{{dailyQuote.text}}</text>
+      <text class="quote-source">— 《了凡四训》{{dailyQuote.source}}</text>
+    </view>
+  </view>
+
+  <!-- 功德总览卡片 -->
+  <view class="overview-card" wx:if="{{selectedItems.length > 0 || hasExistingRecord}}">
+    <view class="overview-row">
+      <view class="overview-item good">
+        <text class="overview-label">善行</text>
+        <text class="overview-value">+{{currentGoodTotal}}</text>
+      </view>
+      <view class="overview-divider"></view>
+      <view class="overview-item bad">
+        <text class="overview-label">过失</text>
+        <text class="overview-value">-{{currentBadTotal}}</text>
+      </view>
+      <view class="overview-divider"></view>
+      <view class="overview-item net {{currentNetMerit >= 0 ? 'positive' : 'negative'}}">
+        <text class="overview-label">净功德</text>
+        <text class="overview-value">{{currentNetMerit >= 0 ? '+' : ''}}{{currentNetMerit}}</text>
+      </view>
+    </view>
+  </view>
+
+  <!-- 已选条目展示（带累计次数） -->
+  <view class="selected-section" wx:if="{{selectedItems.length > 0}}">
+    <view class="section-title-row">
+      <text class="section-title-text">今日记录</text>
+      <text class="selected-count">{{selectedItems.length}} 条</text>
+    </view>
+
+    <view class="selected-list">
+      <view
+        class="selected-tag {{item.type === 'good' ? 'tag-good' : 'tag-bad'}} {{item.isCustom ? 'tag-custom' : ''}}"
+        wx:for="{{selectedItems}}"
+        wx:key="itemId"
+      >
+        <text class="tag-icon">{{item.type === 'good' ? '✓' : '✗'}}</text>
+        <text class="tag-text">{{item.text}}</text>
+        <!-- 累计分数 = 单次分 × 次数 -->
+        <text class="tag-value">{{item.type === 'good' ? '+' : '-'}}{{item.type === 'good' ? item.merit * (item.count || 1) : item.demerit * (item.count || 1)}}</text>
+        <!-- 累计次数角标 -->
+        <view class="tag-count-badge">
+          <text>×{{item.count || 1}}</text>
+        </view>
+        <view class="tag-remove" bindtap="onRemoveItem" data-index="{{index}}">
+          <text>×</text>
+        </view>
+      </view>
+    </view>
+  </view>
+
+  <!-- 善行分类（累计模式：点击 +1，长按/右侧 -1） -->
+  <view class="category-section" wx:for="{{goodCategories}}" wx:key="id">
+    <view class="category-header good-header">
+      <text class="category-icon">{{item.icon}}</text>
+      <text class="category-name">{{item.name}}</text>
+      <text class="category-desc">{{item.desc}}</text>
+    </view>
+    <view class="items-grid">
+      <view
+        class="merit-item good-item {{mItem.selected ? 'selected' : ''}} {{mItem.count > 0 ? 'has-count' : ''}}"
+        wx:for="{{item.items}}"
+        wx:for-item="mItem"
+        wx:for-index="mIdx"
+        wx:key="id"
+        bindtap="onToggleGoodItem"
+        data-categoryId="{{id}}"
+        data-itemId="{{mItem.id}}"
+        data-text="{{mItem.text}}"
+        data-merit="{{mItem.merit}}"
+      >
+        <view class="item-left">
+          <text class="item-check">{{mItem.selected ? '✓' : ''}}</text>
+          <text class="item-text">{{mItem.text}}</text>
+        </view>
+        <view class="item-right">
+          <text class="item-points">+{{mItem.merit}}</text>
+          <!-- 累计次数气泡 -->
+          <view class="count-bubble count-good" wx:if="{{mItem.count > 0}}">
+            <text>{{mItem.count}}</text>
+          </view>
+        </view>
+      </view>
+    </view>
+  </view>
+
+  <!-- 恶行分类（累计模式） -->
+  <view class="category-section" wx:for="{{badCategories}}" wx:key="id">
+    <view class="category-header bad-header">
+      <text class="category-icon">{{item.icon}}</text>
+      <text class="category-name">{{item.name}}</text>
+      <text class="category-desc">{{item.desc}}</text>
+    </view>
+    <view class="items-grid">
+      <view
+        class="merit-item bad-item {{mItem.selected ? 'selected' : ''}} {{mItem.count > 0 ? 'has-count' : ''}}"
+        wx:for="{{item.items}}"
+        wx:for-item="mItem"
+        wx:for-index="mIdx"
+        wx:key="id"
+        bindtap="onToggleBadItem"
+        data-categoryId="{{id}}"
+        data-itemId="{{mItem.id}}"
+        data-text="{{mItem.text}}"
+        data-demerit="{{mItem.demerit}}"
+      >
+        <view class="item-left">
+          <text class="item-check">{{mItem.selected ? '✗' : ''}}</text>
+          <text class="item-text">{{mItem.text}}</text>
+        </view>
+        <view class="item-right">
+          <text class="item-points">-{{mItem.demerit}}</text>
+          <!-- 累计次数气泡 -->
+          <view class="count-bubble count-bad" wx:if="{{mItem.count > 0}}">
+            <text>{{mItem.count}}</text>
+          </view>
+        </view>
+      </view>
+    </view>
+  </view>
+
+  <!-- ==================== 自定义功过条目区域（累计模式 + 增减按钮） ==================== -->
+  <view class="custom-section card">
+    <view class="custom-header">
+      <view class="custom-title-row">
+        <text class="custom-title-icon">✏️</text>
+        <text class="custom-title-text">自定义条目</text>
+        <text class="custom-count" wx:if="{{customGoodItems.length + customBadItems.length > 0}}">{{customGoodItems.length + customBadItems.length}}</text>
+      </view>
+      <view class="custom-add-btns">
+        <view class="add-btn add-good" bindtap="onShowAddCustom" data-type="good">
+          <text>+ 善行</text>
+        </view>
+        <view class="add-btn add-bad" bindtap="onShowAddCustom" data-type="bad">
+          <text>+ 过失</text>
+        </view>
+      </view>
+    </view>
+
+    <!-- 自定义善行列表（带增减按钮） -->
+    <view class="custom-group" wx:if="{{customGoodItems.length > 0}}">
+      <view class="custom-group-label good-label">
+        <text>🌿 自定义善行（{{customGoodItems.length}}）</text>
+      </view>
+      <view class="custom-items-list">
+        <view
+          class="custom-item-row {{cItem.selected ? 'selected-good' : ''}} {{cItem.count > 0 ? 'has-count' : ''}}"
+          wx:for="{{customGoodItems}}"
+          wx:key="id"
+        >
+          <!-- 点击区域：增加 +1 -->
+          <view class="custom-item-body" bindtap="onIncrementCustomGood" data-itemId="{{item.id}}" data-text="{{item.text}}" data-merit="{{item.merit}}">
+            <text class="custom-check">{{cItem.selected ? '✓' : ''}}</text>
+            <text class="custom-item-text">{{item.text}}</text>
+            <text class="custom-item-score score-good">+{{item.merit}}</text>
+            <!-- 累计次数 -->
+            <view class="count-bubble count-good-custom" wx:if="{{cItem.count > 0}}">
+              <text>{{cItem.count}}</text>
+            </view>
+          </view>
+          <!-- 操作区：减少 -1 / 编辑 / 删除 -->
+          <view class="custom-item-actions">
+            <!-- 减少按钮（仅在已选时显示） -->
+            <view
+              class="action-decrement"
+              wx:if="{{cItem.count > 0}}"
+              catchtap="onDecrementCustomGood"
+              data-itemId="{{item.id}}"
+            >
+              <text>−</text>
+            </view>
+            <view class="action-edit" catchtap="onShowEditCustom" data-id="{{item.id}}">
+              <text>✎</text>
+            </view>
+            <view class="action-delete" catchtap="onDeleteCustomItem" data-id="{{item.id}}">
+              <text>✕</text>
+            </view>
+          </view>
+        </view>
+      </view>
+    </view>
+
+    <!-- 自定义恶行列表（带增减按钮） -->
+    <view class="custom-group" wx:if="{{customBadItems.length > 0}}">
+      <view class="custom-group-label bad-label">
+        <text>⚡ 自定义过失（{{customBadItems.length}}）</text>
+      </view>
+      <view class="custom-items-list">
+        <view
+          class="custom-item-row {{cItem.selected ? 'selected-bad' : ''}} {{cItem.count > 0 ? 'has-count' : ''}}"
+          wx:for="{{customBadItems}}"
+          wx:key="id"
+        >
+          <!-- 点击区域：增加 +1 -->
+          <view class="custom-item-body" bindtap="onIncrementCustomBad" data-itemId="{{item.id}}" data-text="{{item.text}}" data-demerit="{{item.demerit}}">
+            <text class="custom-check">{{cItem.selected ? '✗' : ''}}</text>
+            <text class="custom-item-text">{{item.text}}</text>
+            <text class="custom-item-score score-bad">-{{item.demerit}}</text>
+            <!-- 累计次数 -->
+            <view class="count-bubble count-bad-custom" wx:if="{{cItem.count > 0}}">
+              <text>{{cItem.count}}</text>
+            </view>
+          </view>
+          <!-- 操作区：减少 -1 / 编辑 / 删除 -->
+          <view class="custom-item-actions">
+            <view
+              class="action-decrement"
+              wx:if="{{cItem.count > 0}}"
+              catchtap="onDecrementCustomBad"
+              data-itemId="{{item.id}}"
+            >
+              <text>−</text>
+            </view>
+            <view class="action-edit" catchtap="onShowEditCustom" data-id="{{item.id}}">
+              <text>✎</text>
+            </view>
+            <view class="action-delete" catchtap="onDeleteCustomItem" data-id="{{item.id}}">
+              <text>✕</text>
+            </view>
+          </view>
+        </view>
+      </view>
+    </view>
+
+    <!-- 空状态提示 -->
+    <view class="custom-empty" wx:if="{{customGoodItems.length === 0 && customBadItems.length === 0}}">
+      <text class="empty-text">还没有自定义条目</text>
+      <text class="empty-hint">点击上方按钮添加你自己的功过项目</text>
+    </view>
+  </view>
+
+  <!-- 反省备注 -->
+  <view class="reflection-section card">
+    <view class="reflection-header">
+      <text class="reflection-title">📝 今日反省</text>
+    </view>
+    <textarea
+      class="reflection-editor"
+      placeholder="今日有何特别的心得或反省？"
+      value="{{reflectionNote}}"
+      bindinput="onNoteInput"
+      auto-height
+      maxlength="200"
+    ></textarea>
+    <view class="editor-footer">
+      <text class="char-count">{{reflectionNote.length}}/200</text>
+    </view>
+  </view>
+
+  <!-- 统计概览入口 -->
+  <view class="stats-summary card" wx:if="{{stats}}" bindtap="goToStats">
+    <view class="summary-header">
+      <text class="summary-title">📊 功德累计</text>
+      <text class="summary-arrow">›</text>
+    </view>
+    <view class="summary-body">
+      <view class="summary-item">
+        <text class="summary-num {{stats.totalNet >= 0 ? 'num-good' : 'num-bad'}}">{{stats.totalNet}}</text>
+        <text class="summary-label">净功德</text>
+      </view>
+      <view class="summary-divider"></view>
+      <view class="summary-item">
+        <text class="summary-num num-good">{{streakDays}}</text>
+        <text class="summary-label">连续天数</text>
+      </view>
+      <view class="summary-divider"></view>
+      <view class="summary-item">
+        <text class="summary-num">{{totalDays}}</text>
+        <text class="summary-label">记录天数</text>
+      </view>
+    </view>
+    <view class="level-badge" wx:if="{{meritLevel}}" style="background: {{meritLevel.color}}15; color: {{meritLevel.color}};">
+      <text>{{meritLevel.title}} — {{meritLevel.desc}}</text>
+    </view>
+  </view>
+
+  <!-- 操作按钮 -->
+  <view class="action-section">
+    <button
+      class="save-btn {{selectedItems.length > 0 ? '' : 'disabled'}}"
+      disabled="{{selectedItems.length === 0}}"
+      bindtap="onSave"
+    >
+      {{hasExistingRecord ? '更新功过' : '记录今日功过'}}
+    </button>
+
+    <button
+      class="clear-btn"
+      wx:if="{{hasExistingRecord}}"
+      bindtap="onClear"
+    >
+      清除记录
+    </button>
+  </view>
+
+  <!-- 底部留白 -->
+  <view class="bottom-spacer safe-area-bottom"></view>
+</view>
+
+<!-- ==================== 自定义条目弹窗 ==================== -->
+<view class="modal-mask" wx:if="{{showCustomModal}}" bindtap="onCloseCustomModal"></view>
+<view class="custom-modal {{showCustomModal ? 'show' : ''}}" wx:if="{{showCustomModal}}">
+  <view class="modal-content">
+    <!-- 弹窗标题 -->
+    <view class="modal-head">
+      <text class="modal-title">{{customModalMode === 'add' ? '添加自定义条目' : '编辑自定义条目'}}</text>
+      <view class="modal-close" bindtap="onCloseCustomModal">
+        <text>✕</text>
+      </view>
+    </view>
+
+    <!-- 类型切换 -->
+    <view class="type-switch">
+      <view
+        class="type-option {{customEditType === 'good' ? 'active-good' : ''}}"
+        bindtap="onCustomTypeSwitch"
+        data-type="good"
+      >
+        <text>✓ 善行</text>
+      </view>
+      <view
+        class="type-option {{customEditType === 'bad' ? 'active-bad' : ''}}"
+        bindtap="onCustomTypeSwitch"
+        data-type="bad"
+      >
+        <text>✗ 过失</text>
+      </view>
+    </view>
+
+    <!-- 内容输入 -->
+    <view class="form-group">
+      <text class="form-label">条目内容</text>
+      <input
+        class="form-input"
+        placeholder="例如：帮助同事解决技术难题"
+        value="{{customEditText}}"
+        bindinput="onCustomTextInput"
+        maxlength="30"
+        confirm-type="done"
+      />
+    </view>
+
+    <!-- 分数设置 -->
+    <view class="form-group">
+      <text class="form-label">分数（{{customEditType === 'good' ? '功德值' : '过失值'}}：{{customEditScore}}）</text>
+      <view class="score-quick-btns">
+        <view
+          class="quick-btn {{customEditScore === s ? 'active' : ''}}"
+          wx:for="{{[1, 3, 5, 10, 20]}}"
+          wx:key="*this"
+          wx:for-item="s"
+          bindtap="onQuickScore"
+          data-score="{{s}}"
+        >
+          <text>{{s}}</text>
+        </view>
+      </view>
+      <slider
+        class="score-slider"
+        min="1"
+        max="100"
+        step="1"
+        value="{{customEditScore}}"
+        bindchange="onCustomScoreInput"
+        activeColor="{{customEditType === 'good' ? '#4CAF50' : '#F44336'}}"
+        block-size="16"
+      />
+      <view class="score-range">
+        <text>1</text>
+        <text>100</text>
+      </view>
+    </view>
+
+    <!-- 确认按钮 -->
+    <button class="modal-confirm-btn {{customEditType === 'good' ? 'btn-good' : 'btn-bad'}}" bindtap="onConfirmCustom">
+      {{customModalMode === 'add' ? '确认添加' : '确认修改'}}
+    </button>
+  </view>
+</view>

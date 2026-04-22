@@ -1,0 +1,212 @@
+/* ===== 全局样式 - Apple 风格极简设计（优化版） ===== */
+
+/* CSS 变量 — 精心调配的配色体系 */
+page {
+  --primary-color: #1D1D1F;
+  --secondary-color: #86868B;
+  --accent-color: #007AFF;
+  --bg-color: #F5F5F7;
+  --card-bg: #FFFFFF;
+  --border-color: rgba(0, 0, 0, 0.05);
+  --border-color-light: rgba(0, 0, 0, 0.03);
+  --festival-red: #FF3B30;
+  --festival-gold: #B8965E;
+  --buddhist-purple: #AF52DE;
+  --success-green: #34C759;
+  --text-primary: #1D1D1F;
+  --text-secondary: #6E6E73;
+  --text-tertiary: #AEAEB2;
+  --radius-sm: 10rpx;
+  --radius-md: 16rpx;
+  --radius-lg: 20rpx;
+  --radius-xl: 28rpx;
+  --shadow-sm: 0 2rpx 12rpx rgba(0, 0, 0, 0.04);
+  --shadow-md: 0 4rpx 20rpx rgba(0, 0, 0, 0.06);
+  --shadow-lg: 0 8rpx 36rpx rgba(0, 0, 0, 0.08);
+
+  background-color: var(--bg-color);
+  color: var(--text-primary);
+  font-family: -apple-system, BlinkMacSystemFont, 'SF Pro Display', 'SF Pro Text', 'Helvetica Neue', 'PingFang SC', 'Noto Sans SC', sans-serif;
+  font-size: 28rpx;
+  line-height: 1.55;
+  -webkit-font-smoothing: antialiased;
+}
+
+/* 基础重置 */
+view, text, image, scroll-view, button {
+  box-sizing: border-box;
+}
+
+/* 安全区域适配 */
+.safe-area-bottom {
+  padding-bottom: env(safe-area-inset-bottom);
+}
+
+/* 卡片基础样式 */
+.card {
+  background: var(--card-bg);
+  border-radius: var(--radius-lg);
+  padding: 28rpx;
+  box-shadow: var(--shadow-sm);
+}
+
+.card-hover {
+  transition: transform 0.18s ease, box-shadow 0.18s ease;
+}
+
+.card-hover:active {
+  transform: scale(0.98);
+  box-shadow: none;
+}
+
+/* 文字工具类 */
+.text-primary { color: var(--text-primary); }
+.text-secondary { color: var(--text-secondary); }
+.text-tertiary { color: var(--text-tertiary); }
+.text-accent { color: var(--accent-color); }
+.text-festival { color: var(--festival-red); }
+.text-buddhist { color: var(--buddhist-purple); }
+.text-gold { color: var(--festival-gold); }
+
+/* 字体大小 */
+.font-xs { font-size: 22rpx; }
+.font-sm { font-size: 24rpx; }
+.font-md { font-size: 28rpx; }
+.font-lg { font-size: 32rpx; }
+.font-xl { font-size: 40rpx; }
+.font-xxl { font-size: 56rpx; }
+.font-display { font-size: 80rpx; font-weight: 300; }
+
+/* 字重 */
+.font-light { font-weight: 300; }
+.font-regular { font-weight: 400; }
+.font-medium { font-weight: 500; }
+.font-semibold { font-weight: 600; }
+
+/* Flex 工具类 */
+.flex { display: flex; }
+.flex-col { flex-direction: column; }
+.flex-wrap { flex-wrap: wrap; }
+.items-center { align-items: center; }
+.items-start { align-items: flex-start; }
+.items-end { align-items: flex-end; }
+.justify-center { justify-content: center; }
+.justify-between { justify-content: space-between; }
+.justify-around { justify-content: space-around; }
+.flex-1 { flex: 1; }
+
+/* 间距 */
+.gap-xs { gap: 8rpx; }
+.gap-sm { gap: 16rpx; }
+.gap-md { gap: 24rpx; }
+.gap-lg { gap: 32rpx; }
+.gap-xl { gap: 48rpx; }
+
+.p-xs { padding: 8rpx; }
+.p-sm { padding: 16rpx; }
+.p-md { padding: 24rpx; }
+.p-lg { padding: 32rpx; }
+.p-xl { padding: 48rpx; }
+
+.mt-xs { margin-top: 8rpx; }
+.mt-sm { margin-top: 16rpx; }
+.mt-md { margin-top: 24rpx; }
+.mt-lg { margin-top: 32rpx; }
+.mt-xl { margin-top: 48rpx; }
+
+.mb-xs { margin-bottom: 8rpx; }
+.mb-sm { margin-bottom: 16rpx; }
+.mb-md { margin-bottom: 24rpx; }
+.mb-lg { margin-bottom: 32rpx; }
+.mb-xl { margin-bottom: 48rpx; }
+
+/* 圆角标签 — 更精致的胶囊标签 */
+.tag {
+  display: inline-flex;
+  align-items: center;
+  padding: 6rpx 18rpx;
+  border-radius: 20rpx;
+  font-size: 21rpx;
+  font-weight: 600;
+  letter-spacing: 0.5rpx;
+}
+
+.tag-red {
+  background: rgba(255, 59, 48, 0.09);
+  color: var(--festival-red);
+}
+
+.tag-gold {
+  background: rgba(184, 150, 94, 0.11);
+  color: var(--festival-gold);
+}
+
+.tag-purple {
+  background: rgba(175, 82, 222, 0.09);
+  color: var(--buddhist-purple);
+}
+
+.tag-blue {
+  background: rgba(0, 122, 255, 0.07);
+  color: var(--accent-color);
+}
+
+.tag-green {
+  background: rgba(52, 199, 89, 0.09);
+  color: var(--success-green);
+}
+
+.tag-gray {
+  background: rgba(142, 142, 147, 0.08);
+  color: var(--text-secondary);
+}
+
+.tag-pink {
+  background: rgba(255, 118, 147, 0.1);
+  color: #FF6B8A;
+}
+
+.tag-orange {
+  background: rgba(255, 149, 0, 0.1);
+  color: #FF9500;
+}
+
+/* 分割线 */
+.divider {
+  height: 1rpx;
+  background: var(--border-color);
+  margin: 24rpx 0;
+}
+
+/* 淡入动画 */
+@keyframes fadeIn {
+  from { opacity: 0; transform: translateY(8rpx); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+.fade-in {
+  animation: fadeIn 0.4s ease forwards;
+}
+
+@keyframes fadeInUp {
+  from { opacity: 0; transform: translateY(16rpx); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+.fade-in-up {
+  animation: fadeInUp 0.45s ease forwards;
+  opacity: 0; /* 初始隐藏，动画开始时显示 */
+}
+
+/* 数字展示样式 — 等宽数字 */
+.number-display {
+  font-feature-settings: 'tnum';
+  font-variant-numeric: tabular-nums;
+}
+
+/* 隐藏滚动条 */
+::-webkit-scrollbar {
+  display: none;
+  width: 0;
+  height: 0;
+}
