@@ -9,6 +9,7 @@ const STORAGE_KEYS = {
   SETTINGS: 'settings',
   MERIT_RECORDS: 'merit_records',   // 功德记录
   CUSTOM_MERIT_ITEMS: 'custom_merit_items', // 自定义功过条目
+  DELETED_BUILTIN_ITEMS: 'deleted_builtin_items', // 已删除的内置条目ID列表
   INITIALIZED: 'initialized'
 };
 
@@ -375,6 +376,58 @@ function deleteCustomMeritItem(itemId) {
   return true;
 }
 
+// ===== 内置条目删除管理 =====
+
+/**
+ * 获取已删除的内置条目ID列表
+ * @returns {Array} 已删除的条目ID数组
+ */
+function getDeletedBuiltinItems() {
+  return getStorage(STORAGE_KEYS.DELETED_BUILTIN_ITEMS) || [];
+}
+
+/**
+ * 标记某个内置条目为已删除（软删除）
+ * @param {string} itemId - 内置条目ID（如 'g1', 'b1'）
+ */
+function markBuiltinItemDeleted(itemId) {
+  const deleted = getDeletedBuiltinItems();
+  if (!deleted.includes(itemId)) {
+    deleted.push(itemId);
+    setStorage(STORAGE_KEYS.DELETED_BUILTIN_ITEMS, deleted);
+  }
+  return true;
+}
+
+/**
+ * 恢复某个已删除的内置条目
+ * @param {string} itemId - 内置条目ID
+ */
+function restoreBuiltinItem(itemId) {
+  let deleted = getDeletedBuiltinItems();
+  deleted = deleted.filter(id => id !== itemId);
+  setStorage(STORAGE_KEYS.DELETED_BUILTIN_ITEMS, deleted);
+  return true;
+}
+
+/**
+ * 检查某个内置条目是否已被删除
+ * @param {string} itemId - 内置条目ID
+ * @returns {boolean}
+ */
+function isBuiltinItemDeleted(itemId) {
+  const deleted = getDeletedBuiltinItems();
+  return deleted.includes(itemId);
+}
+
+/**
+ * 清空所有已删除的内置条目记录（恢复全部默认内置条目）
+ */
+function clearAllDeletedBuiltinItems() {
+  removeStorage(STORAGE_KEYS.DELETED_BUILTIN_ITEMS);
+  return true;
+}
+
 module.exports = {
   STORAGE_KEYS,
   getStorage,
@@ -408,5 +461,11 @@ module.exports = {
   getCustomMeritItems,
   addCustomMeritItem,
   updateCustomMeritItem,
-  deleteCustomMeritItem
+  deleteCustomMeritItem,
+  // 内置条目删除管理
+  getDeletedBuiltinItems,
+  markBuiltinItemDeleted,
+  restoreBuiltinItem,
+  isBuiltinItemDeleted,
+  clearAllDeletedBuiltinItems
 };

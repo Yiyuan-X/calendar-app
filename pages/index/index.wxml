@@ -1,4 +1,4 @@
-<!--pages/index/index.wxml — 首页：日历 + 节日 + 倒计时 + 金句-->
+<!--pages/index/index.wxml — 首页：节日 + 倒计时 + 金句-->
 <view class="page-container">
   <!-- 顶部：今日信息 + 金句（左右布局） -->
   <view class="header-section">
@@ -24,78 +24,42 @@
     </view>
   </view>
 
-  <!-- 今日节气养生提示 -->
-  <view class="solar-term-health-card" wx:if="{{todaySolarTermHealth}}">
-    <view class="sth-header">
-      <text class="sth-tag">🌿 {{todaySolarTermName}}</text>
-      <text class="sth-desc">{{todaySolarTermHealth.desc}}</text>
+  <!-- 节气养生卡片（图1简洁风格） -->
+  <view class="sth2-card" wx:if="{{todaySolarTermHealth}}">
+    <view class="sth2-title-row">
+      <image class="sth2-icon" src="/images/icons/leaf.svg" mode="aspectFit"></image>
+      <text class="sth2-name">{{todaySolarTermName}}</text>
     </view>
-    <view class="sth-body">
-      <text class="sth-item">💚 {{todaySolarTermHealth.health}}</text>
-      <text class="sth-item">🍲 {{todaySolarTermHealth.diet}}</text>
-      <text class="sth-tip-line">✨ {{todaySolarTermHealth.tip}}</text>
-    </view>
+    <text class="sth2-period" wx:if="{{todaySolarTermPeriod}}">{{todaySolarTermPeriod}}</text>
+    <text class="sth2-desc">{{todaySolarTermHealth.desc}}</text>
+    <text class="sth2-text">{{todaySolarTermHealth.health}}</text>
+    <text class="sth2-text">{{todaySolarTermHealth.diet}}</text>
+    <view class="sth2-tip"><text>{{todaySolarTermHealth.tip}}</text></view>
   </view>
 
   <!-- 当前节气（非当天）的简短提示 -->
-  <view class="solar-term-health-card sth-mini" wx:elif="{{currentSolarTermName}}">
-    <text class="sth-mini-text">🌿 当前节气：{{currentSolarTermName}} — {{currentSolarTermTip}}</text>
+  <view class="sth2-card sth2-mini" wx:elif="{{currentSolarTermName}}">
+    <view class="sth2-title-row">
+      <image class="sth2-icon" src="/images/icons/leaf.svg" mode="aspectFit"></image>
+      <text class="sth2-name">当前节气：{{currentSolarTermName}}</text>
+    </view>
+    <text class="sth2-period" wx:if="{{currentSolarTermPeriod}}">{{currentSolarTermPeriod}}</text>
+    <view class="sth2-tip" wx:if="{{currentSolarTermTip}}"><text>{{currentSolarTermTip}}</text></view>
   </view>
 
-  <!-- 日历主体（与日历页一致） -->
-  <view class="calendar-card">
-    <!-- 月份导航 -->
-    <view class="month-nav">
-      <view class="nav-btn" bindtap="prevMonth">
-        <text class="nav-arrow">‹</text>
-      </view>
-      <view class="month-title" bindtap="goToToday">
-        <text class="year-text">{{currentYear}}</text>
-        <text class="month-text">{{currentMonth}}月</text>
-        <text class="today-hint" wx:if="{{currentYear === todayInfo.year && currentMonth === todayInfo.month}}"> · 今天</text>
-      </view>
-      <view class="nav-btn" bindtap="nextMonth">
-        <text class="nav-arrow">›</text>
-      </view>
+  <!-- 每日纯素食养生语录（图2详细风格，保留） -->
+  <view class="dvt2-card" wx:if="{{dailyVegetarianTip}}">
+    <view class="dvt2-header">
+      <text class="dvt2-title">节气 · 养生</text>
     </view>
-
-    <!-- 星期头 -->
-    <view class="week-header">
-      <view class="week-day-item" wx:for="{{weekDays}}" wx:key="name">
-        <text class="week-day-text {{item.isWeekend ? 'weekend' : ''}}">{{item.name}}</text>
-      </view>
-    </view>
-
-    <!-- 日期网格（与日历页一致的格子风格） -->
-    <view class="calendar-grid">
-      <view
-        class="{{item.cellClass}}"
-        wx:for="{{calendarData}}"
-        wx:key="dateStr"
-        data-date="{{item.dateStr}}"
-        data-info="{{item}}"
-        bindtap="onDayTap"
-      >
-        <text class="day-number">{{item.day}}</text>
-        <!-- 标记文字（节气/农历/节日/重要日子） -->
-        <text
-          class="marker {{item.markerType === 'solar-term' ? 'solar-term-marker' : (item.markerType === 'festival' ? 'festival-marker ' + item.festivalMarkerClass : (item.markerType === 'event' ? 'event-marker' : 'lunar-marker'))}}"
-          wx:if="{{item.isCurrentMonth && item.markerText}}"
-        >{{item.markerText}}</text>
-        <!-- 多节日圆点指示器 -->
-        <view class="festival-dots" wx:if="{{item.showMultiDots}}">
-          <view class="dot dot-red" wx:if="{{item.hasRedFestival}}"></view>
-          <view class="dot dot-purple" wx:if="{{item.hasBuddhist}}"></view>
-          <view class="dot dot-gold" wx:if="{{item.hasGoldFestival}}"></view>
-        </view>
-      </view>
+    <view class="dvt2-body">
+      <text class="dvt2-content">{{dailyVegetarianTip}}</text>
     </view>
   </view>
 
   <!-- 重要日子倒计时（展示名称 + 目标日期） -->
   <view class="section-block">
     <view class="section-header">
-      <text class="section-icon">⏳</text>
       <text class="section-title">重要日子</text>
       <view class="add-btn-small" bindtap="goToAddEventWithDate">
         <text>+</text>
@@ -138,7 +102,6 @@
   <!-- 近期节日（列表式：展示节日名称 + 类型 + 描述） -->
   <view class="section-block" wx:if="{{upcomingFestivals.length > 0}}">
     <view class="section-header">
-      <text class="section-icon">📌</text>
       <text class="section-title">近期节日</text>
     </view>
 
@@ -146,7 +109,7 @@
       <view
         class="festival-card {{item.chipColor}}"
         wx:for="{{upcomingFestivals}}"
-        wx:key="{{index}}"
+        wx:key="index"
         data-festival="{{item}}"
         bindtap="goToFestivalDetail"
       >
@@ -171,31 +134,58 @@
   </view>
 
 
-  <!-- 功过格入口 -->
-  <view class="merit-entry" bindtap="goToMerit">
-    <view class="merit-left">
-      <text class="merit-icon">☯️</text>
-      <view class="merit-info">
-        <text class="merit-title">功过格</text>
-        <text class="merit-subtitle">了凡四训 · 每日善恶行记录</text>
+  <!-- 功能操作区：功过格 + 显示设置（并排醒目卡片） -->
+  <view class="action-row">
+    <view class="action-card merit-entry" bindtap="goToMerit">
+      <image class="action-icon-img" src="/images/icons/yin-yang.svg" mode="aspectFit"></image>
+      <view class="action-info">
+        <text class="action-title">功过格</text>
+        <text class="action-subtitle">了凡四训 · 善恶行记录</text>
       </view>
+      <view class="action-badge {{meritTodayNet !== null ? (meritTodayNet >= 0 ? 'badge-positive' : 'badge-negative') : 'badge-empty'}}" wx:if="{{meritTodayNet !== null}}">
+        <text>{{meritTodayNet >= 0 ? '+' : ''}}{{meritTodayNet}}</text>
+      </view>
+      <text class="action-arrow">›</text>
     </view>
-    <view class="merit-right" wx:if="{{meritTodayNet !== null}}">
-      <text class="merit-net {{meritTodayNet >= 0 ? 'net-positive' : 'net-negative'}}">{{meritTodayNet >= 0 ? '+' : ''}}{{meritTodayNet}}</text>
-      <text class="merit-arrow">›</text>
+
+    <view class="action-card settings-entry-prominent" bindtap="goToSettings">
+      <view class="settings-icon-circle">
+        <image class="settings-icon-img2" src="/images/icons/settings.svg" mode="aspectFit"></image>
+      </view>
+      <view class="action-info">
+        <text class="action-title">显示设置</text>
+        <text class="action-subtitle">自定义节日 · 节气等</text>
+      </view>
+      <text class="action-arrow">›</text>
     </view>
-    <text class="merit-arrow-alone" wx:else>›</text>
   </view>
 
-  <!-- 设置入口 -->
-  <view class="settings-entry" bindtap="goToSettings">
-    <text class="settings-icon">⚙️</text>
-    <text class="settings-text">显示设置</text>
-    <text class="settings-arrow">›</text>
+  <!-- 分享操作栏 -->
+  <view class="share-bar">
+    <button class="share-btn share-btn-primary" open-type="share">
+      <image class="share-btn-icon" src="/images/icons/share-wechat.svg" mode="aspectFit"></image>
+      <text class="share-btn-text">一键分享</text>
+    </button>
+    <button class="share-btn share-btn-primary" bindtap="shareToMoments">
+      <image class="share-btn-icon" src="/images/icons/share-moments.svg" mode="aspectFit"></image>
+      <text class="share-btn-text">朋友圈</text>
+    </button>
+    <button class="share-btn share-btn-save" bindtap="saveImage">
+      <image class="share-btn-icon" src="/images/icons/save.svg" mode="aspectFit"></image>
+      <text class="share-btn-text">保存</text>
+    </button>
+  </view>
+
+  <!-- 底部快捷设置（固定悬浮） -->
+  <view class="quick-settings-fab" bindtap="goToSettings">
+    <image class="fab-icon" src="/images/icons/settings.svg" mode="aspectFit"></image>
   </view>
 
   <!-- 底部签名 -->
   <view class="footer-signature">
     <text>岁时记 · 记录时光</text>
   </view>
+
+  <!-- 隐藏的 Canvas（用于生成分享海报） -->
+  <canvas type="2d" id="shareCanvas" style="position:fixed;left:-9999px;top:-9999px;width:500px;height:750px;"></canvas>
 </view>

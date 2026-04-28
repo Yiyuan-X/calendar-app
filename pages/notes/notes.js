@@ -8,6 +8,7 @@ Page({
     displayDate: '',
     weekdayText: '',
     noteContent: '',
+    canSave: false,
     hasExistingNote: false,
     autoFocus: true,
     placeholder: '今天有什么想记录的？'
@@ -57,6 +58,7 @@ Page({
     if (existingNote && existingNote.content) {
       this.setData({
         noteContent: existingNote.content,
+        canSave: !!existingNote.content.trim(),
         hasExistingNote: true
       });
     }
@@ -85,7 +87,11 @@ Page({
    * 备注输入
    */
   onNoteInput(e) {
-    this.setData({ noteContent: e.detail.value });
+    const noteContent = e.detail.value;
+    this.setData({
+      noteContent,
+      canSave: !!noteContent.trim()
+    });
   },
 
   /**
@@ -127,6 +133,7 @@ Page({
           storage.deleteNote(this.data.dateStr);
           this.setData({
             noteContent: '',
+            canSave: false,
             hasExistingNote: false
           });
           wx.showToast({ title: '已清除', icon: 'success' });

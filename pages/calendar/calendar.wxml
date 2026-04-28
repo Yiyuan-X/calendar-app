@@ -14,6 +14,12 @@
     </view>
   </view>
 
+  <!-- 回到今天按钮（非当月时显示） -->
+  <view class="back-today-bar" wx:if="{{!isCurrentMonth}}" bindtap="goToToday">
+    <text class="back-today-icon-text">◉</text>
+    <text class="back-today-text">回到今天 {{todayDisplay}}</text>
+  </view>
+
   <!-- 星期标题 -->
   <view class="week-header">
     <view class="week-day-item" wx:for="{{weekDays}}" wx:key="index">
@@ -31,17 +37,23 @@
       data-date="{{item.dateStr}}"
       data-info="{{item}}"
     >
-      <!-- 日期数字 -->
-      <text class="day-number">{{item.day}}</text>
+      <!-- 日期数字：选中时红色方块，今天未选中时红字+圆点，普通黑色 -->
+      <block wx:if="{{item.isSelected}}">
+        <text class="day-number day-selected">{{item.day}}</text>
+      </block>
+      <block wx:elif="{{item.isToday}}">
+        <text class="day-number day-today">{{item.day}}</text>
+        <view class="today-dot"></view>
+      </block>
+      <block wx:else>
+        <text class="day-number">{{item.day}}</text>
+      </block>
 
-      <!-- 标记文字（节气/农历/节日/重要日子）— 仅当月日期显示 -->
+      <!-- 标记文字（节气/农历/节日/重要日子）— 仅当月日期显示，选中时隐藏 -->
       <text
-        class="marker {{item.markerType === 'solar-term' ? 'solar-term-marker' : (item.markerType === 'festival' ? 'festival-marker ' + item.festivalMarkerClass : (item.markerType === 'event' ? 'event-marker' : 'lunar-marker'))}}"
-        wx:if="{{item.isCurrentMonth && item.markerText}}"
+        class="{{item.markerClass}}"
+        wx:if="{{item.isCurrentMonth && item.markerText && !item.isSelected}}"
       >{{item.markerText}}</text>
-
-      <!-- 今天圆点（非圆形数字模式时使用） -->
-      <view class="today-dot" wx:if="{{item.isToday}}"></view>
 
       <!-- 多节日圆点指示器 -->
       <view class="festival-dots" wx:if="{{item.showMultiDots}}">
@@ -58,6 +70,12 @@
       <view class="panel-date">
         <text class="panel-solar">{{selectedDate.year}}年{{selectedDate.month}}月{{selectedDate.day}}日</text>
         <text class="panel-weekday">星期{{selectedDate.weekNameShort}}</text>
+        <!-- 当天节日名称（跟在星期后面同一行） -->
+        <text
+          class="festival-name-inline {{item.tagClass}}"
+          wx:for="{{selectedDate.festivals}}"
+          wx:key="name"
+        >{{item.name}}</text>
       </view>
       <view class="panel-lunar" wx:if="{{selectedDate.lunarDisplay}}">
         <text class="lunar-year">{{selectedDate.ganzhiYear}}年</text>
@@ -80,31 +98,31 @@
 
       <!-- 气候特点 -->
       <view class="st-section">
-        <text class="st-label">🌤 气候</text>
+        <text class="st-label">气候</text>
         <text class="st-text">{{selectedDate.solarTermHealth.climate}}</text>
       </view>
 
       <!-- 养生要点 -->
       <view class="st-section">
-        <text class="st-label">💚 养生</text>
+        <text class="st-label">养生</text>
         <text class="st-text">{{selectedDate.solarTermHealth.health}}</text>
       </view>
 
       <!-- 饮食建议 -->
       <view class="st-section">
-        <text class="st-label">🍲 食疗</text>
+        <text class="st-label">食疗</text>
         <text class="st-text">{{selectedDate.solarTermHealth.diet}}</text>
       </view>
 
       <!-- 起居提醒 -->
       <view class="st-section">
-        <text class="st-label">🏠 起居</text>
+        <text class="st-label">起居</text>
         <text class="st-text">{{selectedDate.solarTermHealth.lifestyle}}</text>
       </view>
 
       <!-- 养生金句 -->
       <view class="st-tip">
-        <text class="tip-text">✨ {{selectedDate.solarTermHealth.tip}}</text>
+        <text class="tip-text">{{selectedDate.solarTermHealth.tip}}</text>
       </view>
     </view>
 
@@ -140,7 +158,7 @@
 
     <!-- 添加备注按钮 -->
     <view class="add-note-btn" wx:if="{{!selectedNote}}" bindtap="goToNotes">
-      <text class="add-note-icon">✎</text>
+      <image class="add-note-icon-img" src="/images/icons/edit.svg" mode="aspectFit"></image>
       <text>给这一天写点什么</text>
     </view>
 
@@ -150,65 +168,51 @@
       <text>将这天设为重要日子</text>
     </view>
 
-    <!-- ==================== 黄历资料（始终显示） ==================== -->
+    <!-- ==================== 黄历资料（完整版） ==================== -->
     <view class="huangli-card card" wx:if="{{selectedDate}}">
-      <!-- 顶部：干支 + 建除 + 星宿 + 纳音 -->
-      <view class="hl-header">
-        <view class="hl-ganzhi">
-          <text class="hl-day-gz">{{selectedDate.huangli.dayGanZhi || '—'}}</text>
-          <text class="hl-month-gz">{{selectedDate.huangli.monthGanZhi || '—'}}月</text>
+
+      <!-- ===== 第一行：农历标题（参考竞品：大字突出） ===== -->
+      <view class="hl-top-header">
+        <view class="hl-nongli-badge">
+          <text class="hl-nongli-label">农历</text>
+          <text class="hl-nongli-value">{{selectedDate.lunarMonth || ''}}{{selectedDate.lunarDay || ''}}</text>
         </view>
-        <view class="hl-badges">
-          <view class="hl-badge {{selectedDate.huangli.jianChuLuck === '吉' ? 'badge-luck-good' : (selectedDate.huangli.jianChuLuck === '凶' ? 'badge-luck-bad' : 'badge-luck-normal')}}">
-            <text>{{selectedDate.huangli.jianChu || '—'}}日</text>
-          </view>
-          <view class="hl-badge badge-xiu">
-            <text>{{selectedDate.huangli.xiu || '—'}}宿</text>
-          </view>
-          <view class="hl-badge badge-nayin">
-            <text>{{selectedDate.huangli.naYin || '—'}}</text>
-          </view>
+        <view class="hl-top-right">
+          <view class="hl-set-reminder" bindtap="goToAddEventWithDate"><image class="reminder-icon" src="/images/icons/clock.svg" mode="aspectFit"></image><text>设置提醒</text></view>
         </view>
       </view>
 
-      <!-- 佛历 + 斋日 -->
-      <view class="hl-foli">
-        <view class="foli-left">
-          <text class="foli-icon">☸</text>
-          <text class="foli-year">{{selectedDate.huangli.foLiText || '—'}}</text>
-        </view>
-        <view class="foli-right" wx:if="{{selectedDate.huangli.isFoHuiRi || selectedDate.huangli.isShiZhai}}">
-          <view class="zhai-tag {{selectedDate.huangli.isShiZhai ? 'zhai-shi' : 'zhai-liu'}}" wx:if="{{selectedDate.huangli.isFoHuiRi}}">
-            <text>{{selectedDate.huangli.zhaiDayName || '斋日'}}</text>
-          </view>
+      <!-- ===== 第二行：干支 + 建除 + 星宿 + 纳音（一行紧凑） ===== -->
+      <view class="hl-ganzhi-row">
+        <image class="hl-ganzhi-prefix-img" src="/images/icons/horse.svg" mode="aspectFit"></image>
+        <text class="hl-ganzhi-text">{{selectedDate.huangli.dayGanZhi || '—'}} {{selectedDate.huangli.monthGanZhi || '—'}}月{{selectedDate.huangli.dayZhi || ''}}日</text>
+      </view>
+
+      <!-- ===== 第三行：佛历 + 斋日 ===== -->
+      <view class="hl-foli-row">
+        <text class="foli-text">佛历 {{selectedDate.huangli.foLiYear || '—'}} 年</text>
+        <view class="zhai-tag-inline {{selectedDate.huangli.isShiZhai ? 'zhai-shi' : 'zhai-liu'}}" wx:if="{{selectedDate.huangli.isFoHuiRi}}">
+          <text>{{selectedDate.huangli.zhaiDayName || '斋日'}}</text>
         </view>
       </view>
 
-      <!-- 宜忌区域 -->
+      <!-- ===== 第三行：日级宜忌 ===== -->
       <view class="hl-yiji-section" wx:if="{{selectedDate.huangli.yi && selectedDate.huangli.ji}}">
         <view class="hl-yi-group">
           <text class="hl-yiji-label yi-label">宜</text>
           <view class="hl-yiji-tags">
-            <text
-              class="yi-tag"
-              wx:for="{{selectedDate.huangli.yi}}"
-              wx:key="*this"
-            >{{item}}</text>
+            <text class="yi-tag" wx:for="{{selectedDate.huangli.yi}}" wx:key="*this">{{item}}</text>
           </view>
         </view>
         <view class="hl-ji-group">
           <text class="hl-yiji-label ji-label">忌</text>
           <view class="hl-yiji-tags">
-            <text
-              class="ji-tag"
-              wx:for="{{selectedDate.huangli.ji}}"
-              wx:key="*this"
-            >{{item}}</text>
+            <text class="ji-tag" wx:for="{{selectedDate.huangli.ji}}" wx:key="*this">{{item}}</text>
           </view>
         </view>
       </view>
 
-      <!-- 冲煞 + 五行 + 方位神 -->
+      <!-- ===== 第四行：冲煞 + 五行 + 方位神（6格） ===== -->
       <view class="hl-details-grid" wx:if="{{selectedDate.huangli.chongText}}">
         <view class="hl-detail-item">
           <text class="detail-label">冲煞</text>
@@ -236,10 +240,10 @@
         </view>
       </view>
 
-      <!-- 彭祖百忌 -->
+      <!-- ===== 第五行：彭祖百忌 ===== -->
       <view class="hl-pengzu" wx:if="{{selectedDate.huangli.pengZuGan || selectedDate.huangli.pengZuZhi}}">
         <view class="pengzu-title">
-          <text class="pengzu-icon">📜</text>
+          <image class="pengzu-icon-img" src="/images/icons/scroll.svg" mode="aspectFit"></image>
           <text class="pengzu-text">彭祖百忌</text>
         </view>
         <view class="pengzu-items">
@@ -248,13 +252,90 @@
         </view>
       </view>
 
-      <!-- 建除说明 -->
+      <!-- ===== 第六行：建除说明 ===== -->
       <view class="hl-jianchu-desc" wx:if="{{selectedDate.huangli.jianChuDesc}}">
-        <text class="jianchu-desc-text">💡 {{selectedDate.huangli.jianChuDesc.text}}</text>
+        <text class="jianchu-desc-text">{{selectedDate.huangli.jianChuDesc.text}}</text>
       </view>
+
+      <!-- ===== 第七行：十二时辰（竞品风格） ===== -->
+      <view class="hl-shichen-section" wx:if="{{selectedDate.huangli.shiChen}}">
+        <view class="shichen-title-row">
+          <text class="shichen-title">第 {{selectedDate.huangli.dayGZIndex % 60 + 1}} 天 {{selectedDate.huangli.dayZhi}}候 {{selectedDate.huangli.jianChu}}</text>
+          <text class="shichen-sub">{{selectedDate.year}}年{{selectedDate.month}}月{{selectedDate.day}}日 — {{selectedDate.huangli.nextSolarTerm}}</text>
+        </view>
+
+        <view class="shichen-list">
+          <view
+            class="shichen-item"
+            wx:for="{{selectedDate.huangli.shiChen}}"
+            wx:key="name"
+          >
+            <!-- 左侧：圆形地支 + 时间信息（两行） -->
+            <view class="sc-left">
+              <view class="sc-zhi-circle">
+                <text class="sc-zhi-name">{{item.zhi}}</text>
+              </view>
+              <view class="sc-time-info">
+                <text class="sc-time-main">{{item.name}} {{item.time}}</text>
+                <text class="sc-time-sub" wx:if="{{item.chongText}}">{{item.chongText}}</text>
+              </view>
+            </view>
+
+            <!-- 右侧：宜（上行）+ 忌（下行） -->
+            <view class="sc-right">
+              <!-- 宜 -->
+              <view class="sc-yi-area" wx:if="{{item.yi.length > 0}}">
+                <text class="sc-yi-label">宜</text>
+                <scroll-view scroll-x enhanced show-scrollbar="{{false}}" class="sc-tags-scroll">
+                  <view class="sc-tags-row">
+                    <text class="sc-yi-tag" wx:for="{{item.yi}}" wx:for-item="yt" wx:key="*this">{{yt}}</text>
+                  </view>
+                </scroll-view>
+              </view>
+              <view class="sc-yi-area" wx:else>
+                <text class="sc-yi-label">宜</text>
+                <text class="sc-empty-tag">—</text>
+              </view>
+              <!-- 忌 -->
+              <view class="sc-ji-area" wx:if="{{item.ji.length > 0}}">
+                <text class="sc-ji-label">忌</text>
+                <scroll-view scroll-x enhanced show-scrollbar="{{false}}" class="sc-tags-scroll">
+                  <view class="sc-tags-row">
+                    <text class="sc-ji-tag" wx:for="{{item.ji}}" wx:for-item="jt" wx:key="*this">{{jt}}</text>
+                  </view>
+                </scroll-view>
+              </view>
+              <view class="sc-ji-area" wx:else>
+                <text class="sc-ji-label">忌</text>
+                <text class="sc-empty-tag">诸事不宜</text>
+              </view>
+            </view>
+          </view>
+        </view>
+      </view>
+
     </view>
+  </view>
+
+  <!-- 分享操作栏 -->
+  <view class="share-bar">
+    <button class="share-btn share-btn-primary" open-type="share">
+      <image class="share-btn-icon" src="/images/icons/share-wechat.svg" mode="aspectFit"></image>
+      <text class="share-btn-text">一键分享</text>
+    </button>
+    <button class="share-btn share-btn-primary" bindtap="shareToMoments">
+      <image class="share-btn-icon" src="/images/icons/share-moments.svg" mode="aspectFit"></image>
+      <text class="share-btn-text">朋友圈</text>
+    </button>
+    <button class="share-btn share-btn-save" bindtap="saveImage">
+      <image class="share-btn-icon" src="/images/icons/save.svg" mode="aspectFit"></image>
+      <text class="share-btn-text">保存</text>
+    </button>
   </view>
 
   <!-- 底部留白 -->
   <view class="bottom-spacer safe-area-bottom"></view>
+
+  <!-- 隐藏的 Canvas（用于生成分享海报） -->
+  <canvas type="2d" id="shareCanvas" style="position:fixed;left:-9999px;top:-9999px;width:500px;height:750px;"></canvas>
 </view>

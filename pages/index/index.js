@@ -3,6 +3,7 @@ const calendarUtil = require('../../utils/calendar');
 const storage = require('../../utils/storage');
 const quotes = require('../../utils/quotes');
 const solarTerms = require('../../utils/solar-terms');
+const meritUtil = require('../../utils/merit');
 
 Page({
   data: {
@@ -33,6 +34,17 @@ Page({
 
     // === 近期节日 ===
     upcomingFestivals: [],
+
+    // === 节气养生 ===
+    todaySolarTermName: '',
+    todaySolarTermHealth: null,
+    todaySolarTermPeriod: '',
+    currentSolarTermName: '',
+    currentSolarTermTip: '',
+    currentSolarTermPeriod: '',
+
+    // === 每日素食养生语录 ===
+    dailyVegetarianTip: '',
 
     // === 功过格 ===
     meritTodayNet: null
@@ -255,6 +267,21 @@ Page({
 
   // ==================== 数据加载 ====================
 
+  /** 获取节气时间段（从当前节气到下一个节气的日期范围） */
+  _getSolarTermPeriod(year, month, day) {
+    try {
+      const nearby = solarTerms.getNearbySolarTerms(year, month, day);
+      const currentTerm = nearby.prev || nearby.next;
+      const nextTerm = nearby.next || nearby.prev;
+      if (currentTerm && nextTerm) {
+        return `${currentTerm.month}月${currentTerm.day}日 — ${nextTerm.month}月${nextTerm.day}日`;
+      } else if (currentTerm) {
+        return `${currentTerm.month}月起`;
+      }
+    } catch(e) {}
+    return '';
+  },
+
   initPage() {
     const now = new Date();
     const todayStr = `${now.getFullYear()}-${calendarUtil.padZero(now.getMonth() + 1)}-${calendarUtil.padZero(now.getDate())}`;
@@ -267,20 +294,24 @@ Page({
     const todayST = solarTerms.getTodaySolarTerm(year, month, day);
     let todaySolarTermName = '';
     let todaySolarTermHealth = null;
+    let todaySolarTermPeriod = '';
     if (todayST) {
       todaySolarTermName = todayST.name;
       todaySolarTermHealth = solarTerms.getSolarTermHealth(todayST.name);
+      todaySolarTermPeriod = this._getSolarTermPeriod(year, month, day);
     }
 
     // 获取当前节气（非当天时显示简短提示）
     let currentSolarTermName = '';
     let currentSolarTermTip = '';
+    let currentSolarTermPeriod = '';
     if (!todayST) {
       const nearby = solarTerms.getNearbySolarTerms(year, month, day);
       const currentTerm = nearby.prev || nearby.next;
       if (currentTerm) {
         currentSolarTermName = currentTerm.name;
         currentSolarTermTip = solarTerms.getSolarTermHealthTip(currentTerm.name) || '顺应天时，调和身心';
+        currentSolarTermPeriod = this._getSolarTermPeriod(year, month, day);
       }
     }
 
@@ -296,8 +327,13 @@ Page({
       // 节气养生数据
       todaySolarTermName,
       todaySolarTermHealth,
+      todaySolarTermPeriod,
       currentSolarTermName,
-      currentSolarTermTip
+      currentSolarTermTip,
+      currentSolarTermPeriod,
+
+      // 每日素食养生语录
+      dailyVegetarianTip: solarTerms.getDailyVegetarianTip()
     });
 
     this.generateCalendar();
@@ -314,12 +350,9 @@ Page({
   loadTodayMerit() {
     const todayRecord = storage.getMeritRecordByDate(this.data.todayStr);
     if (todayRecord && todayRecord.items) {
-      let net = 0;
-      todayRecord.items.forEach(item => {
-        if (item.type === 'good') net += (item.merit || 0);
-        else net -= (item.demerit || 0);
-      });
-      this.setData({ meritTodayNet: net });
+      this.setData({ meritTodayNet: meritUtil.calculateNetMerit(todayRecord) });
+    } else {
+      this.setData({ meritTodayNet: null });
     }
   },
 
@@ -334,6 +367,13 @@ Page({
 
     if (Math.random() > 0.7) {
       this.setData({ dailyQuote: quotes.getDailyQuote() });
+    }
+
+    // 刷新每日素食养生语录
+    try {
+      this.setData({ dailyVegetarianTip: solarTerms.getDailyVegetarianTip() });
+    } catch(e) {
+      console.error('刷新每日素食语录失败:', e);
     }
 
     this.loadUpcomingEvents();
@@ -467,10 +507,9 @@ Page({
     wx.navigateTo({ url: '/pages/settings/settings' });
   },
 
-  goToMerit() {
-    const date = this.data.todayInfo.dateStr || this.data.todayStr;
-    wx.navigateTo({ url: `/pages/merit/merit?date=${date}` });
-  },
+goToMerit() {
+  wx.switchTab({ url: '/pages/merit/merit' });
+},
 
   // ==================== 分享 ====================
 
@@ -480,5 +519,125 @@ Page({
       title: `${todayInfo.month}月${todayInfo.day}日 · ${dailyQuote}`,
       path: '/pages/index/index'
     };
+  },
+
+  /** 分享到朋友圈 */
+  shareToMoments() {
+    this.generateShareImage(function(res) {
+      if (res.success) {
+        wx.previewImage({ urls: [res.tempFilePath], current: res.tempFilePath });
+      } else {
+        wx.showToast({ title: '生成失败', icon: 'none' });
+      }
+    });
+  },
+
+  /** 保存到相册 */
+  saveImage() {
+    var that = this;
+    this.generateShareImage(function(res) {
+      if (res.success) {
+        wx.saveImageToPhotosAlbum({
+          filePath: res.tempFilePath,
+          success: function() { wx.showToast({ title: '已保存到相册', icon: 'success' }); },
+          fail: function(err) {
+            if (err.errMsg.indexOf('auth deny') !== -1 || err.errMsg.indexOf('authorize') !== -1) {
+              wx.showModal({
+                title: '提示', content: '需要您授权保存相册权限',
+                confirmText: '去设置',
+                success: function(modalRes) { if (modalRes.confirm) wx.openSetting(); }
+              });
+            } else {
+              wx.showToast({ title: '保存失败', icon: 'none' });
+            }
+          }
+        });
+      } else {
+        wx.showToast({ title: '生成失败', icon: 'none' });
+      }
+    });
+  },
+
+  /** 生成分享海报（首页版） */
+  generateShareImage(callback) {
+    var that = this;
+    var ti = this.data.todayInfo;
+    var quote = this.data.dailyQuote || '';
+    var festivals = this.data.todayFestivals || [];
+
+    wx.showLoading({ title: '正在生成...' });
+
+    var query = wx.createSelectorQuery();
+    query.select('#shareCanvas').fields({ node: true, size: true }).exec(function(res) {
+      if (!res || !res[0] || !res[0].node) {
+        wx.hideLoading(); callback({ success: false }); return;
+      }
+
+      var canvas = res[0].node;
+      var ctx = canvas.getContext('2d');
+      var dpr = wx.getSystemInfoSync().pixelRatio;
+
+      var W = 500, H = 750;
+      canvas.width = W * dpr; canvas.height = H * dpr;
+      ctx.scale(dpr, dpr);
+
+      try {
+        // 背景
+        var bgGrad = ctx.createLinearGradient(0, 0, W, H);
+        bgGrad.addColorStop(0, '#FFF8E7'); bgGrad.addColorStop(1, '#FFF3D6');
+        ctx.fillStyle = bgGrad; ctx.fillRect(0, 0, W, H);
+
+        // 边框
+        ctx.strokeStyle = '#DAA520'; ctx.lineWidth = 2;
+        ctx.strokeRect(15, 15, W - 30, H - 30);
+
+        // 标题
+        ctx.fillStyle = '#8B6914'; ctx.font = 'bold 36px sans-serif';
+        ctx.textAlign = 'center'; ctx.fillText('今日 · 岁时记', W / 2, 70);
+
+        // 日期
+        ctx.fillStyle = '#5D4037'; ctx.font = '28px sans-serif';
+        ctx.fillText((ti.month || '') + '月' + (ti.day || '') + '日', W / 2, 115);
+
+        // 农历
+        ctx.fillStyle = '#A08520'; ctx.font = '20px sans-serif';
+        ctx.fillText((ti.lunarMonth || '') + (ti.lunarDay || ''), W / 2, 148);
+
+        // 节日标签
+        if (festivals.length > 0) {
+          ctx.fillStyle = '#D93B3B'; ctx.font = '18px sans-serif';
+          var festNames = festivals.map(function(f) { return f.name; }).join(' · ');
+          ctx.fillText(festNames, W / 2, 180);
+        }
+
+        // 金句区域
+        ctx.fillStyle = '#6D5A2E'; ctx.font = 'bold 24px sans-serif';
+        ctx.textAlign = 'center';
+        ctx.fillText('「' + quote + '」', W / 2, 250);
+
+        // 底部品牌
+        ctx.fillStyle = '#AEAEB2'; ctx.font = '13px sans-serif';
+        ctx.fillText('— 岁时记 · 记录时光 —', W / 2, H - 50);
+        ctx.font = '11px sans-serif';
+        ctx.fillText('长按识别小程序码查看更多', W / 2, H - 25);
+
+        setTimeout(function() {
+          wx.canvasToTempFilePath({
+            canvas: canvas, width: W, height: H,
+            destWidth: W * 2, destHeight: H * 2,
+            fileType: 'jpg', quality: 0.95,
+            success: function(saveRes) {
+              wx.hideLoading(); callback({ success: true, tempFilePath: saveRes.tempFilePath });
+            },
+            fail: function(err) {
+              console.error('canvasToTempFilePath 失败:', err);
+              wx.hideLoading(); callback({ success: false });
+            }
+          });
+        }, 100);
+      } catch (e) {
+        console.error('绘制出错:', e); wx.hideLoading(); callback({ success: false });
+      }
+    });
   }
 });

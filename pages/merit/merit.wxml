@@ -36,98 +36,117 @@
     </view>
   </view>
 
-  <!-- 已选条目展示（带累计次数） -->
+  <!-- 已选统计（只显示分数汇总） -->
   <view class="selected-section" wx:if="{{selectedItems.length > 0}}">
     <view class="section-title-row">
       <text class="section-title-text">今日记录</text>
       <text class="selected-count">{{selectedItems.length}} 条</text>
     </view>
 
-    <view class="selected-list">
-      <view
-        class="selected-tag {{item.type === 'good' ? 'tag-good' : 'tag-bad'}} {{item.isCustom ? 'tag-custom' : ''}}"
-        wx:for="{{selectedItems}}"
-        wx:key="itemId"
-      >
-        <text class="tag-icon">{{item.type === 'good' ? '✓' : '✗'}}</text>
-        <text class="tag-text">{{item.text}}</text>
-        <!-- 累计分数 = 单次分 × 次数 -->
-        <text class="tag-value">{{item.type === 'good' ? '+' : '-'}}{{item.type === 'good' ? item.merit * (item.count || 1) : item.demerit * (item.count || 1)}}</text>
-        <!-- 累计次数角标 -->
-        <view class="tag-count-badge">
-          <text>×{{item.count || 1}}</text>
-        </view>
-        <view class="tag-remove" bindtap="onRemoveItem" data-index="{{index}}">
-          <text>×</text>
-        </view>
+    <!-- 善行组 -->
+    <view class="selected-group" wx:if="{{currentGoodTotal > 0}}">
+      <view class="group-label group-label-good">
+        <image class="group-label-icon-img" src="/images/icons/gen-check.svg" mode="aspectFit"></image>
+        <text class="group-label-text">善行</text>
+        <text class="group-label-total">+{{currentGoodTotal}}</text>
+      </view>
+    </view>
+
+    <!-- 过失组 -->
+    <view class="selected-group" wx:if="{{currentBadTotal > 0}}">
+      <view class="group-label group-label-bad">
+        <image class="group-label-icon-img" src="/images/icons/gen-cross.svg" mode="aspectFit"></image>
+        <text class="group-label-text">过失</text>
+        <text class="group-label-total">-{{currentBadTotal}}</text>
       </view>
     </view>
   </view>
 
-  <!-- 善行分类（累计模式：点击 +1，长按/右侧 -1） -->
-  <view class="category-section" wx:for="{{goodCategories}}" wx:key="id">
-    <view class="category-header good-header">
-      <text class="category-icon">{{item.icon}}</text>
-      <text class="category-name">{{item.name}}</text>
-      <text class="category-desc">{{item.desc}}</text>
+  <!-- ==================== 内置条目区域（默认收起，避免页面过长） ==================== -->
+  <view class="builtin-toggle card" bindtap="toggleBuiltinItems">
+    <view class="builtin-toggle-main">
+      <text class="builtin-toggle-title">内置功过条目</text>
+      <text class="builtin-toggle-desc">{{showBuiltinItems ? '收起后页面更短，方便快速上拉' : '默认隐藏，需要时展开记录善行或过失'}}</text>
     </view>
-    <view class="items-grid">
-      <view
-        class="merit-item good-item {{mItem.selected ? 'selected' : ''}} {{mItem.count > 0 ? 'has-count' : ''}}"
-        wx:for="{{item.items}}"
-        wx:for-item="mItem"
-        wx:for-index="mIdx"
-        wx:key="id"
-        bindtap="onToggleGoodItem"
-        data-categoryId="{{id}}"
-        data-itemId="{{mItem.id}}"
-        data-text="{{mItem.text}}"
-        data-merit="{{mItem.merit}}"
-      >
-        <view class="item-left">
-          <text class="item-check">{{mItem.selected ? '✓' : ''}}</text>
-          <text class="item-text">{{mItem.text}}</text>
-        </view>
-        <view class="item-right">
-          <text class="item-points">+{{mItem.merit}}</text>
-          <!-- 累计次数气泡 -->
-          <view class="count-bubble count-good" wx:if="{{mItem.count > 0}}">
-            <text>{{mItem.count}}</text>
+    <text class="builtin-toggle-action">{{showBuiltinItems ? '收起' : '展开'}}</text>
+  </view>
+
+  <view class="builtin-list" wx:if="{{showBuiltinItems}}">
+    <!-- 善行分类（累计模式：点击 +1，长按删除） -->
+    <view class="category-section" wx:for="{{goodCategories}}" wx:key="id">
+      <view class="category-header good-header">
+        <image class="category-icon-img" src="{{item.iconPath}}" mode="aspectFit"></image>
+        <text class="category-name">{{item.name}}</text>
+        <text class="category-desc">{{item.desc}}</text>
+      </view>
+      <view class="items-grid">
+        <view
+          class="merit-item good-item {{mItem.count > 0 ? 'has-count' : ''}}"
+          wx:for="{{item.items}}"
+          wx:for-item="mItem"
+          wx:for-index="mIdx"
+          wx:key="id"
+        >
+          <!-- 减少按钮 -->
+          <view
+            class="item-btn item-btn-dec"
+            wx:if="{{mItem.count > 0}}"
+            catchtap="onDecrementGoodItem"
+            data-item-id="{{mItem.id}}"
+          ><text>−</text></view>
+          <view class="item-btn item-btn-dec item-btn-placeholder" wx:else></view>
+          
+          <!-- 中间内容区（点击 +1） -->
+          <view class="item-body" bindtap="onToggleGoodItem" bindlongpress="onLongPressBuiltinItem" data-category-id="{{item.id}}" data-category-name="{{item.name}}" data-item-id="{{mItem.id}}" data-text="{{mItem.text}}" data-merit="{{mItem.merit}}" data-type="good">
+            <image class="item-check-img" wx:if="{{mItem.count > 0}}" src="/images/icons/gen-check.svg" mode="aspectFit"></image>
+            <view class="item-check-placeholder" wx:else></view>
+            <text class="item-text">{{mItem.text}}</text>
+          </view>
+          
+          <!-- 右侧分数 + 增加按钮 -->
+          <view class="item-right">
+            <text class="item-points">+{{mItem.merit}}</text>
+            <view class="count-bubble count-good" wx:if="{{mItem.count > 0}}"><text>{{mItem.count}}</text></view>
           </view>
         </view>
       </view>
     </view>
-  </view>
 
-  <!-- 恶行分类（累计模式） -->
-  <view class="category-section" wx:for="{{badCategories}}" wx:key="id">
-    <view class="category-header bad-header">
-      <text class="category-icon">{{item.icon}}</text>
-      <text class="category-name">{{item.name}}</text>
-      <text class="category-desc">{{item.desc}}</text>
-    </view>
-    <view class="items-grid">
-      <view
-        class="merit-item bad-item {{mItem.selected ? 'selected' : ''}} {{mItem.count > 0 ? 'has-count' : ''}}"
-        wx:for="{{item.items}}"
-        wx:for-item="mItem"
-        wx:for-index="mIdx"
-        wx:key="id"
-        bindtap="onToggleBadItem"
-        data-categoryId="{{id}}"
-        data-itemId="{{mItem.id}}"
-        data-text="{{mItem.text}}"
-        data-demerit="{{mItem.demerit}}"
-      >
-        <view class="item-left">
-          <text class="item-check">{{mItem.selected ? '✗' : ''}}</text>
-          <text class="item-text">{{mItem.text}}</text>
-        </view>
-        <view class="item-right">
-          <text class="item-points">-{{mItem.demerit}}</text>
-          <!-- 累计次数气泡 -->
-          <view class="count-bubble count-bad" wx:if="{{mItem.count > 0}}">
-            <text>{{mItem.count}}</text>
+    <!-- 恶行分类（累计模式：点击 +1，长按删除） -->
+    <view class="category-section" wx:for="{{badCategories}}" wx:key="id">
+      <view class="category-header bad-header">
+        <image class="category-icon-img" src="{{item.iconPath}}" mode="aspectFit"></image>
+        <text class="category-name">{{item.name}}</text>
+        <text class="category-desc">{{item.desc}}</text>
+      </view>
+      <view class="items-grid">
+        <view
+          class="merit-item bad-item {{mItem.count > 0 ? 'has-count' : ''}}"
+          wx:for="{{item.items}}"
+          wx:for-item="mItem"
+          wx:for-index="mIdx"
+          wx:key="id"
+        >
+          <!-- 减少按钮 -->
+          <view
+            class="item-btn item-btn-dec btn-bad"
+            wx:if="{{mItem.count > 0}}"
+            catchtap="onDecrementBadItem"
+            data-item-id="{{mItem.id}}"
+          ><text>−</text></view>
+          <view class="item-btn item-btn-dec item-btn-placeholder" wx:else></view>
+          
+          <!-- 中间内容区（点击 +1） -->
+          <view class="item-body" bindtap="onToggleBadItem" bindlongpress="onLongPressBuiltinItem" data-category-id="{{item.id}}" data-category-name="{{item.name}}" data-item-id="{{mItem.id}}" data-text="{{mItem.text}}" data-demerit="{{mItem.demerit}}" data-type="bad">
+            <image class="item-check-img" wx:if="{{mItem.count > 0}}" src="/images/icons/gen-cross.svg" mode="aspectFit"></image>
+            <view class="item-check-placeholder" wx:else></view>
+            <text class="item-text">{{mItem.text}}</text>
+          </view>
+          
+          <!-- 右侧分数 + 增加按钮 -->
+          <view class="item-right">
+            <text class="item-points">-{{mItem.demerit}}</text>
+            <view class="count-bubble count-bad" wx:if="{{mItem.count > 0}}"><text>{{mItem.count}}</text></view>
           </view>
         </view>
       </view>
@@ -138,7 +157,7 @@
   <view class="custom-section card">
     <view class="custom-header">
       <view class="custom-title-row">
-        <text class="custom-title-icon">✏️</text>
+        <image class="custom-title-icon-img" src="/images/icons/edit.svg" mode="aspectFit"></image>
         <text class="custom-title-text">自定义条目</text>
         <text class="custom-count" wx:if="{{customGoodItems.length + customBadItems.length > 0}}">{{customGoodItems.length + customBadItems.length}}</text>
       </view>
@@ -155,19 +174,21 @@
     <!-- 自定义善行列表（带增减按钮） -->
     <view class="custom-group" wx:if="{{customGoodItems.length > 0}}">
       <view class="custom-group-label good-label">
-        <text>🌿 自定义善行（{{customGoodItems.length}}）</text>
+        <view class="custom-group-label-icon"><image class="leaf-icon-sm" src="/images/icons/leaf.svg" mode="aspectFit"></image><text>自定义善行（{{customGoodItems.length}}）</text></view>
       </view>
       <view class="custom-items-list">
         <view
           class="custom-item-row {{cItem.selected ? 'selected-good' : ''}} {{cItem.count > 0 ? 'has-count' : ''}}"
           wx:for="{{customGoodItems}}"
+          wx:for-item="cItem"
           wx:key="id"
         >
           <!-- 点击区域：增加 +1 -->
-          <view class="custom-item-body" bindtap="onIncrementCustomGood" data-itemId="{{item.id}}" data-text="{{item.text}}" data-merit="{{item.merit}}">
-            <text class="custom-check">{{cItem.selected ? '✓' : ''}}</text>
-            <text class="custom-item-text">{{item.text}}</text>
-            <text class="custom-item-score score-good">+{{item.merit}}</text>
+          <view class="custom-item-body" bindtap="onIncrementCustomGood" data-item-id="{{cItem.id}}" data-text="{{cItem.text}}" data-merit="{{cItem.merit}}">
+            <image class="custom-check-img" wx:if="{{cItem.selected}}" src="/images/icons/gen-check.svg" mode="aspectFit"></image>
+            <view class="custom-check-placeholder" wx:else></view>
+            <text class="custom-item-text">{{cItem.text}}</text>
+            <text class="custom-item-score score-good">+{{cItem.merit}}</text>
             <!-- 累计次数 -->
             <view class="count-bubble count-good-custom" wx:if="{{cItem.count > 0}}">
               <text>{{cItem.count}}</text>
@@ -180,15 +201,15 @@
               class="action-decrement"
               wx:if="{{cItem.count > 0}}"
               catchtap="onDecrementCustomGood"
-              data-itemId="{{item.id}}"
+              data-item-id="{{cItem.id}}"
             >
               <text>−</text>
             </view>
-            <view class="action-edit" catchtap="onShowEditCustom" data-id="{{item.id}}">
-              <text>✎</text>
+            <view class="action-edit" catchtap="onShowEditCustom" data-id="{{cItem.id}}">
+              <image class="action-edit-img" src="/images/icons/edit.svg" mode="aspectFit"></image>
             </view>
-            <view class="action-delete" catchtap="onDeleteCustomItem" data-id="{{item.id}}">
-              <text>✕</text>
+            <view class="action-delete" catchtap="onDeleteCustomItem" data-id="{{cItem.id}}">
+              <image class="action-delete-img" src="/images/icons/gen-cross.svg" mode="aspectFit"></image>
             </view>
           </view>
         </view>
@@ -198,19 +219,21 @@
     <!-- 自定义恶行列表（带增减按钮） -->
     <view class="custom-group" wx:if="{{customBadItems.length > 0}}">
       <view class="custom-group-label bad-label">
-        <text>⚡ 自定义过失（{{customBadItems.length}}）</text>
+        <image class="custom-group-label-img" src="/images/icons/gen-lightning.svg" mode="aspectFit"></image><text>自定义过失（{{customBadItems.length}}）</text>
       </view>
       <view class="custom-items-list">
         <view
           class="custom-item-row {{cItem.selected ? 'selected-bad' : ''}} {{cItem.count > 0 ? 'has-count' : ''}}"
           wx:for="{{customBadItems}}"
+          wx:for-item="cItem"
           wx:key="id"
         >
           <!-- 点击区域：增加 +1 -->
-          <view class="custom-item-body" bindtap="onIncrementCustomBad" data-itemId="{{item.id}}" data-text="{{item.text}}" data-demerit="{{item.demerit}}">
-            <text class="custom-check">{{cItem.selected ? '✗' : ''}}</text>
-            <text class="custom-item-text">{{item.text}}</text>
-            <text class="custom-item-score score-bad">-{{item.demerit}}</text>
+          <view class="custom-item-body" bindtap="onIncrementCustomBad" data-item-id="{{cItem.id}}" data-text="{{cItem.text}}" data-demerit="{{cItem.demerit}}">
+            <image class="custom-check-img" wx:if="{{cItem.selected}}" src="/images/icons/gen-cross.svg" mode="aspectFit"></image>
+            <view class="custom-check-placeholder" wx:else></view>
+            <text class="custom-item-text">{{cItem.text}}</text>
+            <text class="custom-item-score score-bad">-{{cItem.demerit}}</text>
             <!-- 累计次数 -->
             <view class="count-bubble count-bad-custom" wx:if="{{cItem.count > 0}}">
               <text>{{cItem.count}}</text>
@@ -222,15 +245,15 @@
               class="action-decrement"
               wx:if="{{cItem.count > 0}}"
               catchtap="onDecrementCustomBad"
-              data-itemId="{{item.id}}"
+              data-item-id="{{cItem.id}}"
             >
               <text>−</text>
             </view>
-            <view class="action-edit" catchtap="onShowEditCustom" data-id="{{item.id}}">
-              <text>✎</text>
+            <view class="action-edit" catchtap="onShowEditCustom" data-id="{{cItem.id}}">
+              <image class="action-edit-img" src="/images/icons/edit.svg" mode="aspectFit"></image>
             </view>
-            <view class="action-delete" catchtap="onDeleteCustomItem" data-id="{{item.id}}">
-              <text>✕</text>
+            <view class="action-delete" catchtap="onDeleteCustomItem" data-id="{{cItem.id}}">
+              <image class="action-delete-img" src="/images/icons/gen-cross.svg" mode="aspectFit"></image>
             </view>
           </view>
         </view>
@@ -247,7 +270,7 @@
   <!-- 反省备注 -->
   <view class="reflection-section card">
     <view class="reflection-header">
-      <text class="reflection-title">📝 今日反省</text>
+      <text class="reflection-title">今日反省</text>
     </view>
     <textarea
       class="reflection-editor"
@@ -265,7 +288,7 @@
   <!-- 统计概览入口 -->
   <view class="stats-summary card" wx:if="{{stats}}" bindtap="goToStats">
     <view class="summary-header">
-      <text class="summary-title">📊 功德累计</text>
+      <text class="summary-title">功德累计</text>
       <text class="summary-arrow">›</text>
     </view>
     <view class="summary-body">
@@ -292,8 +315,8 @@
   <!-- 操作按钮 -->
   <view class="action-section">
     <button
-      class="save-btn {{selectedItems.length > 0 ? '' : 'disabled'}}"
-      disabled="{{selectedItems.length === 0}}"
+      class="save-btn {{selectedItems.length > 0 || reflectionNote.trim() ? '' : 'disabled'}}"
+      disabled="{{selectedItems.length === 0 && !reflectionNote.trim()}}"
       bindtap="onSave"
     >
       {{hasExistingRecord ? '更新功过' : '记录今日功过'}}
@@ -320,7 +343,7 @@
     <view class="modal-head">
       <text class="modal-title">{{customModalMode === 'add' ? '添加自定义条目' : '编辑自定义条目'}}</text>
       <view class="modal-close" bindtap="onCloseCustomModal">
-        <text>✕</text>
+        <image class="modal-close-img" src="/images/icons/gen-cross.svg" mode="aspectFit"></image>
       </view>
     </view>
 
@@ -331,14 +354,14 @@
         bindtap="onCustomTypeSwitch"
         data-type="good"
       >
-        <text>✓ 善行</text>
+        <image class="type-option-icon" src="/images/icons/gen-check.svg" mode="aspectFit"></image><text>善行</text>
       </view>
       <view
         class="type-option {{customEditType === 'bad' ? 'active-bad' : ''}}"
         bindtap="onCustomTypeSwitch"
         data-type="bad"
       >
-        <text>✗ 过失</text>
+        <image class="type-option-icon" src="/images/icons/gen-cross.svg" mode="aspectFit"></image><text>过失</text>
       </view>
     </view>
 
@@ -355,13 +378,26 @@
       />
     </view>
 
-    <!-- 分数设置 -->
+    <!-- 分数设置（可自由输入） -->
     <view class="form-group">
-      <text class="form-label">分数（{{customEditType === 'good' ? '功德值' : '过失值'}}：{{customEditScore}}）</text>
+      <text class="form-label">分数（{{customEditType === 'good' ? '功德值' : '过失值'}}）</text>
+      <view class="score-input-row">
+        <input
+          class="score-number-input"
+          type="number"
+          placeholder="输入分数"
+          value="{{customEditScore}}"
+          bindinput="onCustomScoreInput"
+          min="1"
+          max="999"
+        />
+        <text class="score-unit">分</text>
+      </view>
+      <!-- 快捷选择 -->
       <view class="score-quick-btns">
         <view
           class="quick-btn {{customEditScore === s ? 'active' : ''}}"
-          wx:for="{{[1, 3, 5, 10, 20]}}"
+          wx:for="{{[1, 3, 5, 10, 20, 50]}}"
           wx:key="*this"
           wx:for-item="s"
           bindtap="onQuickScore"
@@ -369,20 +405,6 @@
         >
           <text>{{s}}</text>
         </view>
-      </view>
-      <slider
-        class="score-slider"
-        min="1"
-        max="100"
-        step="1"
-        value="{{customEditScore}}"
-        bindchange="onCustomScoreInput"
-        activeColor="{{customEditType === 'good' ? '#4CAF50' : '#F44336'}}"
-        block-size="16"
-      />
-      <view class="score-range">
-        <text>1</text>
-        <text>100</text>
       </view>
     </view>
 
@@ -392,3 +414,29 @@
     </button>
   </view>
 </view>
+
+<!-- 分享操作栏 -->
+<view class="share-bar">
+  <button class="share-btn share-btn-primary" open-type="share">
+    <image class="share-btn-icon" src="/images/icons/share-wechat.svg" mode="aspectFit"></image>
+    <text class="share-btn-text">一键分享</text>
+  </button>
+  <button class="share-btn share-btn-primary" bindtap="shareToMoments">
+    <image class="share-btn-icon" src="/images/icons/share-moments.svg" mode="aspectFit"></image>
+    <text class="share-btn-text">朋友圈</text>
+  </button>
+  <button class="share-btn share-btn-save" bindtap="saveImage">
+    <image class="share-btn-icon" src="/images/icons/save.svg" mode="aspectFit"></image>
+    <text class="share-btn-text">保存</text>
+  </button>
+  <button class="share-btn share-btn-export" bindtap="exportMeritRecords">
+    <image class="share-btn-icon" src="/images/icons/scroll.svg" mode="aspectFit"></image>
+    <text class="share-btn-text">导出</text>
+  </button>
+</view>
+
+<!-- 底部留白 -->
+<view class="bottom-spacer safe-area-bottom"></view>
+
+<!-- 隐藏的 Canvas（用于生成分享海报） -->
+<canvas type="2d" id="shareCanvas" style="position:fixed;left:-9999px;top:-9999px;width:500px;height:750px;"></canvas>

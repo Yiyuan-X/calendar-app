@@ -1,0 +1,153 @@
+<!--pages/chanting/chanting.wxml — 功课计数器主页面-->
+<view class="page">
+  <!-- 头部 -->
+  <view class="header">
+    <view class="header-top">
+      <view class="title">计数器</view>
+      <view class="add-btn" bindtap="goAdd"><text>+</text></view>
+    </view>
+    <view class="motto">愿以一念之善，记录每日所行。</view>
+  </view>
+
+  <!-- 今日概览 -->
+  <view class="summary-card" wx:if="{{tasks.length > 0}}">
+    <view class="summary-row">
+      <view class="sum-item">
+        <text class="sum-num purple">{{todaySummary.completed}}</text>
+        <text class="sum-label">已完成 / {{todaySummary.total > 0 ? todaySummary.total : tasks.length}}项</text>
+      </view>
+      <view class="sum-divider"></view>
+      <view class="sum-item">
+        <text class="sum-num green">{{tasks.length}}</text>
+        <text class="sum-label">功课总数</text>
+      </view>
+    </view>
+    <view class="summary-hint" wx:if="{{todaySummary.total === 0}}">
+      <text>设置每日目标后可追踪完成进度 →</text>
+    </view>
+  </view>
+
+  <!-- 昨日未完成提示 -->
+  <view class="tip-bar" wx:if="{{showYesterdayTip}}" bindtap="goSupplement">
+    <image class="tip-icon" src="/images/icons/gen-bulb.svg" mode="aspectFit"></image>
+    <text>昨日有 {{yesterdayIncomplete.length}} 项功课未达标，要补吗？</text>
+  </view>
+
+  <!-- 功课列表（多通道） -->
+  <view class="task-list" wx:if="{{tasks.length > 0}}">
+    <view
+      class="task-card"
+      wx:for="{{taskData}}"
+      wx:key="id"
+    >
+      <!-- 头部：名称 + 总数 + 删除按钮 -->
+      <view class="task-header" bindtap="goDetail" data-id="{{item.id}}">
+        <view class="task-info">
+          <text class="task-name">{{item.name}}</text>
+          <text class="task-target" wx:if="{{item.dailyTarget > 0}}">每日 {{item.dailyTarget}}{{item.unit}}</text>
+          <text class="task-target task-target-total" wx:if="{{item.totalTarget > 0}}">总目标 {{item.totalTarget}}{{item.unit}}</text>
+        </view>
+        <text class="task-total">累计 {{item.total}}<text style="font-size:19rpx">{{item.unit}}</text></text>
+        <view class="btn-del-task" catchtap="onDeleteTask" data-id="{{item.id}}" data-name="{{item.name}}">
+          <image class="btn-del-task-icon" src="/images/icons/gen-cross.svg" mode="aspectFit"></image>
+        </view>
+      </view>
+
+      <!-- 进度条（每日目标） -->
+      <view class="progress-wrap" wx:if="{{item.dailyTarget > 0}}">
+        <view class="progress-bar">
+          <view class="progress-fill" style="width:{{item.progressPercent}}%"></view>
+        </view>
+        <text class="progress-text">{{item.todayCount}}/{{item.dailyTarget}}</text>
+      </view>
+
+      <!-- 总目标进度 -->
+      <view class="progress-wrap progress-total" wx:if="{{item.totalTarget > 0}}">
+        <view class="progress-bar progress-bar-total">
+          <view class="progress-fill progress-fill-total" style="width:{{item.totalProgressPercent}}%"></view>
+        </view>
+        <text class="progress-text progress-text-total">累计 {{item.total}}/{{item.totalTarget}}</text>
+      </view>
+
+      <!-- 达标标记 -->
+      <view class="task-badge-done" wx:if="{{item.isDailyDone}}">
+        <image class="task-badge-icon" src="/images/icons/gen-check.svg" mode="aspectFit"></image><text>已达标</text>
+      </view>
+
+      <!-- 计数区：清零 | -1 | 今日+累计 | +1 -->
+      <view class="count-area">
+        <view class="btn-clear" catchtap="onClear" data-id="{{item.id}}" wx:if="{{item.todayCount > 0}}">
+          <text>清零</text>
+        </view>
+        <view class="btn-sub" catchtap="onDecrement" data-id="{{item.id}}" wx:if="{{item.todayCount > 0}}">
+          <text>−</text>
+        </view>
+        <view class="count-display">
+          <text class="count-num number-display">{{item.todayCount}}</text>
+          <text class="count-unit">{{item.unit}}</text>
+        </view>
+        <view class="btn-count" catchtap="onIncrement" data-id="{{item.id}}">
+          <text>+</text>
+        </view>
+      </view>
+    </view>
+  </view>
+
+  <!-- 空状态 -->
+  <view class="empty-state" wx:if="{{tasks.length === 0}}">
+    <image class="empty-icon" src="/images/icons/gen-beads.svg" mode="aspectFit"></image>
+    <text class="empty-text">还没有添加功课</text>
+    <text class="empty-hint">点击右上角 + 添加你的第一个功课</text>
+    <view class="empty-add" bindtap="goAdd">添加功课</view>
+  </view>
+
+  <view class="bottom-pad safe-area-bottom"></view>
+
+  <!-- 分享操作栏 -->
+  <view class="share-bar" wx:if="{{tasks.length > 0}}">
+    <button class="share-btn share-btn-primary" bindtap="shareToMoments">
+      <image class="share-btn-icon" src="/images/icons/gen-camera.svg" mode="aspectFit"></image>
+      <text class="share-btn-text">生成朋友圈图</text>
+    </button>
+    <button class="share-btn share-btn-save" bindtap="saveShareImage">
+      <image class="share-btn-icon" src="/images/icons/gen-save.svg" mode="aspectFit"></image>
+      <text class="share-btn-text">保存</text>
+    </button>
+  </view>
+
+  <!-- 隐藏的 Canvas（用于生成朋友圈海报） -->
+  <canvas type="2d" id="shareCanvas" style="position:fixed;left:-9999px;top:-9999px;width:500px;height:750px;"></canvas>
+
+  <!-- 联系方式 -->
+  <view class="contact-bar">
+    <text class="contact-text">若有任何有益的建议请加微信 </text>
+    <text class="contact-highlight" bindtap="copyWechat">HSTS08</text>
+    <text class="contact-text"> 或发邮件至 </text>
+    <text class="contact-highlight" bindtap="copyEmail">914949158@qq.com</text>
+    <text class="contact-text">，感谢</text><image class="contact-icon" src="/images/icons/gen-prayer.svg" mode="aspectFit"></image>
+  </view>
+
+  <!-- 通用计数器（日常使用） -->
+  <view class="quick-counter-section">
+    <view class="qc-title">
+      <view class="qc-title-text"><image class="qc-title-icon" src="/images/icons/gen-counter.svg" mode="aspectFit"></image><text>通用计数器</text></view>
+      <text class="qc-subtitle">日常临时计数</text>
+    </view>
+    <view class="qc-body">
+      <view class="qc-btn qc-btn-sub" bindtap="onQcDecrement" wx:if="{{quickCount > 0}}">
+        <text>−</text>
+      </view>
+      <view class="qc-display">
+        <text class="qc-num">{{quickCount}}</text>
+      </view>
+      <view class="qc-btn qc-btn-add" bindtap="onQcIncrement">
+        <text>+</text>
+      </view>
+    </view>
+    <view class="qc-actions">
+      <view class="qc-action-btn" bindtap="onQcReset" wx:if="{{quickCount > 0}}">
+        <text>重置</text>
+      </view>
+    </view>
+  </view>
+</view>

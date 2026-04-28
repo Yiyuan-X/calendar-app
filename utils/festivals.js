@@ -42,6 +42,25 @@ const lunarFestivals = {
 
 // ===== 佛教纪念日（农历） =====
 const buddhistFestivals = {
+  // ===== 正月 =====
+  '1-1': {
+    name: '弥勒菩萨圣诞',
+    shortName: '弥勒菩萨',
+    type: 'buddhist',
+    color: 'purple',
+    category: 'buddhist',
+    description: '弥勒菩萨圣诞，又称布袋和尚纪念日。弥勒菩萨代表慈悲与宽容，笑口常开。'
+  },
+  '1-6': {
+    name: '定光佛圣诞',
+    shortName: '定光佛诞辰',
+    type: 'buddhist',
+    color: 'purple',
+    category: 'buddhist',
+    description: '定光佛（燃灯古佛之前一佛）圣诞，象征光明与智慧。'
+  },
+
+  // ===== 二月 =====
   '2-8': {
     name: '释迦牟尼佛涅槃日',
     shortName: '佛陀涅槃日',
@@ -52,21 +71,77 @@ const buddhistFestivals = {
     quote: '每一刻都是新的开始'
   },
   '2-15': {
-    name: '释迦牟尼佛涅盘纪念日',
-    shortName: '涅槃纪念日',
+    name: '释迦牟尼佛涅槃纪念日',
+    shortName: '佛陀涅槃日',
     type: 'buddhist',
     color: 'purple',
     category: 'buddhist',
     description: '纪念佛陀最后的教诲：当自求解脱，以智慧为灯。',
     quote: '光在心中，路在脚下'
   },
+  '2-19': {
+    name: '观世音菩萨圣诞日',
+    shortName: '观音诞',
+    type: 'buddhist',
+    color: 'purple',
+    category: 'buddhist',
+    description: '大慈大悲观世音菩萨圣诞，闻声救苦，有求必应。民间最广受崇敬的菩萨之一。',
+    quote: '千处祈求千处应，苦海常作渡人舟'
+  },
+  '2-21': {
+    name: '普贤菩萨圣诞日',
+    shortName: '普贤菩萨',
+    type: 'buddhist',
+    color: 'purple',
+    category: 'buddhist',
+    description: '大行普贤菩萨圣诞，象征实践与愿力，十大愿王导归极乐。',
+    quote: '愿以此功德，庄严佛净土'
+  },
+
+  // ===== 三月 =====
+  '3-3': {
+    name: '六祖慧能大师圣诞',
+    shortName: '六祖诞辰',
+    type: 'buddhist',
+    color: 'purple',
+    category: 'buddhist',
+    description: '禅宗六祖惠能大师圣诞，"菩提本无树，明镜亦非台"，禅宗集大成者。'
+  },
+  '3-16': {
+    name: '准提菩萨圣诞日',
+    shortName: '准提菩萨',
+    type: 'buddhist',
+    color: 'purple',
+    category: 'buddhist',
+    description: '准提佛母/准提菩萨圣诞，显密圆通，满众生愿，消灾延寿。'
+  },
+  '3-23': {
+    name: '妈祖圣诞',
+    shortName: '妈祖诞辰',
+    type: 'buddhist',
+    color: 'purple',
+    category: 'buddhist',
+    description: '妈祖（天后圣母）圣诞，海上保护神，慈悲护佑航海之人。'
+  },
+
+  // ===== 四月 =====
+  '4-4': {
+    name: '文殊菩萨圣诞',
+    shortName: '文殊菩萨',
+    type: 'buddhist',
+    color: 'purple',
+    category: 'buddhist',
+    description: '大智文殊师利菩萨圣诞，七佛之师，诸佛之母，象征无上智慧。',
+    quote: '智慧如灯，照亮前路'
+  },
   '4-8': {
-    name: '佛诞日（浴佛节）',
+    name: '释迦牟尼佛圣诞（浴佛节）',
     shortName: '佛诞日',
     type: 'buddhist',
     color: 'purple',
     category: 'buddhist',
-    description: '释迦牟尼佛诞生于蓝毗尼园，九龙吐水沐浴太子。象征新生与希望。',
+    weight: 5,
+    description: '释迦牟尼佛诞生于蓝毗尼园，九龙吐水沐浴太子。佛教最重要的节日之一。',
     quote: '愿你心中有光'
   },
   '4-15': {
@@ -75,34 +150,97 @@ const buddhistFestivals = {
     type: 'buddhist',
     color: 'purple',
     category: 'buddhist',
-    description: '同时纪念佛陀的诞生、成道与涅槃，是佛教最重要的节日之一。',
+    weight: 5,
+    description: '同时纪念佛陀的诞生、成道与涅槃，联合国认可的国际佛教节日。',
     quote: '觉知此刻，便是永恒'
   },
-  '4-18': {
-    name: '文殊菩萨圣诞',
-    shortName: '文殊菩萨诞辰',
+  '4-17': {
+    name: '金粟如来（维摩诘居士）圣诞',
+    shortName: '维摩诘圣诞',
     type: 'buddhist',
     color: 'purple',
     category: 'buddhist',
-    description: '大智文殊师利菩萨圣诞，象征智慧与觉悟。',
-    quote: '智慧如灯，照亮前路'
+    description: '维摩诘居士（金粟如来化身）圣诞，示现在家修行的典范，不二法门。'
+  },
+  '4-28': {
+    name: '药王菩萨圣诞',
+    shortName: '药王菩萨',
+    type: 'buddhist',
+    color: 'purple',
+    category: 'buddhist',
+    description: '药王菩萨圣诞，施医赠药，救度众生身心之苦。'
+  },
+
+  // ===== 五月 =====
+  '5-5': {
+    name: '目连尊者（盂兰盆会）',
+    shortName: '目连孝亲日',
+    type: 'buddhist',
+    color: 'purple',
+    category: 'buddhist',
+    description: '纪念目连尊者救母之孝心，提醒世人报答父母恩德。'
+  },
+  '5-13': {
+    name: '伽蓝菩萨圣诞',
+    shortName: '伽蓝菩萨诞辰',
+    type: 'buddhist',
+    color: 'purple',
+    category: 'buddhist',
+    description: '伽蓝菩萨（关圣帝君/关公）圣诞，佛教护法神，忠义勇武的象征。'
+  },
+
+  // ===== 六月 =====
+  '6-3': {
+    name: '韦驮菩萨圣诞',
+    shortName: '韦驮菩萨',
+    type: 'buddhist',
+    color: 'purple',
+    category: 'buddhist',
+    description: '韦驮尊天菩萨圣诞，佛教护法神，守护寺院三宝，护持修行人。'
+  },
+  '6-10': {
+    name: '济公活佛（道济禅师）纪念日',
+    shortName: '济公活佛纪念日',
+    type: 'buddhist',
+    color: 'purple',
+    category: 'buddhist',
+    description: '济公活佛（道济禅师）圆寂纪念日。不守戒律而心怀慈悲，扶危济困，游戏人间。',
+    quote: '酒肉穿肠过，佛祖心中留'
+  },
+  '6-18': {
+    name: '寒山拾得和合二仙圣诞',
+    shortName: '和合二仙诞辰',
+    type: 'buddhist',
+    color: 'purple',
+    category: 'buddhist',
+    description: '寒山、拾得二位大士圣诞，象征和谐美满，主婚姻姻缘。'
   },
   '6-19': {
-    name: '观音菩萨成道日',
+    name: '观世音菩萨成道日',
     shortName: '观音成道日',
     type: 'buddhist',
     color: 'purple',
     category: 'buddhist',
-    description: '观世音菩萨修证菩提，成就无上正等正觉。',
+    description: '观世音菩萨修证菩提，成就无上正等正觉之日。',
     quote: '慈悲不是软弱，是力量'
   },
-  '7-13': {
-    name: '大势至菩萨圣诞',
-    shortName: '大势至菩萨诞辰',
+
+  // ===== 七月 =====
+  '7-7': {
+    name: '龙树菩萨圣诞 / 骑龙观音成道',
+    shortName: '龙树菩萨',
     type: 'buddhist',
     color: 'purple',
     category: 'buddhist',
-    description: '以智慧之光摄受众生，象征智慧之光遍照一切。',
+    description: '龙树菩萨（八宗共祖）圣诞，大乘佛教中观学派创始人，空性智慧的阐扬者。'
+  },
+  '7-13': {
+    name: '大势至菩萨圣诞',
+    shortName: '大势至菩萨',
+    type: 'buddhist',
+    color: 'purple',
+    category: 'buddhist',
+    description: '大势至菩萨圣诞，以智慧之光摄受众生，西方三圣之一。',
     quote: '光明总在不远处'
   },
   '7-15': {
@@ -111,17 +249,36 @@ const buddhistFestivals = {
     type: 'buddhist',
     color: 'purple',
     category: 'buddhist',
-    description: '目连救母之日，也是僧众自恣结束、诸佛欢喜的日子。提醒我们感恩来处。',
+    weight: 4,
+    description: '目连救母之日，也是僧众自恣结束、诸佛欢喜的日子。供僧报恩，超度先亡。',
     quote: '记得那些来处'
   },
-  '7-30': {
-    name: '地藏王菩萨圣诞',
-    shortName: '地藏菩萨诞辰',
+  '7-21': {
+    name: '普庵祖师圣诞',
+    shortName: '普庵祖师诞辰',
     type: 'buddhist',
     color: 'purple',
     category: 'buddhist',
-    description: '地藏菩萨誓愿"地狱不空，誓不成佛"，代表无尽的慈悲与坚持。',
+    description: '普庵祖师（普庵印肃禅师）圣诞，创普庵咒，驱邪护正，利益众生。'
+  },
+  '7-30': {
+    name: '地藏王菩萨圣诞',
+    shortName: '地藏菩萨',
+    type: 'buddhist',
+    color: 'purple',
+    category: 'buddhist',
+    description: '地藏菩萨圣诞，誓愿"地狱不空，誓不成佛"，无尽慈悲与坚持的代表。',
     quote: '愿力所至，金石为开'
+  },
+
+  // ===== 八月 =====
+  '8-15': {
+    name: '月光菩萨圣诞 / 中秋节',
+    shortName: '月光菩萨',
+    type: 'buddhist',
+    color: 'purple',
+    category: 'buddhist',
+    description: '月光菩萨圣诞，象征清凉与光明，与中秋赏月习俗相融合。'
   },
   '8-22': {
     name: '燃灯佛圣诞',
@@ -129,17 +286,43 @@ const buddhistFestivals = {
     type: 'buddhist',
     color: 'purple',
     category: 'buddhist',
-    description: '燃灯佛为过去庄严劫中所出世的千佛之一，曾授记释迦牟尼佛未来成佛。',
+    description: '燃灯佛（过去庄严劫千佛之一）圣诞，曾授记释迦牟尼佛未来成佛。',
     quote: '点亮自己，也照亮别人'
   },
+  '8-24': {
+    name: '龙五爷财神圣诞',
+    shortName: '龙五爷诞辰',
+    type: 'buddhist',
+    color: 'purple',
+    category: 'buddhist',
+    description: '广济龙王菩萨（五台山龙五爷）圣诞，广受信众供奉，有求必应。'
+  },
+
+  // ===== 九月 =====
   '9-9': {
-    name: '药师佛圣诞',
+    name: '药师琉璃光如来圣诞 / 重阳节',
     shortName: '药师佛诞辰',
     type: 'buddhist',
     color: 'purple',
     category: 'buddhist',
-    description: '药师琉璃光如来圣诞，能除一切苦，消灾延寿。',
+    description: '东方净琉璃世界教主药师佛圣诞，能除一切苦，消灾延寿。',
     quote: '身心安顿，万物皆春'
+  },
+  '9-12': {
+    name: '飞天女神（飞天菩萨）吉祥日',
+    shortName: '飞天吉日',
+    type: 'buddhist',
+    color: 'purple',
+    category: 'buddhist',
+    description: '纪念敦煌壁画中的飞天菩萨，象征自由、美好与艺术之美。'
+  },
+  '9-16': {
+    name: '弘一法师（李叔同）纪念日',
+    shortName: '弘一法师纪念日',
+    type: 'buddhist',
+    color: 'purple',
+    category: 'buddhist',
+    description: '弘一法师（李叔同）圆寂纪念日。"悲欣交集"，一代高僧的艺术人生。'
   },
   '9-19': {
     name: '观世音菩萨出家日',
@@ -147,8 +330,68 @@ const buddhistFestivals = {
     type: 'buddhist',
     color: 'purple',
     category: 'buddhist',
-    description: '观世音菩萨出家修道之日，象征放下与追寻。',
+    description: '观世音菩萨出家修道之日，象征放下世俗、追寻觉悟。',
     quote: '放下，是为了更好地前行'
+  },
+  '9-23': {
+    name: '虚空藏菩萨圣诞',
+    shortName: '虚空藏菩萨',
+    type: 'buddhist',
+    color: 'purple',
+    category: 'buddhist',
+    description: '虚空藏菩萨圣诞，福德与智慧无量如虚空，主财宝与记忆。'
+  },
+  '9-30': {
+    name: '药师琉璃光如来涅盘日',
+    shortName: '药师佛涅盘日',
+    type: 'buddhist',
+    color: 'purple',
+    category: 'buddhist',
+    description: '药师佛示现涅盘之日，提醒众生珍惜佛法，精进修行。'
+  },
+
+  // ===== 十月 =====
+  '10-5': {
+    name: '达摩祖师圣诞',
+    shortName: '达摩祖师诞辰',
+    type: 'buddhist',
+    color: 'purple',
+    category: 'buddhist',
+    description: '禅宗初祖达摩祖师圣诞，面壁九年，传法东土，开创中国禅宗。'
+  },
+  '10-20': {
+    name: '文殊菩萨出家日',
+    shortName: '文殊菩萨出家日',
+    type: 'buddhist',
+    color: 'purple',
+    category: 'buddhist',
+    description: '文殊菩萨出家修道之日，舍离家业，追求无上智慧。'
+  },
+
+  // ===== 十一月 =====
+  '11-3': {
+    name: '阿弥陀佛圣诞（另一说）',
+    shortName: '阿弥陀佛诞辰',
+    type: 'buddhist',
+    color: 'purple',
+    category: 'buddhist',
+    description: '西方极乐世界教主阿弥陀佛圣诞（部分传承），代表无量光、无量寿。'
+  },
+  '11-11': {
+    name: '日光菩萨圣诞',
+    shortName: '日光菩萨',
+    type: 'buddhist',
+    color: 'purple',
+    category: 'buddhist',
+    description: '日光菩萨圣诞，取除日轮暗暝之义，与月光菩萨同为药师佛左右胁侍。'
+  },
+  '11-14': {
+    name: '慧能大师（六祖）圆寂日',
+    shortName: '六祖圆寂日',
+    type: 'buddhist',
+    color: 'purple',
+    category: 'buddhist',
+    description: '禅宗六祖惠能大师圆寂纪念日，"本来无一物，何处惹尘埃"。'
   },
   '11-17': {
     name: '阿弥陀佛圣诞',
@@ -156,17 +399,44 @@ const buddhistFestivals = {
     type: 'buddhist',
     color: 'purple',
     category: 'buddhist',
-    description: '西方极乐世界教主阿弥陀佛圣诞，代表无量光、无量寿。',
+    description: '西方极乐世界教主阿弥陀佛圣诞，四十八愿度众生，念佛往生西方。',
     quote: '愿力所至，无所不及'
   },
+  '11-19': {
+    name: '日光菩萨圣诞（另一说）/ 日光如来纪念日',
+    shortName: '日光菩萨',
+    type: 'buddhist',
+    color: 'purple',
+    category: 'buddhist',
+    description: '日光菩萨圣诞，太阳般的光明遍照一切处，破除黑暗无明。'
+  },
+
+  // ===== 十二月 =====
   '12-8': {
     name: '腊八节（释迦牟尼佛成道日）',
     shortName: '腊八·佛陀成道日',
     type: 'buddhist',
     color: 'purple',
     category: 'buddhist',
+    weight: 4,
     description: '释迦牟尼佛于菩提树下悟道成佛之日。喝腊八粥的习俗由此而来，寓意觉悟与滋养。',
     quote: '慢一点，生活会更清楚'
+  },
+  '12-11': {
+    name: '大兴善寺（唐密祖庭）护法日',
+    shortName: '唐密护法日',
+    type: 'buddhist',
+    color: 'purple',
+    category: 'buddhist',
+    description: '纪念唐密祖庭大兴善寺诸位护法菩萨，祈请加持护佑。'
+  },
+  '12-20': {
+    name: '鲁班先师（工匠祖师）圣诞',
+    shortName: '鲁班诞辰',
+    type: 'buddhist',
+    color: 'purple',
+    category: 'buddhist',
+    description: '鲁班先师（公输班）圣诞，被奉为工匠祖师，亦为佛教护法之一。'
   }
 };
 

@@ -1,0 +1,162 @@
+<!--pages/chanting-detail/chanting-detail.wxml — 功课详情（报数/补录/发愿/回向/备注/统计）-->
+<view class="page">
+  <!-- 基本信息 -->
+  <view class="info-card">
+    <text class="info-name">{{task.name}}</text>
+    <view class="info-meta">
+      <text class="info-tag">{{task.unit}}</text>
+      <text class="info-stat" wx:if="{{task.dailyTarget > 0}}">每日 {{task.dailyTarget}}{{task.unit}}</text>
+      <text class="info-stat" wx:if="{{task.totalTarget > 0}}">总目标 {{task.totalTarget}}{{task.unit}}</text>
+      <text class="info-stat" wx:if="{{task.dailyTarget === 0 && task.totalTarget === 0}}">不限量</text>
+    </view>
+
+    <!-- 目标设置 -->
+    <view class="target-setting">
+      <view class="ts-label"><image class="inline-icon" src="/images/icons/gen-gear.svg" mode="aspectFit"></image><text>目标设置</text></view>
+      <view class="ts-row">
+        <view class="ts-item">
+          <text class="ts-name">每日目标</text>
+          <input class="ts-input" type="number" placeholder="不限" value="{{editDailyTarget}}" bindinput="onDailyTargetInput" bindconfirm="saveDailyTarget" />
+          <text class="ts-unit">{{task.unit}}</text>
+        </view>
+        <view class="ts-divider"></view>
+        <view class="ts-item">
+          <text class="ts-name">总目标</text>
+          <input class="ts-input" type="number" placeholder="不限" value="{{editTotalTarget}}" bindinput="onTotalTargetInput" bindconfirm="saveTotalTarget" />
+          <text class="ts-unit">{{task.unit}}</text>
+        </view>
+      </view>
+      <view class="ts-save-row">
+        <view class="ts-save-btn" catchtap="saveTargets"><text>保存目标</text></view>
+      </view>
+    </view>
+
+    <!-- 达标状态 -->
+    <view class="badge-done" wx:if="{{isDailyDone}}">
+      <image class="badge-icon" src="/images/icons/gen-check.svg" mode="aspectFit"></image><text>今日已达标</text>
+    </view>
+    <view class="badge-done badge-total-done" wx:if="{{isTotalDone}}">
+      <image class="badge-icon" src="/images/icons/gen-trophy.svg" mode="aspectFit"></image><text>总目标已完成</text>
+    </view>
+
+    <!-- 统计 -->
+    <view class="stats-row">
+      <view class="stat-box">
+        <text class="stat-num purple number-display">{{total}}</text>
+        <text class="stat-label">总{{task.unit}}数</text>
+      </view>
+      <view class="stat-box">
+        <text class="stat-num green number-display">{{streak}}</text>
+        <text class="stat-label">连续天数</text>
+      </view>
+      <view class="stat-box">
+        <text class="stat-num orange number-display">{{todayCount}}</text>
+        <text class="stat-label">今日</text>
+      </view>
+    </view>
+  </view>
+
+  <!-- 快捷报数 -->
+  <view class="section">
+    <view class="section-title"><image class="section-title-icon" src="/images/icons/gen-note.svg" mode="aspectFit"></image><text>报数</text></view>
+    <view class="card">
+      <view class="quick-row">
+        <view class="q-btn q-btn-1" catchtap="onQuick" data-n="1"><text>+1</text></view>
+        <view class="q-btn q-btn-10" catchtap="onQuick" data-n="10"><text>+10</text></view>
+        <view class="q-btn q-btn-100" catchtap="onQuick" data-n="100"><text>+100</text></view>
+      </view>
+      <view class="manual-row">
+        <input class="m-input" type="number" placeholder="手动输入数量" value="{{manualNum}}" bindinput="onManualInput"/>
+        <view class="m-btn" catchtap="onManualSubmit"><text>确认</text></view>
+      </view>
+    </view>
+  </view>
+
+  <!-- 补录 -->
+  <view class="section">
+    <view class="section-title"><image class="section-title-icon" src="/images/icons/gen-calendar.svg" mode="aspectFit"></image><text>补录（选择日期）</text></view>
+    <view class="card">
+      <view class="supplement-area">
+        <picker mode="date" value="{{suppDate}}" bindchange="onDatePick" end="{{todayStr}}">
+          <view class="s-date">{{suppDate || '选择日期'}}</view>
+        </picker>
+        <input class="s-input" type="number" placeholder="数量" value="{{suppNum}}" bindinput="onSuppInput"/>
+        <view class="s-btn" catchtap="onSuppSubmit"><text>补录</text></view>
+      </view>
+    </view>
+  </view>
+
+  <!-- 发愿 -->
+  <view class="section">
+    <view class="section-title"><image class="section-title-icon" src="/images/icons/gen-prayer.svg" mode="aspectFit"></image><text>发愿 / 今日目标</text></view>
+    <view class="card textarea-wrap">
+      <text class="t-label">今日发愿</text>
+      <textarea
+        class="t-editor"
+        placeholder="写下今日的一句发愿..."
+        value="{{detail.wish || ''}}"
+        bindinput="onWishInput"
+        auto-height
+        maxlength="100"
+      ></textarea>
+      <view class="t-footer"><text class="t-save" catchtap="saveWish">保存</text></view>
+    </view>
+  </view>
+
+  <!-- 回向 -->
+  <view class="section">
+    <view class="section-title"><image class="section-title-icon" src="/images/icons/gen-dove.svg" mode="aspectFit"></image><text>回向</text></view>
+    <view class="card textarea-wrap">
+      <text class="t-label">回向文</text>
+      <textarea
+        class="t-editor"
+        placeholder="愿以此功德，庄严佛净土..."
+        value="{{detail.dedicate || ''}}"
+        bindinput="onDedicateInput"
+        auto-height
+        maxlength="200"
+      ></textarea>
+      <view class="t-footer"><text class="t-save" catchtap="saveDedicate">保存</text></view>
+    </view>
+  </view>
+
+  <!-- 备注 -->
+  <view class="section">
+    <view class="section-title"><image class="section-title-icon" src="/images/icons/gen-note.svg" mode="aspectFit"></image><text>备注 / 感受</text></view>
+    <view class="card textarea-wrap">
+      <textarea
+        class="t-editor"
+        placeholder="今日修行感受..."
+        value="{{detail.note || ''}}"
+        bindinput="onNoteInput"
+        auto-height
+        maxlength="300"
+      ></textarea>
+      <view class="t-footer"><text class="t-save" catchtap="saveNote">保存</text></view>
+    </view>
+  </view>
+
+  <!-- 最近记录 -->
+  <view class="section">
+    <view class="section-title"><image class="section-title-icon" src="/images/icons/gen-chart.svg" mode="aspectFit"></image><text>最近记录</text></view>
+    <view class="card">
+      <scroll-view scroll-y style="max-height:360rpx;">
+        <view class="record-list">
+          <view class="r-item" wx:for="{{recentRecords}}" wx:key="date">
+            <text class="r-date">{{item.date}}</text>
+            <text class="r-count">{{item.count}}</text><text class="r-unit">{{task.unit}}</text>
+          </view>
+          <view wx:if="{{recentRecords.length === 0}}" style="padding:30rpx;text-align:center;color:#AEAEB2;font-size:26rpx;">暂无记录</view>
+        </view>
+      </scroll-view>
+    </view>
+  </view>
+
+  <!-- 操作按钮 -->
+  <view class="action-bar">
+    <view class="ab-btn ab-focus" bindtap="goFocus"><text>专注模式</text></view>
+    <view class="ab-btn ab-del" bindtap="onDelete"><text>删除功课</text></view>
+  </view>
+
+  <view class="bottom-pad safe-area-bottom"></view>
+</view>

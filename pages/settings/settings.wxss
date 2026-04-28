@@ -74,10 +74,11 @@
 .liuzhai-icon { background: linear-gradient(135deg, #F3E8FF, #EDE4FC); }
 .lunar-icon { background: linear-gradient(135deg, #FFF9EC, #FFF3D6); }
 .buddhist-icon { background: linear-gradient(135deg, #F3E8FF, #EDE4FC); }
+.help-icon { background: linear-gradient(135deg, #EEF2FF, #E0F2FE); }
 
-.setting-icon {
-  font-size: 26rpx;
-  line-height: 1;
+.setting-icon-img {
+  width: 28rpx;
+  height: 28rpx;
 }
 
 .setting-info {
@@ -99,6 +100,16 @@
   margin-top: 4rpx;
   display: block;
   line-height: 1.45;
+}
+
+.nav-setting {
+  padding-right: 28rpx;
+}
+
+.setting-arrow {
+  font-size: 38rpx;
+  color: #C7C7CC;
+  margin-left: 16rpx;
 }
 
 /* switch 组件微调 */

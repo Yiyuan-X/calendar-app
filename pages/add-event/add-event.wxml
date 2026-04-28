@@ -50,7 +50,7 @@
           data-key="{{item.key}}"
           bindtap="onCategoryTap"
         >
-          <text class="category-icon">{{item.icon}}</text>
+          <image class="category-icon-img" src="/images/icons/{{item.icon}}.svg" mode="aspectFit"></image>
           <text class="category-name">{{item.name}}</text>
         </view>
       </view>

@@ -1,0 +1,91 @@
+<!--pages/chanting-add/chanting-add.wxml — 添加/搜索功课-->
+<view class="page">
+  <!-- 搜索栏 -->
+  <view class="search-bar">
+    <image class="search-icon" src="/images/icons/gen-search.svg" mode="aspectFit"></image>
+    <input
+      class="search-input"
+      placeholder="搜索功课名称，如：大悲咒、金刚经..."
+      value="{{keyword}}"
+      bindinput="onSearch"
+      confirm-type="search"
+      bindconfirm="onSearch"
+    />
+    <view class="search-clear" wx:if="{{keyword}}" bindtap="onClear"><image class="clear-icon" src="/images/icons/gen-cross.svg" mode="aspectFit"></image></view>
+  </view>
+
+  <!-- 热门推荐 / 搜索结果 -->
+  <view class="section-title" wx:if="{{results.length > 0}}">
+    <text>{{keyword ? '搜索结果' : '热门功课'}}</text><image class="section-title-icon" wx:if="{{!keyword}}" src="/images/icons/gen-fire.svg" mode="aspectFit"></image>
+  </view>
+
+  <view class="practice-list" wx:if="{{results.length > 0}}">
+    <view
+      class="p-item"
+      wx:for="{{results}}"
+      wx:key="id"
+    >
+      <view class="p-left" bindtap="onAddBuiltin" data-item="{{item}}">
+        <view>
+          <text class="p-name">{{item.name}}</text>
+          <text class="p-hot" wx:if="{{item.hot}}">热门</text>
+        </view>
+        <text class="p-meta">{{item.cat}} · 单位{{item.unit}}</text>
+      </view>
+      <view
+        class="p-add"
+        wx:if="{{!item.added}}"
+        catchtap="onAddBuiltin"
+        data-item="{{item}}"
+      ><text>+</text></view>
+      <view
+        class="p-del"
+        wx:else
+        catchtap="onRemoveBuiltin"
+        data-item="{{item}}"
+      ><image class="p-del-icon" src="/images/icons/gen-cross-white.svg" mode="aspectFit"></image></view>
+    </view>
+  </view>
+
+  <view class="empty-result" wx:if="{{keyword && results.length === 0}}">
+    未找到「{{keyword}}」，可下方自定义创建
+  </view>
+
+  <!-- 自定义创建 -->
+  <view class="custom-card">
+    <view class="c-label"><image class="c-label-icon" src="/images/icons/gen-pencil.svg" mode="aspectFit"></image><text>创建自定义功课</text></view>
+    <input
+      class="c-input"
+      placeholder="输入功课名称"
+      value="{{customName}}"
+      bindinput="onNameInput"
+      maxlength="20"
+    />
+    <view class="c-row">
+      <input
+        class="c-input-sm"
+        placeholder="每日目标（如：108）"
+        type="number"
+        value="{{customTarget}}"
+        bindinput="onTargetInput"
+      />
+      <input
+        class="c-input-sm"
+        placeholder="总目标（如：10000）"
+        type="number"
+        value="{{customTotalTarget}}"
+        bindinput="onTotalTargetInput"
+      />
+    </view>
+    <view class="c-row c-row-2">
+      <input
+        class="c-input-sm"
+        placeholder="单位（遍/声/拜）"
+        value="{{customUnit}}"
+        bindinput="onUnitInput"
+        maxlength="4"
+      />
+    </view>
+    <view class="c-btn c-btn-yellow" bindtap="onCreateCustom">确认添加</view>
+  </view>
+</view>

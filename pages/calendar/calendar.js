@@ -3,12 +3,15 @@ const calendarUtil = require('../../utils/calendar');
 const storage = require('../../utils/storage');
 const solarTerms = require('../../utils/solar-terms');
 const huangli = require('../../utils/huangli');
+const festivalUtil = require('../../utils/festivals');
 
 Page({
   data: {
     currentYear: 0,
     currentMonth: 0,
     todayStr: '',
+    todayDisplay: '',
+    isCurrentMonth: true,
     weekDays: [
       { name: '日', isWeekend: true },
       { name: '一', isWeekend: false },
@@ -25,16 +28,30 @@ Page({
 
   onLoad() {
     const now = new Date();
+    const monthNames = ['','一月','二月','三月','四月','五月','六月','七月','八月','九月','十月','十一月','十二月'];
     this.setData({
       currentYear: now.getFullYear(),
       currentMonth: now.getMonth() + 1,
-      todayStr: `${now.getFullYear()}-${calendarUtil.padZero(now.getMonth() + 1)}-${calendarUtil.padZero(now.getDate())}`
+      todayStr: `${now.getFullYear()}-${calendarUtil.padZero(now.getMonth() + 1)}-${calendarUtil.padZero(now.getDate())}`,
+      todayDisplay: `${now.getMonth() + 1}月${now.getDate()}日`,
+      isCurrentMonth: true
     });
 
     this.generateCalendar();
 
     // 默认选中今天
     this.selectDate(this.data.todayStr);
+  },
+
+  onShow() {
+    // 每次显示时重新生成日历（确保设置变更后即时生效）
+    if (this.data.currentYear > 0) {
+      this.generateCalendar();
+      // 保持当前选中日期
+      if (this.data.selectedDate) {
+        this.selectDate(this.data.selectedDate.dateStr);
+      }
+    }
   },
 
   // ==================== 日历生成（全部预处理） ====================
@@ -73,38 +90,94 @@ Page({
         festivalMarkerClass = color === 'red' ? 'festival-red' : (color === 'purple' ? 'festival-purple' : 'festival-gold');
       }
 
-      // === 预处理标记文字（重要日子 > 节气 > 节日名称(最短优先) > 农历日期） ===
+      // === 预处理标记文字（支持多事件合并显示） ===
+      // 优先级：重要日子 > 节气+节日合并 > 单独节日 > 单独节气 > 农历日期
       let markerText = '';
       let markerType = '';
       let festivalDisplayName = '';
+      let isCombinedMarker = false;  // 是否为合并标记
+
+      /**
+       * 智能截断名称：保证至少4个字符（菩萨名称等不被截断太短）
+       * @param {string} name 原始名称
+       * @param {number} maxLen 最大长度
+       * @returns {string} 截断后的名称
+       */
+      function smartTruncate(name, maxLen) {
+        if (!name) return '';
+        if (name.length <= maxLen) return name;
+        // 至少保留4个字符 + ..
+        const keepLen = Math.max(4, maxLen - 1);
+        return name.substring(0, keepLen) + '..';
+      }
 
       if (item.isCurrentMonth) {
-        // 最高优先级：有重要日子时显示小圆点 + 名称
-        if (hasEvent && dayEvents[0]) {
-          const evName = dayEvents[0].name || dayEvents[0].title || '';
-          markerText = evName.length > 4 ? evName.substring(0, 3) + '..' : evName;
-          markerType = 'event';
-        } else if (item.solarTerm && item.solarTerm.name) {
-          markerText = item.solarTerm.name;
-          markerType = 'solar-term';
-        } else if (hasFestival && item.festival[0] && item.festival[0].name) {
-          // 按名称长度排序，选最短的节日名显示
-          const sortedFests = [...item.festival].sort((a, b) => {
-            const nameA = (a.shortName || a.name || '');
-            const nameB = (b.shortName || b.name || '');
-            return nameA.length - nameB.length;
-          });
-          const fest = sortedFests[0];
-          festivalDisplayName = fest.name;
-          const displayName = fest.shortName || fest.name || '';
-          const nameLen = displayName.length;
-          if (nameLen > 4) {
-            markerText = displayName.substring(0, 3);
-          } else {
-            markerText = displayName;
+        // ===== 收集当天所有可显示的标记项 =====
+        const markerItems = [];  // { text, type, priority }
+
+        // 1. 重要日子/自定义事件
+        if (hasEvent) {
+          for (const ev of dayEvents) {
+            const evName = ev.name || ev.title || '';
+            markerItems.push({ text: evName, type: 'event', priority: 10 });
           }
-          markerType = 'festival';
-        } else if (item.lunar && item.lunar.dayStr) {
+        }
+
+        // 2. 有意义的节日（排除初一/十五/斋日等通用标记）
+        if (hasFestival && item.festival.length > 0) {
+          const meaningfulFests = item.festival.filter(f =>
+            f.name !== '初一' && f.name !== '十五' && f.name !== '六斋日'
+          );
+          for (const fest of meaningfulFests) {
+            const displayName = fest.shortName || fest.name || '';
+            festivalDisplayName = fest.name;  // 保留完整名供详情面板使用
+            markerItems.push({ text: displayName, type: 'festival', priority: 5, color: fest.color });
+          }
+          // 如果只有通用标记（初一/十五/斋日），也加入
+          if (meaningfulFests.length === 0) {
+            const genericFest = item.festival[0];
+            const gName = genericFest.shortName || genericFest.name || '';
+            if (gName) {
+              markerItems.push({ text: gName, type: 'festival', priority: 1 });
+            }
+          }
+        }
+
+        // 3. 节气当天
+        if (item.solarTerm && item.solarTerm.name) {
+          const isTermDay = solarTerms.isDateSolarTermDay(item.dateStr, item.solarTerm.index);
+          if (isTermDay) {
+            markerItems.push({ text: item.solarTerm.name, type: 'solar-term', priority: 7 });
+          }
+        }
+
+        // ===== 生成标记文字 =====
+        if (markerItems.length > 0) {
+          // 按优先级排序
+          markerItems.sort((a, b) => b.priority - a.priority);
+
+          if (markerItems.length >= 2) {
+            // 多个事件：合并显示，用 "·" 连接
+            // 取前两个最重要的（避免格子过于拥挤）
+            const first = markerItems[0].text;
+            const second = markerItems[1].text;
+            // 智能截断每个部分，使总长度可控
+            const firstPart = smartTruncate(first, 4);
+            const secondPart = smartTruncate(second, 3);
+            markerText = firstPart + '·' + secondPart;
+            markerType = markerItems[0].type;  // 主类型以第一个为准
+            isCombinedMarker = true;
+          } else {
+            // 单个事件：直接显示
+            const single = markerItems[0];
+            markerText = smartTruncate(single.text, 6);  // 单个事件允许最多6字
+            markerType = single.type;
+            isCombinedMarker = false;
+          }
+        }
+
+        // 最后兜底：显示农历日期
+        if (!markerText && item.lunar && item.lunar.dayStr) {
           if (item.lunar.dayStr === '初一') {
             markerText = (item.lunar.monthStr || '') + '月';
           } else {
@@ -114,8 +187,12 @@ Page({
         }
       }
 
-      // === 预处理多节日/多事件圆点 ===
-      let showMultiDots = (hasFestival && item.festival.length > 1 || dayEvents.length > 1) && item.isCurrentMonth;
+      // === 预处理多节日/多事件圆点（超过2个事件时仍显示圆点提示） ===
+      let showMultiDots = false;
+      const totalMarkers = (hasEvent ? dayEvents.length : 0) +
+                           (hasFestival ? item.festival.filter(f => f.name !== '初一' && f.name !== '十五' && f.name !== '六斋日').length : 0) +
+                           (item.solarTerm && solarTerms.isDateSolarTermDay(item.dateStr, item.solarTerm.index) ? 1 : 0);
+      showMultiDots = totalMarkers > 2 && item.isCurrentMonth;
 
       // === 预处理格子样式类名 ===
       const cellClasses = [
@@ -127,6 +204,20 @@ Page({
         hasBuddhist ? 'has-buddhist' : '',
         hasEvent ? 'has-event' : ''
       ].filter(Boolean).join(' ');
+
+      // === 预处理标记的完整CSS类名（避免WXML中嵌套三元表达式导致编译错误） ===
+      let markerClass = 'marker';
+      if (isCombinedMarker) {
+        markerClass += ' combined-marker';
+      } else if (markerType === 'solar-term') {
+        markerClass += ' solar-term-marker';
+      } else if (markerType === 'festival') {
+        markerClass += ' festival-marker ' + festivalMarkerClass;
+      } else if (markerType === 'event') {
+        markerClass += ' event-marker';
+      } else if (markerType === 'lunar') {
+        markerClass += ' lunar-marker';
+      }
 
       return {
         ...item,
@@ -141,6 +232,8 @@ Page({
         // 预处理的显示文字
         markerText: markerText,
         markerType: markerType,
+        isCombinedMarker: isCombinedMarker,
+        markerClass: markerClass,
         festivalDisplayName: festivalDisplayName,
         showMultiDots: showMultiDots,
         // 样式
@@ -155,17 +248,25 @@ Page({
 
   prevMonth() {
     let { currentYear, currentMonth } = this.data;
+    const now = new Date();
     currentMonth--;
     if (currentMonth < 1) { currentMonth = 12; currentYear--; }
-    this.setData({ currentYear, currentMonth });
+    this.setData({ 
+      currentYear, currentMonth,
+      isCurrentMonth: (currentYear === now.getFullYear() && currentMonth === now.getMonth() + 1)
+    });
     this.generateCalendar();
   },
 
   nextMonth() {
     let { currentYear, currentMonth } = this.data;
+    const now = new Date();
     currentMonth++;
     if (currentMonth > 12) { currentMonth = 1; currentYear++; }
-    this.setData({ currentYear, currentMonth });
+    this.setData({ 
+      currentYear, currentMonth,
+      isCurrentMonth: (currentYear === now.getFullYear() && currentMonth === now.getMonth() + 1)
+    });
     this.generateCalendar();
   },
 
@@ -173,7 +274,8 @@ Page({
     const now = new Date();
     this.setData({
       currentYear: now.getFullYear(),
-      currentMonth: now.getMonth() + 1
+      currentMonth: now.getMonth() + 1,
+      isCurrentMonth: true
     });
     this.generateCalendar();
     this.selectDate(this.data.todayStr);
@@ -203,16 +305,35 @@ Page({
 
     const selectedInfo = calendarData.find(item => item.dateStr === dateStr);
 
-    if (selectedInfo && selectedInfo.isCurrentMonth) {
+    if (selectedInfo) {
       const note = storage.getNoteByDate(dateStr);
 
       const dateObj = new Date(selectedInfo.dateStr.replace(/-/g, '/'));
       const weekNames = ['日', '一', '二', '三', '四', '五', '六'];
 
       // 预处理节日标签样式和分类文字
+      let rawFestivals = selectedInfo.festivals;
+      // 如果日历格子没有节日数据（如跨月日期），实时查询补充
+      if (!rawFestivals || rawFestivals.length === 0) {
+        try {
+          const festOpts = {
+            showLiuZhai: storage.getSetting('showLiuZhai'),
+            showLunarFestivals: storage.getSetting('showLunarFestivals'),
+            showBuddhistFestivals: storage.getSetting('showBuddhistFestivals')
+          };
+          rawFestivals = festivalUtil.getFestivalsByDate(dateObj.getFullYear(), dateObj.getMonth() + 1, dateObj.getDate(), festOpts);
+        } catch (e) {
+          rawFestivals = [];
+        }
+      }
+
       let processedFestivals = [];
-      if (selectedInfo.festivals && selectedInfo.festivals.length > 0) {
-        processedFestivals = selectedInfo.festivals.map(f => ({
+      if (rawFestivals && rawFestivals.length > 0) {
+        // 过滤掉初一/十五/六斋日等通用标记，只保留有意义的节日
+        const meaningfulFests = rawFestivals.filter(f =>
+          f.name !== '初一' && f.name !== '十五' && f.name !== '六斋日' && f.name !== '斋日'
+        );
+        processedFestivals = meaningfulFests.map(f => ({
           ...f,
           tagClass: this.getTagClass(f.color),
           categoryText: f.category === 'holiday' ? '节日' : (f.type === 'buddhist' ? '佛教纪念日' : '纪念')
@@ -308,11 +429,253 @@ Page({
 
   // ==================== 分享 ====================
 
+  /** 微信分享 */
   onShareAppMessage() {
-    const { currentYear, currentMonth } = this.data;
+    const { currentYear, currentMonth, selectedDate } = this.data;
+    var title = '';
+    if (selectedDate && selectedDate.huangli) {
+      var hl = selectedDate.huangli;
+      title = `${hl.dayGanZhi}日 ${hl.jianChu} ${hl.xiu}宿 · 岁时记`;
+    } else {
+      title = `${currentYear}年${currentMonth}月 · 岁时记`;
+    }
     return {
-      title: `${currentYear}年${currentMonth}月 · 岁时记`,
+      title: title,
       path: '/pages/calendar/calendar'
     };
+  },
+
+  /** 分享到朋友圈（生成海报图片） */
+  shareToMoments() {
+    this.generateShareImage(function(res) {
+      if (res.success) {
+        wx.previewImage({
+          urls: [res.tempFilePath],
+          current: res.tempFilePath
+        });
+      } else {
+        wx.showToast({ title: '生成失败', icon: 'none' });
+      }
+    });
+  },
+
+  /** 保存到相册 */
+  saveImage() {
+    var that = this;
+    this.generateShareImage(function(res) {
+      if (res.success) {
+        wx.saveImageToPhotosAlbum({
+          filePath: res.tempFilePath,
+          success: function() { wx.showToast({ title: '已保存到相册', icon: 'success' }); },
+          fail: function(err) {
+            if (err.errMsg.indexOf('auth deny') !== -1 || err.errMsg.indexOf('authorize') !== -1) {
+              wx.showModal({
+                title: '提示',
+                content: '需要您授权保存相册权限',
+                confirmText: '去设置',
+                success: function(modalRes) {
+                  if (modalRes.confirm) wx.openSetting();
+                }
+              });
+            } else {
+              wx.showToast({ title: '保存失败', icon: 'none' });
+            }
+          }
+        });
+      } else {
+        wx.showToast({ title: '生成失败', icon: 'none' });
+      }
+    });
+  },
+
+  /**
+   * 生成分享海报图片（Canvas 绘制）
+   * @param {Function} callback 回调函数，参数 {success, tempFilePath}
+   */
+  generateShareImage(callback) {
+    var that = this;
+    var sd = this.data.selectedDate;
+    var hl = (sd && sd.huangli) ? sd.huangli : null;
+
+    // 显示加载提示
+    wx.showLoading({ title: '正在生成...' });
+
+    // 使用 Canvas 绘制分享图
+    var query = wx.createSelectorQuery();
+    query.select('#shareCanvas').fields({ node: true, size: true }).exec(function(res) {
+      if (!res || !res[0] || !res[0].node) {
+        // Canvas 不存在，使用备用方案
+        wx.hideLoading();
+        callback({ success: false });
+        return;
+      }
+
+      var canvas = res[0].node;
+      var ctx = canvas.getContext('2d');
+      var dpr = wx.getSystemInfoSync().pixelRatio;
+
+      // 设置画布尺寸
+      var W = 500;  // 画布宽度
+      var H = 750;  // 画布高度
+      canvas.width = W * dpr;
+      canvas.height = H * dpr;
+      ctx.scale(dpr, dpr);
+
+      try {
+        // ===== 背景渐变 =====
+        var bgGrad = ctx.createLinearGradient(0, 0, W, H);
+        bgGrad.addColorStop(0, '#FFF8E7');
+        bgGrad.addColorStop(0.5, '#FFFBF0');
+        bgGrad.addColorStop(1, '#FFF3D6');
+        ctx.fillStyle = bgGrad;
+        ctx.fillRect(0, 0, W, H);
+
+        // 装饰边框
+        ctx.strokeStyle = '#DAA520';
+        ctx.lineWidth = 2;
+        ctx.strokeRect(15, 15, W - 30, H - 30);
+
+        // 内框装饰线
+        ctx.strokeStyle = 'rgba(218,165,32,0.25)';
+        ctx.lineWidth = 1;
+        ctx.strokeRect(22, 22, W - 44, H - 44);
+
+        // ===== 标题区域 =====
+        ctx.fillStyle = '#8B6914';
+        ctx.font = 'bold 36px sans-serif';
+        ctx.textAlign = 'center';
+        ctx.fillText('黄历 · 岁时记', W / 2, 70);
+
+        // 日期信息
+        var dateStr = sd ? (sd.year + '年' + sd.month + '月' + sd.day + '日') : '';
+        var lunarStr = sd ? (sd.lunarMonth + sd.lunarDay) : '';
+
+        ctx.fillStyle = '#5D4037';
+        ctx.font = '24px sans-serif';
+        ctx.fillText(dateStr, W / 2, 110);
+
+        ctx.fillStyle = '#A08520';
+        ctx.font = '20px sans-serif';
+        ctx.fillText(lunarStr, W / 2, 140);
+
+        // ===== 干支信息 =====
+        if (hl) {
+          // 日干支大字
+          ctx.fillStyle = '#8B6914';
+          ctx.font = 'bold 48px serif';
+          ctx.fillText(hl.dayGanZhi || '', W / 2, 200);
+
+          // 月干支 + 建除 + 星宿
+          ctx.fillStyle = '#6D5A2E';
+          ctx.font = '18px sans-serif';
+          var subLine = (hl.monthGanZhi ? hl.monthGanZhi + '月' : '') +
+                        '  ' + (hl.jianChu ? hl.jianChu + '日' : '') +
+                        '  ' + (hl.xiu ? hl.xiu + '宿' : '');
+          ctx.fillText(subLine, W / 2, 230);
+
+          // 纳音
+          if (hl.naYin) {
+            ctx.fillStyle = '#E65100';
+            ctx.font = '16px sans-serif';
+            ctx.fillText(hl.naYin, W / 2, 255);
+          }
+
+          // ===== 佛历 =====
+          if (hl.foLiText) {
+            ctx.fillStyle = '#7B1FA2';
+            ctx.font = '17px sans-serif';
+            ctx.fillText('佛历 ' + hl.foLiText, W / 2, 290);
+          }
+
+          // ===== 宜忌区域 =====
+          if (hl.yi && hl.yi.length > 0) {
+            ctx.fillStyle = '#2E7D32';
+            ctx.font = 'bold 22px sans-serif';
+            ctx.textAlign = 'left';
+            ctx.fillText('宜', 45, 340);
+
+            ctx.fillStyle = '#388E3C';
+            ctx.font = '16px sans-serif';
+            var yiText = hl.yi.join('  ');
+            ctx.fillText(yiText, 80, 342);
+          }
+
+          if (hl.ji && hl.ji.length > 0) {
+            ctx.fillStyle = '#C62828';
+            ctx.font = 'bold 22px sans-serif';
+            ctx.textAlign = 'left';
+            ctx.fillText('忌', 45, 380);
+
+            ctx.fillStyle = '#D32F2F';
+            ctx.font = '16px sans-serif';
+            var jiText = hl.ji.join('  ');
+            ctx.fillText(jiText, 80, 382);
+          }
+
+          // ===== 冲煞/五行/方位 =====
+          ctx.textAlign = 'center';
+          ctx.fillStyle = '#E65100';
+          ctx.font = '16px sans-serif';
+          if (hl.chongText) ctx.fillText('冲煞：' + hl.chongText, W / 2, 430);
+
+          ctx.fillStyle = '#5D4037';
+          var wuxingStr = (hl.yinYang || '') + (hl.wuXing || '');
+          var fangweiStr = '财神:' + (hl.caiShen || '—') + '  喜神:' + (hl.xiShen || '—') + '  福神:' + (hl.fuShen || '—');
+          ctx.font = '14px sans-serif';
+          ctx.fillText(wuxingStr, W / 2, 460);
+          ctx.fillText(fangweiStr, W / 2, 485);
+
+          // ===== 彭祖百忌 =====
+          if (hl.pengZuGan || hl.pengZuZhi) {
+            ctx.textAlign = 'left';
+            ctx.fillStyle = '#8B6914';
+            ctx.font = '14px sans-serif';
+            var pzY = 520;
+            if (hl.pengZuGan) {
+              ctx.fillText(hl.dayGan + ' ' + hl.pengZuGan, 40, pzY);
+              pzY += 24;
+            }
+            if (hl.pengZuZhi) {
+              ctx.fillText(hl.dayZhi + ' ' + hl.pengZuZhi, 40, pzY);
+            }
+          }
+
+          // ===== 底部品牌 =====
+          ctx.textAlign = 'center';
+          ctx.fillStyle = '#AEAEB2';
+          ctx.font = '13px sans-serif';
+          ctx.fillText('— 岁时记 · 传统历法 —', W / 2, H - 50);
+          ctx.font = '11px sans-serif';
+          ctx.fillText('长按识别小程序码查看更多', W / 2, H - 25);
+        }
+
+        // 导出为临时文件
+        setTimeout(function() {
+          wx.canvasToTempFilePath({
+            canvas: canvas,
+            width: W,
+            height: H,
+            destWidth: W * 2,
+            destHeight: H * 2,
+            fileType: 'jpg',
+            quality: 0.95,
+            success: function(saveRes) {
+              wx.hideLoading();
+              callback({ success: true, tempFilePath: saveRes.tempFilePath });
+            },
+            fail: function(err) {
+              console.error('canvasToTempFilePath 失败:', err);
+              wx.hideLoading();
+              callback({ success: false });
+            }
+          });
+        }, 100);
+
+      } catch (e) {
+        console.error('绘制分享图出错:', e);
+        wx.hideLoading();
+        callback({ success: false });
+      }
+    });
   }
 });

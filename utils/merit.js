@@ -16,7 +16,7 @@ const GOOD_CATEGORIES = [
   {
     id: 'benevolence',
     name: '慈悲利他',
-    icon: '🤝',
+    icon: 'benevolence',
     color: '#E91E63',
     desc: '救人之急，济人之困',
     items: [
@@ -33,7 +33,7 @@ const GOOD_CATEGORIES = [
   {
     id: 'filial',
     name: '孝亲敬长',
-    icon: '🙏',
+    icon: 'filial',
     color: '#FF9800',
     desc: '孝养父母，尊敬师长',
     items: [
@@ -48,7 +48,7 @@ const GOOD_CATEGORIES = [
   {
     id: 'integrity',
     name: '诚实守信',
-    icon: '💎',
+    icon: 'integrity',
     color: '#2196F3',
     desc: '言而有信，行而不欺',
     items: [
@@ -63,13 +63,13 @@ const GOOD_CATEGORIES = [
   {
     id: 'cultivation',
     name: '修身养性',
-    icon: '📿',
+    icon: 'cultivation',
     color: '#9C27B0',
     desc: '反省自省，克己复礼',
     items: [
-      { id: 'g21', text: '静坐冥想/打坐（15分钟+）', merit: 5 },
-      { id: 'g22', text: '读诵经典（佛经/善书）', merit: 10 },
-      { id: 'g23', text: '早晚课诵/念佛/持咒', merit: 10 },
+      { id: 'g21', text: '读诵经典（佛经/善书）', merit: 10 },
+      { id: 'g22', text: '早晚课诵/念佛/持咒', merit: 10 },
+      { id: 'g23', text: '静坐（15分钟+）', merit: 5 },
       { id: 'g24', text: '深刻反省今日过失', merit: 8 },
       { id: 'g25', text: '控制脾气不发火', merit: 5 },
       { id: 'g26', text: '戒除一项不良习惯', merit: 10 },
@@ -82,7 +82,7 @@ const GOOD_CATEGORIES = [
   {
     id: 'kindness_speech',
     name: '善语爱语',
-    icon: '🗣️',
+    icon: 'speech',
     color: '#4CAF50',
     desc: '言语温和，不伤人心',
     items: [
@@ -103,7 +103,7 @@ const BAD_CATEGORIES = [
   {
     id: 'anger',
     name: '嗔恚暴躁',
-    icon: '😠',
+    icon: 'anger',
     desc: '发怒伤人，火烧功德林',
     items: [
       { id: 'b1', text: '对家人/亲近的人发脾气', demerit: 10 },
@@ -116,7 +116,7 @@ const BAD_CATEGORIES = [
   {
     id: 'greed',
     name: '贪欲执着',
-    icon: '😈',
+    icon: 'greed',
     desc: '贪得无厌，患得患失',
     items: [
       { id: 'b6', text: '过度消费/浪费', demerit: 5 },
@@ -129,7 +129,7 @@ const BAD_CATEGORIES = [
   {
     id: 'dishonesty',
     name: '欺妄不实',
-    icon: '🤥',
+    icon: 'dishonesty',
     desc: '欺骗妄语，失信于人',
     items: [
       { id: 'b11', text: '说谎/隐瞒事实', demerit: 10 },
@@ -142,7 +142,7 @@ const BAD_CATEGORIES = [
   {
     id: 'laziness',
     name: '懈怠懒惰',
-    icon: '😴',
+    icon: 'laziness',
     desc: '因循苟且，虚度光阴',
     items: [
       { id: 'b16', text: '熬夜超过零点', demerit: 5 },
@@ -155,11 +155,11 @@ const BAD_CATEGORIES = [
   {
     id: 'cruelty',
     name: '残忍伤害',
-    icon: '⚠️',
+    icon: 'harm',
     desc: '伤害生命，造下恶业',
     items: [
       { id: 'b21', text: '故意伤害动物', demerit: 20 },
-      { id: 'b22', text: '杀生（蚊虫以上）', demerit: 15 },
+      { id: 'b22', text: '杀生', demerit: 15 },
       { id: 'b23', text: '浪费食物', demerit: 5 },
       { id: 'b24', text: '破坏环境/公物', demerit: 8 },
       { id: 'b25', text: '幸灾乐祸', demerit: 10 }
@@ -214,10 +214,11 @@ function calculateNetMerit(record) {
 
   let total = 0;
   record.items.forEach(item => {
+    const cnt = item.count || 1;  // 支持累计次数
     if (item.type === 'good') {
-      total += (item.merit || 0);
+      total += (item.merit || 0) * cnt;
     } else if (item.type === 'bad') {
-      total -= (item.demerit || 0);
+      total -= (item.demerit || 0) * cnt;
     }
   });
   return total;
@@ -247,16 +248,19 @@ function getMeritStats(records) {
 
     if (record.items && record.items.length > 0) {
       record.items.forEach(item => {
+        const cnt = item.count || 1;  // 支持累计次数
         if (item.type === 'good') {
-          totalGood += item.merit || 0;
-          dayTotal += item.merit || 0;
+          const itemMerit = (item.merit || 0) * cnt;
+          totalGood += itemMerit;
+          dayTotal += itemMerit;
           const cat = item.categoryId || 'other';
-          categoryGood[cat] = (categoryGood[cat] || 0) + (item.merit || 0);
+          categoryGood[cat] = (categoryGood[cat] || 0) + itemMerit;
         } else if (item.type === 'bad') {
-          totalBad += item.demerit || 0;
-          dayTotal -= item.demerit || 0;
+          const itemDemerit = (item.demerit || 0) * cnt;
+          totalBad += itemDemerit;
+          dayTotal -= itemDemerit;
           const cat = item.categoryId || 'other';
-          categoryBad[cat] = (categoryBad[cat] || 0) + (item.demerit || 0);
+          categoryBad[cat] = (categoryBad[cat] || 0) + itemDemerit;
         }
       });
     }

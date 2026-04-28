@@ -59,5 +59,9 @@ Page({
       icon: 'none',
       duration: 1200
     });
+  },
+
+  goToHelp() {
+    wx.navigateTo({ url: '/pages/help/help' });
   }
 });

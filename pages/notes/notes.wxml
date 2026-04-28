@@ -30,8 +30,8 @@
   <!-- 保存按钮 -->
   <view class="save-section">
     <button 
-      class="save-btn {{noteContent.trim() ? '' : 'disabled'}}" 
-      disabled="{{!noteContent.trim()}}"
+      class="save-btn {{canSave ? '' : 'disabled'}}" 
+      disabled="{{!canSave}}"
       bindtap="onSave"
     >
       {{hasExistingNote ? '更新备注' : '保存备注'}}

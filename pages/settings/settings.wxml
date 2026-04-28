@@ -12,7 +12,7 @@
     <view class="setting-item">
       <view class="setting-left">
         <view class="setting-icon-wrap liuzhai-icon">
-          <text class="setting-icon">🪷</text>
+          <image class="setting-icon-img" src="/images/icons/gen-lotus.svg" mode="aspectFit"></image>
         </view>
         <view class="setting-info">
           <text class="setting-name">六斋日</text>
@@ -30,7 +30,7 @@
     <view class="setting-item">
       <view class="setting-left">
         <view class="setting-icon-wrap lunar-icon">
-          <text class="setting-icon">🌙</text>
+          <image class="setting-icon-img" src="/images/icons/gen-moon.svg" mode="aspectFit"></image>
         </view>
         <view class="setting-info">
           <text class="setting-name">农历初一 / 十五</text>
@@ -48,7 +48,7 @@
     <view class="setting-item">
       <view class="setting-left">
         <view class="setting-icon-wrap buddhist-icon">
-          <text class="setting-icon">☸️</text>
+          <image class="setting-icon-img" src="/images/icons/fo.svg" mode="aspectFit"></image>
         </view>
         <view class="setting-info">
           <text class="setting-name">佛教纪念日</text>
@@ -60,6 +60,22 @@
         color="#AF52DE"
         bindchange="onSwitchBuddhistFestivals"
       />
+    </view>
+  </view>
+
+  <!-- 帮助入口 -->
+  <view class="settings-group">
+    <view class="setting-item nav-setting" bindtap="goToHelp">
+      <view class="setting-left">
+        <view class="setting-icon-wrap help-icon">
+          <image class="setting-icon-img" src="/images/icons/scroll.svg" mode="aspectFit"></image>
+        </view>
+        <view class="setting-info">
+          <text class="setting-name">使用说明</text>
+          <text class="setting-desc">了解黄历、今日、功过格和计数器的用法</text>
+        </view>
+      </view>
+      <text class="setting-arrow">›</text>
     </view>
   </view>
 
