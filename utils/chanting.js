@@ -313,10 +313,54 @@ const DAILY_QUOTES = [
   { text: '每一个当下都是新的开始，每一次计数都是新的积累。', source: '修行格言' }
 ];
 
+const PAGE_MOTTOS = [
+  '愿以一念之善，记录每日所行。',
+  '日有所修，心有所安。',
+  '一念清净，一步光明。',
+  '日日精进，功不唐捐。',
+  '把每一次计数，安放在当下。',
+  '愿今日所行，皆向善处。',
+  '心念不散，善行不息。',
+  '慢慢来，也是在精进。',
+  '每一遍，都是一次归心。',
+  '以愿为灯，以行为路。',
+  '不求一日圆满，但求日日不断。',
+  '清净一念，胜过纷扰千言。',
+  '善念常在，福慧渐生。',
+  '今日修一分，心中明一分。',
+  '把小小坚持，记成长久愿力。',
+  '一声一念，皆是归途。',
+  '心若安住，处处道场。',
+  '愿每一次开始，都不负本心。',
+  '不急不缓，念念相续。',
+  '静中有光，行中有愿。',
+  '今日一遍，胜过空想千回。',
+  '把散乱收回，把善念种下。',
+  '持之以恒，自有清凉。',
+  '少一点分别，多一分慈悲。',
+  '每一次坚持，都是在照见自己。',
+  '愿心不退，愿行不止。',
+  '从一念开始，向清净处去。',
+  '心有所向，步步皆修。',
+  '以平常心，做长久功。',
+  '愿今日所念，化作明日之光。',
+  '不争一时，但守一念。',
+  '念起即觉，觉之即安。',
+  '小小功课，也能养成大愿。',
+  '把今天过稳，把心安住。',
+  '一日一修，久久为功。'
+];
+
 /** 获取随机金句 */
 function getRandomQuote() {
   const idx = Math.floor(Math.random() * DAILY_QUOTES.length);
   return DAILY_QUOTES[idx];
+}
+
+/** 获取计数器页顶部短句 */
+function getRandomMotto() {
+  const idx = Math.floor(Math.random() * PAGE_MOTTOS.length);
+  return PAGE_MOTTOS[idx];
 }
 
 /** 获取全局连续修行天数（任意功课有记录即算） */
@@ -366,5 +410,5 @@ module.exports = {
   getDailyDetail, saveDailyDetail,
   getTaskTotal, getStreakDays, getTodaySummary, getTaskRecent, getYesterdayIncomplete,
   searchBuiltin,
-  getRandomQuote, getGlobalStreakDays, getTodayTotal
+  getRandomQuote, getRandomMotto, getGlobalStreakDays, getTodayTotal
 };

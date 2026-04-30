@@ -1,0 +1,21 @@
+<template name="privacyModal">
+  <view class="privacy-mask" wx:if="{{showPrivacyAuthorization}}" catchtouchmove="noop">
+    <view class="privacy-dialog">
+      <view class="privacy-title">隐私保护提示</view>
+      <view class="privacy-content">
+        为了在你主动操作时保存生成的海报、倒计时图片或节日卡片到本地相册，需要先阅读并同意
+        <text class="privacy-link" bindtap="openPrivacyContract">《{{privacyContractName || '用户隐私保护指引'}}》</text>
+        。
+      </view>
+      <view class="privacy-actions">
+        <button class="privacy-btn privacy-btn-cancel" bindtap="onDisagreePrivacyAuthorization">不同意</button>
+        <button
+          id="privacy-agree-btn"
+          class="privacy-btn privacy-btn-agree"
+          open-type="agreePrivacyAuthorization"
+          bindagreeprivacyauthorization="onAgreePrivacyAuthorization"
+        >同意</button>
+      </view>
+    </view>
+  </view>
+</template>

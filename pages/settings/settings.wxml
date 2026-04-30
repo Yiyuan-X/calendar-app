@@ -1,5 +1,5 @@
 <!--pages/settings/settings.wxml — 设置页面-->
-<view class="page-container">
+<view class="page-container {{elderMode ? 'elder-mode' : ''}}">
   <!-- 标题 -->
   <view class="page-header">
     <text class="page-title">显示设置</text>
@@ -8,6 +8,24 @@
 
   <!-- 设置列表 -->
   <view class="settings-group">
+    <!-- 长辈模式 -->
+    <view class="setting-item">
+      <view class="setting-left">
+        <view class="setting-icon-wrap elder-icon">
+          <text class="setting-icon-text">字</text>
+        </view>
+        <view class="setting-info">
+          <text class="setting-name">长辈模式</text>
+          <text class="setting-desc">使用更大的字号，适合阅读时看得更清楚</text>
+        </view>
+      </view>
+      <switch
+        checked="{{elderMode}}"
+        color="#FFB300"
+        bindchange="onSwitchElderMode"
+      />
+    </view>
+
     <!-- 六斋日 -->
     <view class="setting-item">
       <view class="setting-left">
@@ -21,7 +39,7 @@
       </view>
       <switch
         checked="{{showLiuZhai}}"
-        color="#AF52DE"
+        color="#FFB300"
         bindchange="onSwitchLiuZhai"
       />
     </view>
@@ -57,7 +75,7 @@
       </view>
       <switch
         checked="{{showBuddhistFestivals}}"
-        color="#AF52DE"
+        color="#FFB300"
         bindchange="onSwitchBuddhistFestivals"
       />
     </view>
@@ -77,6 +95,37 @@
       </view>
       <text class="setting-arrow">›</text>
     </view>
+  </view>
+
+  <!-- 反馈入口 -->
+  <view class="settings-group">
+    <view class="setting-item nav-setting" bindtap="copyWechat">
+      <view class="setting-left">
+        <view class="setting-icon-wrap feedback-icon">
+          <image class="setting-icon-img" src="/images/icons/gen-prayer.svg" mode="aspectFit"></image>
+        </view>
+        <view class="setting-info">
+          <text class="setting-name">反馈与交流</text>
+          <text class="setting-desc">有建议、想做公司/个人小程序，或想学习小程序开发，都可以联系。微信 HSTS08，邮箱 914949158@qq.com</text>
+        </view>
+      </view>
+      <text class="setting-action">复制</text>
+    </view>
+  </view>
+
+  <!-- 推广小程序码 -->
+  <view class="promo-card">
+    <view class="promo-info">
+      <text class="promo-title">推荐岁时记</text>
+      <text class="promo-desc">长按或保存小程序码，分享给需要记录日子、查看黄历和做功课计数的朋友。</text>
+    </view>
+    <image
+      class="promo-code"
+      src="/images/promo-qrcode.png"
+      mode="aspectFit"
+      bindtap="previewPromotionCode"
+    ></image>
+    <button class="promo-share-btn" open-type="share">转发给朋友</button>
   </view>
 
   <!-- 说明区域 -->

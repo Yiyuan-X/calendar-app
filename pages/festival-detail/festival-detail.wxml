@@ -1,5 +1,5 @@
 <!--pages/festival-detail/festival-detail.wxml-->
-<view class="page-container">
+<view class="page-container {{elderMode ? 'elder-mode' : ''}}">
   <!-- 头部 -->
   <view class="detail-header">
     <view class="header-tag {{festivalInfo.tagClass}}">

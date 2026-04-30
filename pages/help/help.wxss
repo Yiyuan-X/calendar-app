@@ -11,7 +11,7 @@
 
 .title {
   display: block;
-  font-size: 38rpx;
+  font-size: 39rpx;
   font-weight: 750;
   color: #1D1D1F;
   line-height: 1.3;
@@ -20,7 +20,7 @@
 .subtitle {
   display: block;
   margin-top: 10rpx;
-  font-size: 24rpx;
+  font-size: 26rpx;
   color: #6B7280;
   line-height: 1.6;
 }
@@ -43,7 +43,7 @@
 }
 
 .section-title {
-  font-size: 29rpx;
+  font-size: 31rpx;
   font-weight: 700;
   color: #1D1D1F;
 }
@@ -59,7 +59,7 @@
   display: block;
   position: relative;
   padding-left: 24rpx;
-  font-size: 28rpx;
+  font-size: 30rpx;
   color: #3C3C43;
   line-height: 1.7;
   margin-bottom: 12rpx;

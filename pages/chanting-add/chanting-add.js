@@ -1,5 +1,6 @@
 // pages/chanting-add/chanting-add.js — 添加/搜索功课
 const chant = require('../../utils/chanting');
+const share = require('../../utils/share');
 
 Page({
   data: {
@@ -12,6 +13,8 @@ Page({
   },
 
   onShow() {
+    share.enableShareMenu();
+    getApp().applyDisplaySettings(this);
     this.doSearch('');
   },
 
@@ -74,7 +77,7 @@ Page({
   onCreateCustom() {
     const name = this.data.customName.trim();
     if (!name) { wx.showToast({ title: '请输入功课名称', icon: 'none' }); return; }
-    
+
     // 检查是否已存在同名
     const tasks = chant.getTasks();
     const exist = tasks.find(t => t.name === name);
@@ -82,7 +85,7 @@ Page({
       wx.showToast({ title: '「' + name + '」已存在', icon: 'none' });
       return;
     }
-    
+
     const target = parseInt(this.data.customTarget) || 0;
     const totalTarget = parseInt(this.data.customTotalTarget) || 0;
     const unit = (this.data.customUnit.trim() || '遍');
@@ -93,5 +96,16 @@ Page({
     }
     wx.showToast({ title: '已添加', icon: 'success' });
     setTimeout(() => { wx.navigateBack(); }, 600);
+  },
+
+  onShareAppMessage() {
+    return share.appMessage({
+      title: '岁时记 · 功课计数器',
+      path: '/pages/chanting/chanting'
+    });
+  },
+
+  onShareTimeline() {
+    return share.timeline({ title: '岁时记 · 功课计数器' });
   }
 });

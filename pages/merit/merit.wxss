@@ -20,7 +20,7 @@
 
 /* 日期大标题 */
 .date-main {
-  font-size: 40rpx;
+  font-size: 41rpx;
   font-weight: 700;
   color: #1D1D1F;
   letter-spacing: 1rpx;
@@ -28,7 +28,7 @@
 
 /* 星期（标准正文） */
 .date-sub {
-  font-size: 28rpx;
+  font-size: 30rpx;
   color: #86868B;
   font-weight: 500;
 }
@@ -42,7 +42,7 @@
 }
 
 .quote-mark {
-  font-size: 40rpx;
+  font-size: 41rpx;
   color: #DAA520;
   font-weight: 300;
   line-height: 1;
@@ -55,7 +55,7 @@
 /* 引文文字（标准正文） */
 .quote-text {
   display: block;
-  font-size: 28rpx;
+  font-size: 30rpx;
   color: #5D4037;
   line-height: 1.65;
   padding-left: 28rpx;
@@ -66,7 +66,7 @@
 /* 引文来源（辅助信息） */
 .quote-source {
   display: block;
-  font-size: 24rpx;
+  font-size: 26rpx;
   color: #A1887F;
   text-align: right;
   margin-top: 8rpx;
@@ -98,14 +98,14 @@
 
 /* 总览标签（辅助信息） */
 .overview-label {
-  font-size: 24rpx;
+  font-size: 26rpx;
   color: #AEAEB2;
   font-weight: 500;
 }
 
 /* 总览数值（大标题） */
 .overview-value {
-  font-size: 38rpx;
+  font-size: 39rpx;
   font-weight: 750;
   font-family: -apple-system, 'SF Pro Display', sans-serif;
 }
@@ -149,7 +149,7 @@
 }
 
 .group-label-icon {
-  font-size: 24rpx;
+  font-size: 26rpx;
   font-weight: 800;
 }
 
@@ -164,7 +164,7 @@
 
 /* 分组标题文字 */
 .group-label-text {
-  font-size: 26rpx;
+  font-size: 28rpx;
   font-weight: 700;
   color: #1D1D1F;
   flex: 1;
@@ -172,7 +172,7 @@
 
 /* 分组小计 */
 .group-label-total {
-  font-size: 28rpx;
+  font-size: 30rpx;
   font-weight: 800;
   font-family: -apple-system, 'SF Pro Display', sans-serif;
 }
@@ -190,13 +190,13 @@
 
 /* 区块小标题（接近标准正文） */
 .section-title-text {
-  font-size: 28rpx;
+  font-size: 30rpx;
   font-weight: 600;
   color: #1D1D1F;
 }
 
 .selected-count {
-  font-size: 22rpx;
+  font-size: 25rpx;
   color: #AEAEB2;
   background: #F2F2F7;
   padding: 2rpx 14rpx;
@@ -219,7 +219,7 @@
   gap: 6rpx;
   padding: 8rpx 14rpx;
   border-radius: 12rpx;
-  font-size: 24rpx;
+  font-size: 26rpx;
   animation: tagPop 0.25s ease;
 }
 
@@ -239,13 +239,13 @@
 }
 
 .tag-icon {
-  font-size: 22rpx;
+  font-size: 25rpx;
   font-weight: 700;
 }
 
 /* 已选标签文字（标准正文-） */
 .tag-text {
-  font-size: 24rpx;
+  font-size: 26rpx;
   max-width: 280rpx;
   overflow: hidden;
   text-overflow: ellipsis;
@@ -253,7 +253,7 @@
 }
 
 .tag-value {
-  font-size: 22rpx;
+  font-size: 25rpx;
   font-weight: 700;
   flex-shrink: 0;
 }
@@ -271,7 +271,7 @@
 }
 
 .tag-remove text {
-  font-size: 24rpx;
+  font-size: 26rpx;
   color: #AEAEB2;
   line-height: 1;
 }
@@ -285,7 +285,7 @@
   border-radius: 8rpx;
   padding: 0 6rpx;
   margin-left: 4rpx;
-  font-size: 20rpx;
+  font-size: 24rpx;
   font-weight: 700;
   color: #fff;
   flex-shrink: 0;
@@ -325,7 +325,7 @@
 
 .builtin-toggle-title {
   display: block;
-  font-size: 29rpx;
+  font-size: 31rpx;
   font-weight: 700;
   color: #1D1D1F;
   line-height: 1.35;
@@ -334,7 +334,7 @@
 .builtin-toggle-desc {
   display: block;
   margin-top: 4rpx;
-  font-size: 23rpx;
+  font-size: 25rpx;
   color: #8E8E93;
   line-height: 1.45;
 }
@@ -345,8 +345,12 @@
   border-radius: 999rpx;
   background: #F2F2F7;
   color: #1D1D1F;
-  font-size: 25rpx;
+  font-size: 27rpx;
   font-weight: 650;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  line-height: 1;
 }
 
 .builtin-toggle:active {
@@ -387,14 +391,14 @@
 
 /* 分类名称（略大于标准正文） */
 .category-name {
-  font-size: 30rpx;
+  font-size: 32rpx;
   font-weight: 700;
   color: #1D1D1F;
   letter-spacing: 0.5rpx;
 }
 
 .category-desc {
-  font-size: 24rpx;
+  font-size: 26rpx;
   color: #AEAEB2;
   margin-left: auto;
 }
@@ -471,7 +475,7 @@
 }
 
 .item-btn-dec text {
-  font-size: 30rpx;
+  font-size: 32rpx;
   color: #FF3B30;
   font-weight: 700;
   line-height: 1;
@@ -520,7 +524,7 @@
   display: flex;
   align-items: center;
   justify-content: center;
-  font-size: 20rpx;
+  font-size: 24rpx;
   font-weight: 700;
   flex-shrink: 0;
   border: 2rpx solid #D1D1D6;
@@ -553,7 +557,7 @@
 
 /* 条目文字（标准正文） */
 .item-text {
-  font-size: 27rpx;
+  font-size: 29rpx;
   color: #333;
   line-height: 1.4;
   overflow: hidden;
@@ -563,7 +567,7 @@
 
 /* 分数数字（接近标准正文） */
 .item-points {
-  font-size: 24rpx;
+  font-size: 26rpx;
   font-weight: 700;
   flex-shrink: 0;
 }
@@ -579,7 +583,7 @@
   text-align: center;
   border-radius: 10rpx;
   padding: 0 8rpx;
-  font-size: 21rpx;
+  font-size: 24rpx;
   font-weight: 800;
   color: #fff;
   flex-shrink: 0;
@@ -623,7 +627,7 @@
 
 /* 反省标题（接近标准正文+） */
 .reflection-title {
-  font-size: 30rpx;
+  font-size: 32rpx;
   font-weight: 600;
   color: #1D1D1F;
 }
@@ -634,7 +638,7 @@
   min-height: 140rpx;
   max-height: 300rpx;
   padding: 20rpx 28rpx;
-  font-size: 28rpx;
+  font-size: 30rpx;
   color: #1D1D1F;
   line-height: 1.7;
   background: transparent;
@@ -650,7 +654,7 @@
 }
 
 .char-count {
-  font-size: 24rpx;
+  font-size: 26rpx;
   color: #AEAEB2;
 }
 
@@ -670,13 +674,13 @@
 
 /* 概览标题（接近标准正文） */
 .summary-title {
-  font-size: 28rpx;
+  font-size: 30rpx;
   font-weight: 600;
   color: #1D1D1F;
 }
 
 .summary-arrow {
-  font-size: 32rpx;
+  font-size: 34rpx;
   color: #C7C7CC;
   font-weight: 300;
 }
@@ -696,7 +700,7 @@
 
 /* 概览数值（大标题） */
 .summary-num {
-  font-size: 40rpx;
+  font-size: 41rpx;
   font-weight: 750;
   font-family: -apple-system, 'SF Pro Display', sans-serif;
   color: #1D1D1F;
@@ -707,7 +711,7 @@
 
 /* 概览标签（辅助信息） */
 .summary-label {
-  font-size: 24rpx;
+  font-size: 26rpx;
   color: #AEAEB2;
 }
 
@@ -725,7 +729,7 @@
 }
 
 .level-badge text {
-  font-size: 28rpx;
+  font-size: 30rpx;
   font-weight: 700;
   color: #8B6914 !important;
   letter-spacing: 1rpx;
@@ -746,32 +750,41 @@
   height: 96rpx;
   background: linear-gradient(135deg, #DAA520 0%, #B8860B 100%);
   color: #ffffff;
-  font-size: 34rpx;
+  font-size: 36rpx;
   font-weight: 600;
   border-radius: 20rpx;
   border: none;
   letter-spacing: 4rpx;
   transition: opacity 0.15s;
   box-shadow: 0 4rpx 16rpx rgba(218, 165, 32, 0.25);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  line-height: 1;
 }
 
 .save-btn.disabled {
   opacity: 1;
-  background: linear-gradient(135deg, #E8D5A3 0%, #D4B86E 100%);
-  color: #333333;
+  background: linear-gradient(135deg, #F1D98C 0%, #DAB957 100%);
+  color: #6B4A00;
+  font-weight: 750;
   box-shadow: none;
 }
 
 .save-btn::after { border: none; }
 
 .clear-btn {
-  font-size: 28rpx;
+  font-size: 30rpx;
   color: #FF3B30;
   background: transparent;
   padding: 14rpx 36rpx;
   border: none;
   font-weight: 500;
   letter-spacing: 1rpx;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  line-height: 1;
 }
 
 .clear-btn::after { border: none; }
@@ -805,13 +818,13 @@
 
 /* 自定义标题（接近标准正文+） */
 .custom-title-text {
-  font-size: 30rpx;
+  font-size: 32rpx;
   font-weight: 700;
   color: #1D1D1F;
 }
 
 .custom-count {
-  font-size: 22rpx;
+  font-size: 25rpx;
   color: #fff;
   background: linear-gradient(135deg, #FF9800, #F57C00);
   padding: 2rpx 12rpx;
@@ -827,8 +840,12 @@
 .add-btn {
   padding: 8rpx 18rpx;
   border-radius: 20rpx;
-  font-size: 24rpx;
+  font-size: 26rpx;
   font-weight: 600;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  line-height: 1;
 }
 
 .add-btn text {
@@ -861,7 +878,7 @@
   display: flex;
   align-items: center;
   gap: 6rpx;
-  font-size: 24rpx;
+  font-size: 26rpx;
   font-weight: 600;
   padding: 4rpx 0 8rpx;
   margin-bottom: 6rpx;
@@ -925,7 +942,7 @@
   display: flex;
   align-items: center;
   justify-content: center;
-  font-size: 19rpx;
+  font-size: 24rpx;
   font-weight: 700;
   flex-shrink: 0;
   border: 2rpx solid #D1D1D6;
@@ -958,7 +975,7 @@
 
 /* 自定义条目文字（标准正文-） */
 .custom-item-text {
-  font-size: 26rpx;
+  font-size: 28rpx;
   color: #333;
   line-height: 1.4;
   flex: 1;
@@ -968,7 +985,7 @@
 }
 
 .custom-item-score {
-  font-size: 24rpx;
+  font-size: 26rpx;
   font-weight: 700;
   flex-shrink: 0;
   margin-right: 8rpx;
@@ -1002,8 +1019,9 @@
 }
 
 .action-delete text {
-  font-size: 26rpx;
+  font-size: 28rpx;
   color: #FF3B30;
+  line-height: 1;
 }
 
 .action-delete-img {
@@ -1019,7 +1037,7 @@
 }
 
 .action-decrement text {
-  font-size: 28rpx;
+  font-size: 30rpx;
   color: #FF3B30;
   font-weight: 700;
   line-height: 1;
@@ -1038,14 +1056,14 @@
 
 .empty-text {
   display: block;
-  font-size: 26rpx;
+  font-size: 28rpx;
   color: #AEAEB2;
   margin-bottom: 6rpx;
 }
 
 .empty-hint {
   display: block;
-  font-size: 24rpx;
+  font-size: 26rpx;
   color: #C7C7CC;
 }
 
@@ -1117,7 +1135,7 @@
 
 /* 弹窗标题（大标题） */
 .modal-title {
-  font-size: 34rpx;
+  font-size: 36rpx;
   font-weight: 700;
   color: #1D1D1F;
 }
@@ -1133,7 +1151,7 @@
 }
 
 .modal-close text {
-  font-size: 28rpx;
+  font-size: 30rpx;
   color: #86868B;
   line-height: 1;
 }
@@ -1161,7 +1179,7 @@
   text-align: center;
   padding: 16rpx 0;
   border-radius: 12rpx;
-  font-size: 28rpx;
+  font-size: 30rpx;
   font-weight: 500;
   color: #86868B;
   transition: all 0.2s ease;
@@ -1188,7 +1206,7 @@
 
 .form-label {
   display: block;
-  font-size: 26rpx;
+  font-size: 28rpx;
   font-weight: 600;
   color: #3C3C43;
   margin-bottom: 12rpx;
@@ -1198,7 +1216,7 @@
   width: 100%;
   height: 88rpx;
   padding: 0 24rpx;
-  font-size: 28rpx;
+  font-size: 30rpx;
   color: #1D1D1F;
   background: #F2F2F7;
   border-radius: 14rpx;
@@ -1215,20 +1233,23 @@
 
 .quick-btn {
   flex: 1;
-  text-align: center;
   padding: 12rpx 0;
   border-radius: 10rpx;
   background: #F2F2F7;
-  font-size: 28rpx;
+  font-size: 30rpx;
   font-weight: 600;
   color: #86868B;
   transition: all 0.15s ease;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  line-height: 1;
 }
 
 .quick-btn.active {
-  background: linear-gradient(135deg, #FF9800, #F57C00);
-  color: #fff;
-  box-shadow: 0 2rpx 8rpx rgba(255, 152, 0, 0.3);
+  background: #FFF3D6;
+  color: #8B6914;
+  box-shadow: inset 0 0 0 2rpx rgba(255, 179, 0, 0.45);
 }
 
 .quick-btn:active {
@@ -1239,15 +1260,16 @@
 .score-input-row {
   display: flex;
   align-items: center;
+  justify-content: center;
   gap: 12rpx;
   margin-bottom: 16rpx;
 }
 
 .score-number-input {
-  flex: 1;
+  width: 240rpx;
   height: 84rpx;
   padding: 0 24rpx;
-  font-size: 34rpx;
+  font-size: 36rpx;
   font-weight: 700;
   color: #1D1D1F;
   background: #F2F2F7;
@@ -1263,7 +1285,7 @@
 }
 
 .score-unit {
-  font-size: 28rpx;
+  font-size: 30rpx;
   color: #86868B;
   font-weight: 500;
   flex-shrink: 0;
@@ -1274,12 +1296,16 @@
   width: 100%;
   height: 92rpx;
   border-radius: 20rpx;
-  font-size: 32rpx;
+  font-size: 34rpx;
   font-weight: 600;
   color: #ffffff;
   border: none;
   letter-spacing: 4rpx;
   margin-top: 12rpx;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  line-height: 1;
 }
 
 .modal-confirm-btn::after { border: none; }
@@ -1299,7 +1325,8 @@
   display: flex;
   justify-content: center;
   gap: 14rpx;
-  padding: 18rpx 24rpx 10rpx;
+  padding: 8rpx 24rpx 4rpx;
+  opacity: 0.72;
 }
 
 .type-option-icon {
@@ -1318,9 +1345,9 @@
   margin: 0 !important;
   padding: 16rpx 10rpx !important;
   border-radius: 50rpx !important;
-  font-size: 28rpx !important;
+  font-size: 30rpx !important;
   font-weight: 600 !important;
-  line-height: 1.2 !important;
+  line-height: 1 !important;
 
   border: none !important;
 }
@@ -1335,16 +1362,16 @@
 
 /* 一键分享（浅绿调） */
 .share-btn-primary {
-  background: linear-gradient(135deg, #E8F5E9, #F1F8E9) !important;
-  color: #2E7D32 !important;
-  box-shadow: 0 2rpx 10rpx rgba(46, 125, 50, 0.12) !important;
+  background: #FFFFFF !important;
+  color: #8B6914 !important;
+  box-shadow: none !important;
 }
 
 /* 朋友圈（浅蓝调） */
 .share-btn-primary:nth-child(2) {
-  background: linear-gradient(135deg, #E3F2FD, #E8F5E9) !important;
-  color: #1565C0 !important;
-  box-shadow: 0 2rpx 10rpx rgba(21, 101, 192, 0.1) !important;
+  background: #FFFFFF !important;
+  color: #8B6914 !important;
+  box-shadow: none !important;
 }
 
 .share-btn-icon {
@@ -1352,7 +1379,7 @@
   height: 32rpx;
 }
 
-.share-btn-text { font-size: 25rpx; letter-spacing: 0; }
+.share-btn-text { font-size: 27rpx; letter-spacing: 0; }
 
 .share-btn-save {
   background: linear-gradient(135deg, #FFF8E7, #FFECB3) !important;

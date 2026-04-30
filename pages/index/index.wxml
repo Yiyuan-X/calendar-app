@@ -1,5 +1,5 @@
 <!--pages/index/index.wxml — 首页：节日 + 倒计时 + 金句-->
-<view class="page-container">
+<view class="page-container {{elderMode ? 'elder-mode' : ''}}">
   <!-- 顶部：今日信息 + 金句（左右布局） -->
   <view class="header-section">
     <view class="header-top-row">
@@ -19,7 +19,11 @@
       </view>
       <!-- 右侧：每日金句 -->
       <view class="header-quote">
-        <text class="quote-text-inline">「{{dailyQuote}}」</text>
+        <text
+          class="quote-text-inline"
+          wx:for="{{dailyQuoteLines}}"
+          wx:key="*this"
+        >{{item}}</text>
       </view>
     </view>
   </view>
@@ -35,6 +39,10 @@
     <text class="sth2-text">{{todaySolarTermHealth.health}}</text>
     <text class="sth2-text">{{todaySolarTermHealth.diet}}</text>
     <view class="sth2-tip"><text>{{todaySolarTermHealth.tip}}</text></view>
+    <view class="daily-tip-inline" wx:if="{{dailyVegetarianTip}}">
+      <text class="daily-tip-label">今日推荐</text>
+      <text class="daily-tip-text">{{dailyVegetarianTip}}</text>
+    </view>
   </view>
 
   <!-- 当前节气（非当天）的简短提示 -->
@@ -45,15 +53,9 @@
     </view>
     <text class="sth2-period" wx:if="{{currentSolarTermPeriod}}">{{currentSolarTermPeriod}}</text>
     <view class="sth2-tip" wx:if="{{currentSolarTermTip}}"><text>{{currentSolarTermTip}}</text></view>
-  </view>
-
-  <!-- 每日纯素食养生语录（图2详细风格，保留） -->
-  <view class="dvt2-card" wx:if="{{dailyVegetarianTip}}">
-    <view class="dvt2-header">
-      <text class="dvt2-title">节气 · 养生</text>
-    </view>
-    <view class="dvt2-body">
-      <text class="dvt2-content">{{dailyVegetarianTip}}</text>
+    <view class="daily-tip-inline" wx:if="{{dailyVegetarianTip}}">
+      <text class="daily-tip-label">今日推荐</text>
+      <text class="daily-tip-text">{{dailyVegetarianTip}}</text>
     </view>
   </view>
 
@@ -99,10 +101,10 @@
     </view>
   </view>
 
-  <!-- 近期节日（列表式：展示节日名称 + 类型 + 描述） -->
+  <!-- 近期日子（列表式：展示节日名称 + 类型 + 描述） -->
   <view class="section-block" wx:if="{{upcomingFestivals.length > 0}}">
     <view class="section-header">
-      <text class="section-title">近期节日</text>
+      <text class="section-title">近期日子</text>
     </view>
 
     <view class="festivals-list-v">
@@ -118,13 +120,19 @@
             <text class="fc-month">{{item.festMonth}}</text>
             <text class="fc-day">{{item.festDay}}</text>
           </view>
-          <view class="fc-countdown-badge {{item.countdownClass}}">{{item.countdownText}}</view>
         </view>
 
         <view class="fc-right">
           <view class="fc-name-row">
-            <text class="fc-name">{{item.displayName}}</text>
-            <text class="fc-type-tag" wx:if="{{item.typeLabel}}">{{item.typeLabel}}</text>
+            <view class="fc-title-group">
+              <text class="fc-name">{{item.displayName}}</text>
+              <text class="fc-type-tag" wx:if="{{item.typeLabel}}">{{item.typeLabel}}</text>
+            </view>
+            <view class="festival-countdown-area {{item.countdownClass}}">
+              <text class="festival-countdown-prefix">{{item.countdownPrefix}}</text>
+              <text class="festival-countdown-days" wx:if="{{item.countdownDays}}">{{item.countdownDays}}</text>
+              <text class="festival-countdown-unit" wx:if="{{item.countdownUnit}}">{{item.countdownUnit}}</text>
+            </view>
           </view>
           <text class="fc-desc" wx:if="{{item.displayDesc}}">{{item.displayDesc}}</text>
           <text class="fc-desc fc-desc-alt" wx:elif="{{item.lunarDateText}}">{{item.lunarDateText}}</text>
@@ -137,7 +145,7 @@
   <!-- 功能操作区：功过格 + 显示设置（并排醒目卡片） -->
   <view class="action-row">
     <view class="action-card merit-entry" bindtap="goToMerit">
-      <image class="action-icon-img" src="/images/icons/yin-yang.svg" mode="aspectFit"></image>
+      <image class="action-icon-img action-tab-icon" src="/images/merit.png" mode="aspectFit"></image>
       <view class="action-info">
         <text class="action-title">功过格</text>
         <text class="action-subtitle">了凡四训 · 善恶行记录</text>
@@ -174,11 +182,6 @@
       <image class="share-btn-icon" src="/images/icons/save.svg" mode="aspectFit"></image>
       <text class="share-btn-text">保存</text>
     </button>
-  </view>
-
-  <!-- 底部快捷设置（固定悬浮） -->
-  <view class="quick-settings-fab" bindtap="goToSettings">
-    <image class="fab-icon" src="/images/icons/settings.svg" mode="aspectFit"></image>
   </view>
 
   <!-- 底部签名 -->

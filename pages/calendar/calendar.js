@@ -2,8 +2,9 @@
 const calendarUtil = require('../../utils/calendar');
 const storage = require('../../utils/storage');
 const solarTerms = require('../../utils/solar-terms');
-const huangli = require('../../utils/huangli');
-const festivalUtil = require('../../utils/festivals');
+const privacy = require('../../utils/privacy');
+const share = require('../../utils/share');
+const poster = require('../../utils/poster');
 
 Page({
   data: {
@@ -23,10 +24,15 @@ Page({
     ],
     calendarData: [],
     selectedDate: null,
-    selectedNote: null
+    selectedNote: null,
+    showPrivacyAuthorization: false,
+    privacyContractName: '用户隐私保护指引'
   },
 
   onLoad() {
+    this._skipNextShowRefresh = true;
+    share.enableShareMenu();
+    getApp().applyDisplaySettings(this);
     const now = new Date();
     const monthNames = ['','一月','二月','三月','四月','五月','六月','七月','八月','九月','十月','十一月','十二月'];
     this.setData({
@@ -39,17 +45,27 @@ Page({
 
     this.generateCalendar();
 
-    // 默认选中今天
-    this.selectDate(this.data.todayStr);
+    // 默认选中今天。黄历计算延后，避免首屏同步计算阻塞 AppService。
+    setTimeout(() => {
+      this.selectDate(this.data.todayStr);
+    }, 0);
   },
 
   onShow() {
+    share.enableShareMenu();
+    getApp().applyDisplaySettings(this);
+    if (this._skipNextShowRefresh) {
+      this._skipNextShowRefresh = false;
+      return;
+    }
     // 每次显示时重新生成日历（确保设置变更后即时生效）
     if (this.data.currentYear > 0) {
       this.generateCalendar();
       // 保持当前选中日期
       if (this.data.selectedDate) {
-        this.selectDate(this.data.selectedDate.dateStr);
+        setTimeout(() => {
+          this.selectDate(this.data.selectedDate.dateStr);
+        }, 0);
       }
     }
   },
@@ -251,7 +267,7 @@ Page({
     const now = new Date();
     currentMonth--;
     if (currentMonth < 1) { currentMonth = 12; currentYear--; }
-    this.setData({ 
+    this.setData({
       currentYear, currentMonth,
       isCurrentMonth: (currentYear === now.getFullYear() && currentMonth === now.getMonth() + 1)
     });
@@ -263,7 +279,7 @@ Page({
     const now = new Date();
     currentMonth++;
     if (currentMonth > 12) { currentMonth = 1; currentYear++; }
-    this.setData({ 
+    this.setData({
       currentYear, currentMonth,
       isCurrentMonth: (currentYear === now.getFullYear() && currentMonth === now.getMonth() + 1)
     });
@@ -321,7 +337,7 @@ Page({
             showLunarFestivals: storage.getSetting('showLunarFestivals'),
             showBuddhistFestivals: storage.getSetting('showBuddhistFestivals')
           };
-          rawFestivals = festivalUtil.getFestivalsByDate(dateObj.getFullYear(), dateObj.getMonth() + 1, dateObj.getDate(), festOpts);
+          rawFestivals = require('../../utils/festivals').getFestivalsByDate(dateObj.getFullYear(), dateObj.getMonth() + 1, dateObj.getDate(), festOpts);
         } catch (e) {
           rawFestivals = [];
         }
@@ -353,7 +369,7 @@ Page({
       // 计算黄历资料
       let huangliData = null;
       try {
-        huangliData = huangli.getHuangLiData(
+        huangliData = require('../../utils/huangli').getHuangLiData(
           dateObj.getFullYear(),
           dateObj.getMonth() + 1,
           dateObj.getDate(),
@@ -380,6 +396,8 @@ Page({
           weekNameShort: weekNames[dateObj.getDay()],
           // 预处理面板显示
           lunarDisplay: lunarDisplay,
+          lunarMonth: selectedInfo.lunar ? selectedInfo.lunar.monthStr + '月' : '',
+          lunarDay: selectedInfo.lunar ? selectedInfo.lunar.dayStr : '',
           ganzhiYear: ganzhiYear,
           animalYear: animalYear,
           solarTermName: selectedInfo.solarTerm ? selectedInfo.solarTerm.name : '',
@@ -445,6 +463,18 @@ Page({
     };
   },
 
+  onShareTimeline() {
+    const { currentYear, currentMonth, selectedDate } = this.data;
+    var title = '';
+    if (selectedDate && selectedDate.huangli) {
+      var hl = selectedDate.huangli;
+      title = `${hl.dayGanZhi}日 ${hl.jianChu} ${hl.xiu}宿 · 岁时记`;
+    } else {
+      title = `${currentYear}年${currentMonth}月 · 岁时记`;
+    }
+    return share.timeline({ title: title });
+  },
+
   /** 分享到朋友圈（生成海报图片） */
   shareToMoments() {
     this.generateShareImage(function(res) {
@@ -464,22 +494,9 @@ Page({
     var that = this;
     this.generateShareImage(function(res) {
       if (res.success) {
-        wx.saveImageToPhotosAlbum({
-          filePath: res.tempFilePath,
-          success: function() { wx.showToast({ title: '已保存到相册', icon: 'success' }); },
-          fail: function(err) {
-            if (err.errMsg.indexOf('auth deny') !== -1 || err.errMsg.indexOf('authorize') !== -1) {
-              wx.showModal({
-                title: '提示',
-                content: '需要您授权保存相册权限',
-                confirmText: '去设置',
-                success: function(modalRes) {
-                  if (modalRes.confirm) wx.openSetting();
-                }
-              });
-            } else {
-              wx.showToast({ title: '保存失败', icon: 'none' });
-            }
+        privacy.ensurePrivacyAuthorized({
+          success: function() {
+            that.saveImageToAlbum(res.tempFilePath);
           }
         });
       } else {
@@ -487,6 +504,41 @@ Page({
       }
     });
   },
+
+  saveImageToAlbum(filePath) {
+    wx.saveImageToPhotosAlbum({
+      filePath: filePath,
+      success: function() { wx.showToast({ title: '已保存到相册', icon: 'success' }); },
+      fail: function(err) {
+        if (err.errMsg.indexOf('auth deny') !== -1 || err.errMsg.indexOf('authorize') !== -1) {
+          wx.showModal({
+            title: '提示',
+            content: '需要您授权保存相册权限',
+            confirmText: '去设置',
+            success: function(modalRes) {
+              if (modalRes.confirm) wx.openSetting();
+            }
+          });
+        } else {
+          wx.showToast({ title: '保存失败', icon: 'none' });
+        }
+      }
+    });
+  },
+
+  openPrivacyContract() {
+    privacy.openPrivacyContract();
+  },
+
+  onAgreePrivacyAuthorization(e) {
+    privacy.agreePrivacyAuthorization(this, e.detail);
+  },
+
+  onDisagreePrivacyAuthorization() {
+    privacy.disagreePrivacyAuthorization(this);
+  },
+
+  noop() {},
 
   /**
    * 生成分享海报图片（Canvas 绘制）
@@ -650,26 +702,28 @@ Page({
         }
 
         // 导出为临时文件
-        setTimeout(function() {
-          wx.canvasToTempFilePath({
-            canvas: canvas,
-            width: W,
-            height: H,
-            destWidth: W * 2,
-            destHeight: H * 2,
-            fileType: 'jpg',
-            quality: 0.95,
-            success: function(saveRes) {
-              wx.hideLoading();
-              callback({ success: true, tempFilePath: saveRes.tempFilePath });
-            },
-            fail: function(err) {
-              console.error('canvasToTempFilePath 失败:', err);
-              wx.hideLoading();
-              callback({ success: false });
-            }
-          });
-        }, 100);
+        poster.drawPromotionCode(canvas, ctx, { x: W - 116, y: H - 150, size: 76 }, function() {
+          setTimeout(function() {
+            wx.canvasToTempFilePath({
+              canvas: canvas,
+              width: W,
+              height: H,
+              destWidth: W * 2,
+              destHeight: H * 2,
+              fileType: 'jpg',
+              quality: 0.95,
+              success: function(saveRes) {
+                wx.hideLoading();
+                callback({ success: true, tempFilePath: saveRes.tempFilePath });
+              },
+              fail: function(err) {
+                console.error('canvasToTempFilePath 失败:', err);
+                wx.hideLoading();
+                callback({ success: false });
+              }
+            });
+          }, 100);
+        });
 
       } catch (e) {
         console.error('绘制分享图出错:', e);

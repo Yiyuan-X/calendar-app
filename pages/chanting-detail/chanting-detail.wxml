@@ -1,5 +1,5 @@
 <!--pages/chanting-detail/chanting-detail.wxml — 功课详情（报数/补录/发愿/回向/备注/统计）-->
-<view class="page">
+<view class="page {{elderMode ? 'elder-mode' : ''}}">
   <!-- 基本信息 -->
   <view class="info-card">
     <text class="info-name">{{task.name}}</text>
@@ -11,7 +11,7 @@
     </view>
 
     <!-- 目标设置 -->
-    <view class="target-setting">
+    <view class="target-setting {{highlightTarget ? 'target-setting-highlight' : ''}}">
       <view class="ts-label"><image class="inline-icon" src="/images/icons/gen-gear.svg" mode="aspectFit"></image><text>目标设置</text></view>
       <view class="ts-row">
         <view class="ts-item">

@@ -1,5 +1,6 @@
 // pages/add-event/add-event.js — 添加/编辑重要日子
 const storage = require('../../utils/storage');
+const share = require('../../utils/share');
 
 Page({
   data: {
@@ -24,6 +25,8 @@ Page({
   },
 
   onLoad(options) {
+    share.enableShareMenu();
+    getApp().applyDisplaySettings(this);
     if (options.id) {
       this.loadEventForEdit(options.id);
     } else {
@@ -190,6 +193,21 @@ Page({
           setTimeout(() => { wx.navigateBack(); }, 800);
         }
       }
+    });
+  },
+
+  onShareAppMessage() {
+    const name = this.data.formData.name || '重要日子';
+    return share.appMessage({
+      title: `${name} · 岁时记`,
+      path: '/pages/index/index'
+    });
+  },
+
+  onShareTimeline() {
+    const name = this.data.formData.name || '重要日子';
+    return share.timeline({
+      title: `${name} · 岁时记`
     });
   }
 });

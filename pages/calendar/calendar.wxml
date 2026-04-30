@@ -1,5 +1,5 @@
 <!--pages/calendar/calendar.wxml — 日历页（全部预处理字段）-->
-<view class="page-container">
+<view class="page-container {{elderMode ? 'elder-mode' : ''}}">
   <!-- 月份导航 -->
   <view class="month-nav">
     <view class="nav-btn" bindtap="prevMonth">

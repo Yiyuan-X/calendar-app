@@ -12,7 +12,7 @@
 }
 
 .page-title {
-  font-size: 34rpx;
+  font-size: 36rpx;
   font-weight: 700;
   color: #1D1D1F;
   display: block;
@@ -20,7 +20,7 @@
 }
 
 .page-subtitle {
-  font-size: 23rpx;
+  font-size: 25rpx;
   color: #86868B;
   margin-top: 8rpx;
   display: block;
@@ -71,14 +71,23 @@
   flex-shrink: 0;
 }
 
-.liuzhai-icon { background: linear-gradient(135deg, #F3E8FF, #EDE4FC); }
+.liuzhai-icon { background: linear-gradient(135deg, #FFF8E1, #FFECB3); }
 .lunar-icon { background: linear-gradient(135deg, #FFF9EC, #FFF3D6); }
-.buddhist-icon { background: linear-gradient(135deg, #F3E8FF, #EDE4FC); }
+.buddhist-icon { background: linear-gradient(135deg, #FFF8E1, #FFECB3); }
+.elder-icon { background: linear-gradient(135deg, #FFF3D6, #FFE082); }
 .help-icon { background: linear-gradient(135deg, #EEF2FF, #E0F2FE); }
+.feedback-icon { background: linear-gradient(135deg, #FFF8E1, #FFECB3); }
 
 .setting-icon-img {
   width: 28rpx;
   height: 28rpx;
+}
+
+.setting-icon-text {
+  color: #8B6914;
+  font-size: 28rpx;
+  font-weight: 800;
+  line-height: 1;
 }
 
 .setting-info {
@@ -87,7 +96,7 @@
 }
 
 .setting-name {
-  font-size: 28rpx;
+  font-size: 30rpx;
   font-weight: 600;
   color: #1D1D1F;
   display: block;
@@ -95,7 +104,7 @@
 }
 
 .setting-desc {
-  font-size: 22rpx;
+  font-size: 25rpx;
   color: #AEAEB2;
   margin-top: 4rpx;
   display: block;
@@ -107,8 +116,15 @@
 }
 
 .setting-arrow {
-  font-size: 38rpx;
+  font-size: 39rpx;
   color: #C7C7CC;
+  margin-left: 16rpx;
+}
+
+.setting-action {
+  font-size: 26rpx;
+  color: #8B6914;
+  font-weight: 650;
   margin-left: 16rpx;
 }
 
@@ -125,8 +141,67 @@ setting-item switch {
   box-shadow: 0 2rpx 12rpx rgba(0, 0, 0, 0.03);
 }
 
+/* ==================== 推广小程序码 ==================== */
+.promo-card {
+  background: #FFFFFF;
+  border-radius: 20rpx;
+  padding: 28rpx 24rpx;
+  margin-bottom: 24rpx;
+  box-shadow: 0 2rpx 16rpx rgba(0, 0, 0, 0.04);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+
+.promo-info {
+  width: 100%;
+  margin-bottom: 22rpx;
+}
+
+.promo-title {
+  display: block;
+  font-size: 32rpx;
+  font-weight: 700;
+  color: #1D1D1F;
+  line-height: 1.35;
+}
+
+.promo-desc {
+  display: block;
+  margin-top: 8rpx;
+  font-size: 26rpx;
+  color: #86868B;
+  line-height: 1.6;
+}
+
+.promo-code {
+  width: 420rpx;
+  height: 420rpx;
+  border-radius: 18rpx;
+  background: #FAFAFA;
+}
+
+.promo-share-btn {
+  width: 100%;
+  height: 84rpx;
+  margin-top: 22rpx;
+  border-radius: 999rpx;
+  background: #1D1D1F;
+  color: #FFFFFF;
+  font-size: 30rpx;
+  font-weight: 650;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  line-height: 1;
+}
+
+.promo-share-btn::after {
+  border: none;
+}
+
 .tips-title {
-  font-size: 25rpx;
+  font-size: 27rpx;
   font-weight: 600;
   color: #1D1D1F;
   display: block;
@@ -134,7 +209,7 @@ setting-item switch {
 }
 
 .tips-text {
-  font-size: 23rpx;
+  font-size: 25rpx;
   color: #86868B;
   line-height: 1.7;
   display: block;

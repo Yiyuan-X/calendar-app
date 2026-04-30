@@ -1,5 +1,5 @@
 <!--pages/add-event/add-event.wxml-->
-<view class="page-container">
+<view class="page-container {{elderMode ? 'elder-mode' : ''}}">
   <!-- 标题 -->
   <view class="page-header">
     <text class="page-title">{{isEdit ? '编辑' : '添加'}}重要日子</text>

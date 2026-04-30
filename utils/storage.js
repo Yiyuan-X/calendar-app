@@ -219,7 +219,8 @@ function updateReminder(eventId, enabled) {
 const DEFAULT_SETTINGS = {
   showLiuZhai: false,        // 显示六斋日（默认关闭）
   showLunarFestivals: true,  // 显示农历初一/十五
-  showBuddhistFestivals: true // 显示佛教纪念日（佛诞日等）
+  showBuddhistFestivals: true, // 显示佛教纪念日（佛诞日等）
+  elderMode: false           // 长辈模式：使用更大字号
 };
 
 /**

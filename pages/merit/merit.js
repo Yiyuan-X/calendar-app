@@ -1,7 +1,10 @@
-// pages/merit/merit.js — 功过格（了凡四训）
+// pages/merit/merit.js — 功过格
 const calendarUtil = require('../../utils/calendar');
 const storage = require('../../utils/storage');
 const meritUtil = require('../../utils/merit');
+const privacy = require('../../utils/privacy');
+const share = require('../../utils/share');
+const poster = require('../../utils/poster');
 
 Page({
   data: {
@@ -13,7 +16,7 @@ Page({
     // 今日引文
     dailyQuote: null,
 
-    // 功德分类（预处理选中状态 + 累计次数）
+    // 功过分类（预处理选中状态 + 累计次数）
     goodCategories: [],
     badCategories: [],
     showBuiltinItems: false,
@@ -51,8 +54,11 @@ Page({
     customModalMode: 'add',        // 'add' | 'edit'
     customEditType: 'good',        // 当前编辑的类型 good/bad
     customEditText: '',            // 弹窗中输入的内容
+    customEditPlaceholder: '例如：帮助同事解决技术难题',
     customEditScore: 1,            // 弹窗中输入的分数
-    customEditingId: null          // 编辑中的条目ID（null=新增模式）
+    customEditingId: null,          // 编辑中的条目ID（null=新增模式）
+    showPrivacyAuthorization: false,
+    privacyContractName: '用户隐私保护指引'
   },
 
   /**
@@ -60,23 +66,25 @@ Page({
    */
   _getIconPath(icon) {
     const iconMap = {
-      // 善行分类 — 精美设计图标
-      benevolence: '/images/icons/merit-compassion.svg', // 慈悲利他
+      // 善行分类
+      benevolence: '/images/icons/merit-compassion.svg', // 仁爱济人
       filial: '/images/icons/merit-filial.svg',          // 孝亲敬长
-      integrity: '/images/icons/merit-honest.svg',       // 诚实守信
+      integrity: '/images/icons/merit-honest.svg',       // 诚信尽责
       cultivation: '/images/icons/merit-cultivate.svg',  // 修身养性
-      speech: '/images/icons/merit-speech.svg',          // 善语爱语
-      // 恶行分类 — 警示风格图标
-      anger: '/images/icons/demerit-anger.svg',         // 嗔恚暴躁
-      greed: '/images/icons/demerit-greed.svg',         // 贪欲执着
-      dishonesty: '/images/icons/demerit-lie.svg',      // 欺妄不实
-      laziness: '/images/icons/demerit-lazy.svg',       // 懈怠懒惰
-      harm: '/images/icons/demerit-harm.svg',           // 残忍伤害
+      speech: '/images/icons/merit-speech.svg',          // 善言和众
+      // 过失分类
+      anger: '/images/icons/demerit-anger.svg',         // 怨怒暴躁
+      greed: '/images/icons/demerit-greed.svg',         // 贪占浪费
+      dishonesty: '/images/icons/demerit-lie.svg',      // 欺妄是非
+      laziness: '/images/icons/demerit-lazy.svg',       // 懈怠失度
+      harm: '/images/icons/demerit-harm.svg',           // 伤生损物
     };
     return iconMap[icon] || '/images/icons/yin-yang.svg';
   },
 
   onLoad(options) {
+    share.enableShareMenu();
+    getApp().applyDisplaySettings(this);
     const dateStr = options.date || '';
     if (!dateStr) {
       const today = calendarUtil.getTodayInfo();
@@ -89,6 +97,9 @@ Page({
   },
 
   onShow() {
+    share.enableShareMenu();
+    getApp().applyDisplaySettings(this);
+    this.refreshDailyQuote();
     this.loadStats();
     this.loadCustomItems(); // 每次显示时刷新自定义条目
   },
@@ -111,19 +122,23 @@ Page({
       });
     }
 
-    // 加载功德分类数据（带选中状态 + count）
+    // 加载功过分类数据（带选中状态 + count）
     this.loadCategories();
 
     // 加载今日引文
-    this.setData({
-      dailyQuote: meritUtil.getDailyQuote()
-    });
+    this.refreshDailyQuote();
 
     // 加载已有记录
     this.loadExistingRecord();
 
     // 加载自定义条目
     this.loadCustomItems();
+  },
+
+  refreshDailyQuote() {
+    this.setData({
+      dailyQuote: meritUtil.getDailyQuote()
+    });
   },
 
   /**
@@ -214,7 +229,7 @@ Page({
   },
 
   /**
-   * 重新计算总功德值（基于 count × 分数），并更新分组列表
+   * 重新计算总分（基于 count × 分数），并更新分组列表
    */
   recalculateTotals() {
     const { selectedItems } = this.data;
@@ -338,9 +353,6 @@ Page({
    * 累计增加一条功/过（每次点击 +1）
    */
   incrementItem(type, categoryId, itemId, text, merit, demerit, isCustom = false) {
-    console.log('====== incrementItem 开始 ======');
-    console.log('传入: merit=', merit, 'demerit=', demerit, 'itemId=', itemId);
-    
     let { selectedItems } = this.data;
 
     // 查找是否已有该条目
@@ -356,12 +368,10 @@ Page({
     if (existingIdx !== -1) {
       // 已存在，count +1
       selectedItems[existingIdx].count = (selectedItems[existingIdx].count || 1) + 1;
-      console.log('【已存在】count ->', selectedItems[existingIdx].count, 'merit=', selectedItems[existingIdx].merit);
     } else {
       // 首次添加，count = 1
       const mVal = type === 'good' ? (Number(merit) || 0) : 0;
       const dVal = type === 'bad' ? (Number(demerit) || 0) : 0;
-      console.log('【新增】计算的 merit=', mVal, 'demerit=', dVal, '(原始 merit=', merit, ')');
       selectedItems.push({
         type,
         categoryId,
@@ -375,12 +385,6 @@ Page({
       });
     }
 
-    // 打印完整的 selectedItems
-    console.log('【完整 selectedItems】:');
-    selectedItems.forEach((item, i) => {
-      console.log('  [' + i + '] ', item.text, '| merit=', item.merit, '| demerit=', item.demerit, '| count=', item.count);
-    });
-
     // 直接基于修改后的数组计算（不等 setData）
     const goodDisplayList = [];
     const badDisplayList = [];
@@ -391,18 +395,14 @@ Page({
       const cnt = item.count || 1;
       if (item.type === 'good') {
         const t = (item.merit || 0) * cnt;
-        console.log('good', item.text, ': merit=', item.merit, 'x', cnt, '=', t);
         goodTotal += t;
         goodDisplayList.push({ ...item, _idx: 'g_' + idx + '_' + item.itemId });
       } else {
         const t = (item.demerit || 0) * cnt;
-        console.log('bad', item.text, ': demerit=', item.demerit, 'x', cnt, '=', t);
         badTotal += t;
         badDisplayList.push({ ...item, _idx: 'b_' + idx + '_' + item.itemId });
       }
     });
-
-    console.log('====== 最终结果: goodTotal=', goodTotal, 'badTotal=', badTotal, 'netMerit=', goodTotal - badTotal, '======');
 
     // 一次性 setData，避免多次调用导致的数据覆盖
     this.setData({
@@ -658,6 +658,7 @@ Page({
       customModalMode: 'add',
       customEditType: type,
       customEditText: '',
+      customEditPlaceholder: this.getCustomPlaceholder(type),
       customEditScore: type === 'good' ? 1 : 1,
       customEditingId: null
     });
@@ -677,6 +678,7 @@ Page({
       customModalMode: 'edit',
       customEditType: item.type,
       customEditText: item.text,
+      customEditPlaceholder: this.getCustomPlaceholder(item.type),
       customEditScore: item.type === 'good' ? item.merit : item.demerit,
       customEditingId: id
     });
@@ -699,7 +701,14 @@ Page({
    */
   onCustomTypeSwitch(e) {
     const type = e.currentTarget.dataset.type;
-    this.setData({ customEditType: type });
+    this.setData({
+      customEditType: type,
+      customEditPlaceholder: this.getCustomPlaceholder(type)
+    });
+  },
+
+  getCustomPlaceholder(type) {
+    return type === 'bad' ? '例如：因急躁对家人说重话' : '例如：帮助同事解决技术难题';
   },
 
   /**
@@ -710,14 +719,16 @@ Page({
   },
 
   /**
-   * 弹窗分数输入（支持自定义输入，范围 1~999）
+   * 弹窗分数输入：保留用户正在输入的原始值，提交时再校验。
    */
   onCustomScoreInput(e) {
-    let val = parseInt(e.detail.value);
-    if (isNaN(val)) val = 1;
-    if (val < 1) val = 1;
-    if (val > 999) val = 999;
-    this.setData({ customEditScore: val });
+    const value = String(e.detail.value || '').replace(/[^\d]/g, '');
+    this.setData({ customEditScore: value });
+  },
+
+  normalizeCustomScore(score) {
+    const value = parseInt(score, 10);
+    return Number.isFinite(value) && value > 0 ? value : 0;
   },
 
   /**
@@ -733,22 +744,28 @@ Page({
    */
   onConfirmCustom() {
     const { customEditText, customEditScore, customEditType, customModalMode, customEditingId } = this.data;
+    const score = this.normalizeCustomScore(customEditScore);
 
     if (!customEditText.trim()) {
       wx.showToast({ title: '请输入条目内容', icon: 'none' });
       return;
     }
 
+    if (!score) {
+      wx.showToast({ title: '请输入大于0的分数', icon: 'none' });
+      return;
+    }
+
     if (customModalMode === 'add') {
-      storage.addCustomMeritItem(customEditType, customEditText.trim(), customEditScore);
+      storage.addCustomMeritItem(customEditType, customEditText.trim(), score);
       wx.showToast({ title: '已添加', icon: 'success' });
     } else {
       const updates = { text: customEditText.trim() };
       if (customEditType === 'good') {
-        updates.merit = customEditScore;
+        updates.merit = score;
         updates.demerit = 0;
       } else {
-        updates.demerit = customEditScore;
+        updates.demerit = score;
         updates.merit = 0;
       }
       updates.type = customEditType;
@@ -852,9 +869,17 @@ Page({
     var { displayDate, currentNetMerit } = this.data;
     var netText = currentNetMerit >= 0 ? ('+' + currentNetMerit) : String(currentNetMerit);
     return {
-      title: displayDate + ' 功过格 ' + netText + '分 · 岁时记',
+      title: displayDate + ' 功过格 净德分' + netText + ' · 岁时记',
       path: '/pages/merit/merit'
     };
+  },
+
+  onShareTimeline() {
+    var { displayDate, currentNetMerit } = this.data;
+    var netText = currentNetMerit >= 0 ? ('+' + currentNetMerit) : String(currentNetMerit);
+    return share.timeline({
+      title: displayDate + ' 功过格 净德分' + netText + ' · 岁时记'
+    });
   },
 
   /** 分享到朋友圈 */
@@ -873,19 +898,9 @@ Page({
     var that = this;
     this.generateShareImage(function(res) {
       if (res.success) {
-        wx.saveImageToPhotosAlbum({
-          filePath: res.tempFilePath,
-          success: function() { wx.showToast({ title: '已保存到相册', icon: 'success' }); },
-          fail: function(err) {
-            if (err.errMsg.indexOf('auth deny') !== -1 || err.errMsg.indexOf('authorize') !== -1) {
-              wx.showModal({
-                title: '提示', content: '需要您授权保存相册权限',
-                confirmText: '去设置',
-                success: function(modalRes) { if (modalRes.confirm) wx.openSetting(); }
-              });
-            } else {
-              wx.showToast({ title: '保存失败', icon: 'none' });
-            }
+        privacy.ensurePrivacyAuthorized({
+          success: function() {
+            that.saveImageToAlbum(res.tempFilePath);
           }
         });
       } else {
@@ -893,6 +908,38 @@ Page({
       }
     });
   },
+
+  saveImageToAlbum(filePath) {
+    wx.saveImageToPhotosAlbum({
+      filePath: filePath,
+      success: function() { wx.showToast({ title: '已保存到相册', icon: 'success' }); },
+      fail: function(err) {
+        if (err.errMsg.indexOf('auth deny') !== -1 || err.errMsg.indexOf('authorize') !== -1) {
+          wx.showModal({
+            title: '提示', content: '需要您授权保存相册权限',
+            confirmText: '去设置',
+            success: function(modalRes) { if (modalRes.confirm) wx.openSetting(); }
+          });
+        } else {
+          wx.showToast({ title: '保存失败', icon: 'none' });
+        }
+      }
+    });
+  },
+
+  openPrivacyContract() {
+    privacy.openPrivacyContract();
+  },
+
+  onAgreePrivacyAuthorization(e) {
+    privacy.agreePrivacyAuthorization(this, e.detail);
+  },
+
+  onDisagreePrivacyAuthorization() {
+    privacy.disagreePrivacyAuthorization(this);
+  },
+
+  noop() {},
 
   /** 导出本地累计功过记录为 CSV */
   exportMeritRecords() {
@@ -1101,32 +1148,34 @@ Page({
         ctx.fillStyle = '#C62828'; ctx.font = 'bold 32px sans-serif';
         ctx.textAlign = 'center'; ctx.fillText('-' + badTotal, W / 2, cardY + 150);
 
-        // 净功德
+        // 净德分
         var netColor = net >= 0 ? '#2E7D32' : '#C62828';
         var netStr = net >= 0 ? ('+' + net) : String(net);
         ctx.fillStyle = netColor; ctx.font = 'bold 42px sans-serif';
-        ctx.textAlign = 'center'; ctx.fillText('净功德：' + netStr + ' 分', W / 2, cardY + 210);
+        ctx.textAlign = 'center'; ctx.fillText('净德分：' + netStr, W / 2, cardY + 210);
 
         // 底部品牌
         ctx.fillStyle = '#AEAEB2'; ctx.font = '13px sans-serif';
-        ctx.fillText('— 了凡四训 · 岁时记 —', W / 2, H - 50);
+        ctx.fillText('— 积善修身 · 岁时记 —', W / 2, H - 50);
         ctx.font = '11px sans-serif';
         ctx.fillText('长按识别小程序码查看更多', W / 2, H - 25);
 
-        setTimeout(function() {
-          wx.canvasToTempFilePath({
-            canvas: canvas, width: W, height: H,
-            destWidth: W * 2, destHeight: H * 2,
-            fileType: 'jpg', quality: 0.95,
-            success: function(saveRes) {
-              wx.hideLoading(); callback({ success: true, tempFilePath: saveRes.tempFilePath });
-            },
-            fail: function(err) {
-              console.error('canvasToTempFilePath 失败:', err);
-              wx.hideLoading(); callback({ success: false });
-            }
-          });
-        }, 100);
+        poster.drawPromotionCode(canvas, ctx, { x: W - 116, y: H - 150, size: 76 }, function() {
+          setTimeout(function() {
+            wx.canvasToTempFilePath({
+              canvas: canvas, width: W, height: H,
+              destWidth: W * 2, destHeight: H * 2,
+              fileType: 'jpg', quality: 0.95,
+              success: function(saveRes) {
+                wx.hideLoading(); callback({ success: true, tempFilePath: saveRes.tempFilePath });
+              },
+              fail: function(err) {
+                console.error('canvasToTempFilePath 失败:', err);
+                wx.hideLoading(); callback({ success: false });
+              }
+            });
+          }, 100);
+        });
       } catch (e) {
         console.error('绘制出错:', e); wx.hideLoading(); callback({ success: false });
       }

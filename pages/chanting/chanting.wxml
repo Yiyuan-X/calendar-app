@@ -1,12 +1,12 @@
 <!--pages/chanting/chanting.wxml — 功课计数器主页面-->
-<view class="page">
+<view class="page {{elderMode ? 'elder-mode' : ''}}">
   <!-- 头部 -->
   <view class="header">
     <view class="header-top">
       <view class="title">计数器</view>
       <view class="add-btn" bindtap="goAdd"><text>+</text></view>
     </view>
-    <view class="motto">愿以一念之善，记录每日所行。</view>
+    <view class="motto">{{pageMotto}}</view>
   </view>
 
   <!-- 今日概览 -->
@@ -22,7 +22,7 @@
         <text class="sum-label">功课总数</text>
       </view>
     </view>
-    <view class="summary-hint" wx:if="{{todaySummary.total === 0}}">
+    <view class="summary-hint" wx:if="{{todaySummary.total === 0}}" bindtap="goSetTarget">
       <text>设置每日目标后可追踪完成进度 →</text>
     </view>
   </view>
@@ -97,7 +97,16 @@
   <view class="empty-state" wx:if="{{tasks.length === 0}}">
     <image class="empty-icon" src="/images/icons/gen-beads.svg" mode="aspectFit"></image>
     <text class="empty-text">还没有添加功课</text>
-    <text class="empty-hint">点击右上角 + 添加你的第一个功课</text>
+    <text class="empty-hint">可以从常用功课开始，也可以添加自己的功课</text>
+    <view class="quick-suggestions">
+      <view
+        class="suggestion-chip"
+        wx:for="{{quickSuggestions}}"
+        wx:key="id"
+        data-id="{{item.id}}"
+        bindtap="onQuickAddTask"
+      >{{item.name}}</view>
+    </view>
     <view class="empty-add" bindtap="goAdd">添加功课</view>
   </view>
 
@@ -117,15 +126,6 @@
 
   <!-- 隐藏的 Canvas（用于生成朋友圈海报） -->
   <canvas type="2d" id="shareCanvas" style="position:fixed;left:-9999px;top:-9999px;width:500px;height:750px;"></canvas>
-
-  <!-- 联系方式 -->
-  <view class="contact-bar">
-    <text class="contact-text">若有任何有益的建议请加微信 </text>
-    <text class="contact-highlight" bindtap="copyWechat">HSTS08</text>
-    <text class="contact-text"> 或发邮件至 </text>
-    <text class="contact-highlight" bindtap="copyEmail">914949158@qq.com</text>
-    <text class="contact-text">，感谢</text><image class="contact-icon" src="/images/icons/gen-prayer.svg" mode="aspectFit"></image>
-  </view>
 
   <!-- 通用计数器（日常使用） -->
   <view class="quick-counter-section">

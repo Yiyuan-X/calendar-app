@@ -1,6 +1,7 @@
 // pages/notes/notes.js
 const calendarUtil = require('../../utils/calendar');
 const storage = require('../../utils/storage');
+const share = require('../../utils/share');
 
 Page({
   data: {
@@ -15,8 +16,10 @@ Page({
   },
 
   onLoad(options) {
+    share.enableShareMenu();
+    getApp().applyDisplaySettings(this);
     const dateStr = options.date || '';
-    
+
     if (!dateStr) {
       // 如果没有日期参数，使用今天
       const today = calendarUtil.getTodayInfo();
@@ -140,5 +143,18 @@ Page({
         }
       }
     });
+  },
+
+  onShareAppMessage() {
+    const title = this.data.displayDate ? `${this.data.displayDate} 备注 · 岁时记` : '岁时记 · 记录时光';
+    return share.appMessage({
+      title: title,
+      path: '/pages/index/index'
+    });
+  },
+
+  onShareTimeline() {
+    const title = this.data.displayDate ? `${this.data.displayDate} 备注 · 岁时记` : '岁时记 · 记录时光';
+    return share.timeline({ title: title });
   }
 });

@@ -1,5 +1,5 @@
 <!--pages/chanting-add/chanting-add.wxml — 添加/搜索功课-->
-<view class="page">
+<view class="page {{elderMode ? 'elder-mode' : ''}}">
   <!-- 搜索栏 -->
   <view class="search-bar">
     <image class="search-icon" src="/images/icons/gen-search.svg" mode="aspectFit"></image>

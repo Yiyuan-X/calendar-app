@@ -519,13 +519,40 @@ function getTodaySolarTerm(year, month, day) {
   }
 }
 
+function pickRandom(list) {
+  if (!list || !list.length) return '';
+  return list[Math.floor(Math.random() * list.length)];
+}
+
+function getSolarTermTipOptions(termName) {
+  const guide = solarTermHealthGuide[termName];
+  if (!guide) return ['顺应天时，调和身心'];
+
+  return [
+    guide.tip,
+    `${termName}时节，顺时而养，饮食起居皆宜从容有度`,
+    guide.health,
+    guide.lifestyle,
+    guide.diet
+  ].filter(Boolean);
+}
+
 /**
  * 获取节气养生指南（兼容旧接口）
  * @param {string} termName 节气名称
+ * @param {object} options 可选配置，randomTip=true 时随机替换 tip
  * @returns {object|null} 养生指南对象
  */
-function getSolarTermHealth(termName) {
-  return solarTermHealthGuide[termName] || null;
+function getSolarTermHealth(termName, options) {
+  const guide = solarTermHealthGuide[termName];
+  if (!guide) return null;
+  if (options && options.randomTip) {
+    return {
+      ...guide,
+      tip: getRandomSolarTermHealthTip(termName)
+    };
+  }
+  return guide;
 }
 
 /**
@@ -536,6 +563,10 @@ function getSolarTermHealth(termName) {
 function getSolarTermHealthTip(termName) {
   const guide = solarTermHealthGuide[termName];
   return guide ? (guide.tip || guide.desc || '顺应天时，调和身心') : '顺应天时，调和身心';
+}
+
+function getRandomSolarTermHealthTip(termName) {
+  return pickRandom(getSolarTermTipOptions(termName)) || getSolarTermHealthTip(termName);
 }
 
 /**
@@ -610,5 +641,6 @@ module.exports = {
   getTodaySolarTerm,
   getSolarTermHealth,
   getSolarTermHealthTip,
+  getRandomSolarTermHealthTip,
   getNearbySolarTerms
 };

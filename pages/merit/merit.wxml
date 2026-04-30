@@ -1,5 +1,5 @@
-<!--pages/merit/merit.wxml — 功过格（了凡四训）-->
-<view class="page-container">
+<!--pages/merit/merit.wxml — 功过格-->
+<view class="page-container {{elderMode ? 'elder-mode' : ''}}">
 
   <!-- 日期头部 + 引文 -->
   <view class="header-section">
@@ -8,15 +8,15 @@
       <text class="date-sub">{{weekdayText}}</text>
     </view>
 
-    <!-- 了凡四训每日引文 -->
+    <!-- 每日修身金句 -->
     <view class="quote-card" wx:if="{{dailyQuote}}">
       <text class="quote-mark">「</text>
       <text class="quote-text">{{dailyQuote.text}}</text>
-      <text class="quote-source">— 《了凡四训》{{dailyQuote.source}}</text>
+      <text class="quote-source">— {{dailyQuote.source}}</text>
     </view>
   </view>
 
-  <!-- 功德总览卡片 -->
+  <!-- 功过总览卡片 -->
   <view class="overview-card" wx:if="{{selectedItems.length > 0 || hasExistingRecord}}">
     <view class="overview-row">
       <view class="overview-item good">
@@ -30,7 +30,7 @@
       </view>
       <view class="overview-divider"></view>
       <view class="overview-item net {{currentNetMerit >= 0 ? 'positive' : 'negative'}}">
-        <text class="overview-label">净功德</text>
+        <text class="overview-label">净德分</text>
         <text class="overview-value">{{currentNetMerit >= 0 ? '+' : ''}}{{currentNetMerit}}</text>
       </view>
     </view>
@@ -95,14 +95,14 @@
             data-item-id="{{mItem.id}}"
           ><text>−</text></view>
           <view class="item-btn item-btn-dec item-btn-placeholder" wx:else></view>
-          
+
           <!-- 中间内容区（点击 +1） -->
           <view class="item-body" bindtap="onToggleGoodItem" bindlongpress="onLongPressBuiltinItem" data-category-id="{{item.id}}" data-category-name="{{item.name}}" data-item-id="{{mItem.id}}" data-text="{{mItem.text}}" data-merit="{{mItem.merit}}" data-type="good">
             <image class="item-check-img" wx:if="{{mItem.count > 0}}" src="/images/icons/gen-check.svg" mode="aspectFit"></image>
             <view class="item-check-placeholder" wx:else></view>
             <text class="item-text">{{mItem.text}}</text>
           </view>
-          
+
           <!-- 右侧分数 + 增加按钮 -->
           <view class="item-right">
             <text class="item-points">+{{mItem.merit}}</text>
@@ -135,14 +135,14 @@
             data-item-id="{{mItem.id}}"
           ><text>−</text></view>
           <view class="item-btn item-btn-dec item-btn-placeholder" wx:else></view>
-          
+
           <!-- 中间内容区（点击 +1） -->
           <view class="item-body" bindtap="onToggleBadItem" bindlongpress="onLongPressBuiltinItem" data-category-id="{{item.id}}" data-category-name="{{item.name}}" data-item-id="{{mItem.id}}" data-text="{{mItem.text}}" data-demerit="{{mItem.demerit}}" data-type="bad">
             <image class="item-check-img" wx:if="{{mItem.count > 0}}" src="/images/icons/gen-cross.svg" mode="aspectFit"></image>
             <view class="item-check-placeholder" wx:else></view>
             <text class="item-text">{{mItem.text}}</text>
           </view>
-          
+
           <!-- 右侧分数 + 增加按钮 -->
           <view class="item-right">
             <text class="item-points">-{{mItem.demerit}}</text>
@@ -288,13 +288,13 @@
   <!-- 统计概览入口 -->
   <view class="stats-summary card" wx:if="{{stats}}" bindtap="goToStats">
     <view class="summary-header">
-      <text class="summary-title">功德累计</text>
+      <text class="summary-title">德分累计</text>
       <text class="summary-arrow">›</text>
     </view>
     <view class="summary-body">
       <view class="summary-item">
         <text class="summary-num {{stats.totalNet >= 0 ? 'num-good' : 'num-bad'}}">{{stats.totalNet}}</text>
-        <text class="summary-label">净功德</text>
+        <text class="summary-label">净德分</text>
       </view>
       <view class="summary-divider"></view>
       <view class="summary-item">
@@ -370,7 +370,7 @@
       <text class="form-label">条目内容</text>
       <input
         class="form-input"
-        placeholder="例如：帮助同事解决技术难题"
+        placeholder="{{customEditPlaceholder}}"
         value="{{customEditText}}"
         bindinput="onCustomTextInput"
         maxlength="30"
@@ -380,16 +380,14 @@
 
     <!-- 分数设置（可自由输入） -->
     <view class="form-group">
-      <text class="form-label">分数（{{customEditType === 'good' ? '功德值' : '过失值'}}）</text>
+      <text class="form-label">分数（{{customEditType === 'good' ? '善行分' : '过失分'}}）</text>
       <view class="score-input-row">
         <input
           class="score-number-input"
           type="number"
-          placeholder="输入分数"
+          placeholder="可输入任意正整数"
           value="{{customEditScore}}"
           bindinput="onCustomScoreInput"
-          min="1"
-          max="999"
         />
         <text class="score-unit">分</text>
       </view>

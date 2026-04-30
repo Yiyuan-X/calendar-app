@@ -166,6 +166,11 @@ function getTodayInfo() {
     weekNameShort: weekNames[weekDay],
     dateStr: `${year}-${padZero(month)}-${padZero(day)}`,
     lunar: lunarInfo,
+    lunarMonth: lunarInfo ? lunarInfo.monthStr + '月' : '',
+    lunarDay: lunarInfo ? lunarInfo.dayStr : '',
+    lunarDisplay: lunarInfo ? lunarInfo.display : '',
+    ganzhiYear: lunarInfo ? lunarInfo.yearGanZhi : '',
+    animalYear: lunarInfo ? lunarInfo.animal : '',
     festivals: festivals,
     solarTerm: solarTerm
   };

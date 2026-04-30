@@ -4,6 +4,9 @@ const storage = require('../../utils/storage');
 const quotes = require('../../utils/quotes');
 const solarTerms = require('../../utils/solar-terms');
 const meritUtil = require('../../utils/merit');
+const privacy = require('../../utils/privacy');
+const share = require('../../utils/share');
+const poster = require('../../utils/poster');
 
 Page({
   data: {
@@ -26,6 +29,7 @@ Page({
     // === 今日信息 ===
     todayInfo: {},
     dailyQuote: '',
+    dailyQuoteLines: [],
     todayFestivals: [],
     todayNote: null,
 
@@ -47,14 +51,20 @@ Page({
     dailyVegetarianTip: '',
 
     // === 功过格 ===
-    meritTodayNet: null
+    meritTodayNet: null,
+    showPrivacyAuthorization: false,
+    privacyContractName: '用户隐私保护指引'
   },
 
   onLoad() {
+    share.enableShareMenu();
+    getApp().applyDisplaySettings(this);
     this.initPage();
   },
 
   onShow() {
+    share.enableShareMenu();
+    getApp().applyDisplaySettings(this);
     this.refreshData();
   },
 
@@ -85,6 +95,44 @@ Page({
   processFestivals(festivals) {
     if (!festivals || !festivals.length) return [];
     return festivals.map(f => ({ ...f, tagClass: this.getTagClass(f.color) }));
+  },
+
+  formatQuoteLines(quote) {
+    const text = String(quote || '').trim();
+    if (!text) return [];
+    if (text.length <= 9) return [`「${text}」`];
+
+    const punctuationIndex = text.search(/[，。；、]/);
+    if (punctuationIndex >= 3 && punctuationIndex < text.length - 3) {
+      return [
+        `「${text.slice(0, punctuationIndex + 1)}`,
+        `${text.slice(punctuationIndex + 1)}」`
+      ];
+    }
+
+    const preferredBreaks = ['，', '。', '；', '、', '也', '把', '给', '愿', '才', '都'];
+    let breakIndex = -1;
+    preferredBreaks.some(char => {
+      const idx = text.indexOf(char, 3);
+      if (idx >= 3 && idx < text.length - 3) {
+        breakIndex = idx + 1;
+        return true;
+      }
+      return false;
+    });
+
+    if (breakIndex < 0) {
+      breakIndex = Math.ceil(text.length / 2);
+      const lastChar = text.slice(breakIndex - 1, breakIndex);
+      if ('的了吧呀哦呢'.indexOf(lastChar) >= 0 && breakIndex > 3) {
+        breakIndex -= 1;
+      }
+    }
+
+    return [
+      `「${text.slice(0, breakIndex)}`,
+      `${text.slice(breakIndex)}」`
+    ];
   },
 
   processEvents(events) {
@@ -243,6 +291,7 @@ Page({
 
   goToToday() {
     const now = new Date();
+
     this.setData({
       currentYear: now.getFullYear(),
       currentMonth: now.getMonth() + 1
@@ -286,6 +335,7 @@ Page({
     const now = new Date();
     const todayStr = `${now.getFullYear()}-${calendarUtil.padZero(now.getMonth() + 1)}-${calendarUtil.padZero(now.getDate())}`;
     const todayInfo = calendarUtil.getTodayInfo();
+    const dailyQuote = quotes.getDailyQuote();
 
     // 获取今日节气信息
     const year = now.getFullYear();
@@ -297,7 +347,7 @@ Page({
     let todaySolarTermPeriod = '';
     if (todayST) {
       todaySolarTermName = todayST.name;
-      todaySolarTermHealth = solarTerms.getSolarTermHealth(todayST.name);
+      todaySolarTermHealth = solarTerms.getSolarTermHealth(todayST.name, { randomTip: true });
       todaySolarTermPeriod = this._getSolarTermPeriod(year, month, day);
     }
 
@@ -310,7 +360,7 @@ Page({
       const currentTerm = nearby.prev || nearby.next;
       if (currentTerm) {
         currentSolarTermName = currentTerm.name;
-        currentSolarTermTip = solarTerms.getSolarTermHealthTip(currentTerm.name) || '顺应天时，调和身心';
+        currentSolarTermTip = solarTerms.getRandomSolarTermHealthTip(currentTerm.name) || '顺应天时，调和身心';
         currentSolarTermPeriod = this._getSolarTermPeriod(year, month, day);
       }
     }
@@ -321,7 +371,8 @@ Page({
       todayStr,
       selectedDateStr: todayStr,
       todayInfo,
-      dailyQuote: quotes.getDailyQuote(),
+      dailyQuote,
+      dailyQuoteLines: this.formatQuoteLines(dailyQuote),
       todayFestivals: this.processFestivals(todayInfo.festivals),
       todayNote: storage.getNoteByDate(todayStr),
       // 节气养生数据
@@ -366,7 +417,11 @@ Page({
     });
 
     if (Math.random() > 0.7) {
-      this.setData({ dailyQuote: quotes.getDailyQuote() });
+      const dailyQuote = quotes.getDailyQuote();
+      this.setData({
+        dailyQuote,
+        dailyQuoteLines: this.formatQuoteLines(dailyQuote)
+      });
     }
 
     // 刷新每日素食养生语录
@@ -376,8 +431,37 @@ Page({
       console.error('刷新每日素食语录失败:', e);
     }
 
+    this.refreshSolarTermTip();
+
     this.loadUpcomingEvents();
     this.loadUpcomingFestivals();
+  },
+
+  refreshSolarTermTip() {
+    try {
+      const now = new Date();
+      const year = now.getFullYear();
+      const month = now.getMonth() + 1;
+      const day = now.getDate();
+      const todayST = solarTerms.getTodaySolarTerm(year, month, day);
+
+      if (todayST) {
+        this.setData({
+          todaySolarTermHealth: solarTerms.getSolarTermHealth(todayST.name, { randomTip: true })
+        });
+        return;
+      }
+
+      const nearby = solarTerms.getNearbySolarTerms(year, month, day);
+      const currentTerm = nearby.prev || nearby.next;
+      if (currentTerm) {
+        this.setData({
+          currentSolarTermTip: solarTerms.getRandomSolarTermHealthTip(currentTerm.name) || '顺应天时，调和身心'
+        });
+      }
+    } catch (e) {
+      console.error('刷新节气提示失败:', e);
+    }
   },
 
   loadUpcomingEvents() {
@@ -429,9 +513,11 @@ Page({
           // 预处理日期显示
           festMonth: festMonth,
           festDay: festDay,
-          // 倒计时文字预处理
-          countdownText: item.daysAway === 0 ? '今天' : (item.daysAway === 1 ? '明天' : (item.daysAway <= 7 ? item.daysAway + '天后' : item.daysAway + '天')),
-          countdownClass: item.daysAway === 0 ? '' : (item.daysAway === 1 ? 'fc-tomorrow' : (item.daysAway <= 7 ? 'fc-soon' : 'fc-normal'))
+          // 倒计时文字预处理：和“重要日子”保持同一阅读方式
+          countdownPrefix: item.daysAway === 0 ? '今天' : '还有',
+          countdownDays: item.daysAway > 0 ? item.daysAway : '',
+          countdownUnit: item.daysAway > 0 ? '天' : '',
+          countdownClass: item.daysAway === 0 ? 'fc-today' : (item.daysAway <= 7 ? 'fc-soon' : 'fc-normal')
         });
       });
     });
@@ -521,6 +607,13 @@ goToMerit() {
     };
   },
 
+  onShareTimeline() {
+    const { todayInfo, dailyQuote } = this.data;
+    return share.timeline({
+      title: `${todayInfo.month}月${todayInfo.day}日 · ${dailyQuote}`
+    });
+  },
+
   /** 分享到朋友圈 */
   shareToMoments() {
     this.generateShareImage(function(res) {
@@ -537,19 +630,9 @@ goToMerit() {
     var that = this;
     this.generateShareImage(function(res) {
       if (res.success) {
-        wx.saveImageToPhotosAlbum({
-          filePath: res.tempFilePath,
-          success: function() { wx.showToast({ title: '已保存到相册', icon: 'success' }); },
-          fail: function(err) {
-            if (err.errMsg.indexOf('auth deny') !== -1 || err.errMsg.indexOf('authorize') !== -1) {
-              wx.showModal({
-                title: '提示', content: '需要您授权保存相册权限',
-                confirmText: '去设置',
-                success: function(modalRes) { if (modalRes.confirm) wx.openSetting(); }
-              });
-            } else {
-              wx.showToast({ title: '保存失败', icon: 'none' });
-            }
+        privacy.ensurePrivacyAuthorized({
+          success: function() {
+            that.saveImageToAlbum(res.tempFilePath);
           }
         });
       } else {
@@ -557,6 +640,38 @@ goToMerit() {
       }
     });
   },
+
+  saveImageToAlbum(filePath) {
+    wx.saveImageToPhotosAlbum({
+      filePath: filePath,
+      success: function() { wx.showToast({ title: '已保存到相册', icon: 'success' }); },
+      fail: function(err) {
+        if (err.errMsg.indexOf('auth deny') !== -1 || err.errMsg.indexOf('authorize') !== -1) {
+          wx.showModal({
+            title: '提示', content: '需要您授权保存相册权限',
+            confirmText: '去设置',
+            success: function(modalRes) { if (modalRes.confirm) wx.openSetting(); }
+          });
+        } else {
+          wx.showToast({ title: '保存失败', icon: 'none' });
+        }
+      }
+    });
+  },
+
+  openPrivacyContract() {
+    privacy.openPrivacyContract();
+  },
+
+  onAgreePrivacyAuthorization(e) {
+    privacy.agreePrivacyAuthorization(this, e.detail);
+  },
+
+  onDisagreePrivacyAuthorization() {
+    privacy.disagreePrivacyAuthorization(this);
+  },
+
+  noop() {},
 
   /** 生成分享海报（首页版） */
   generateShareImage(callback) {
@@ -621,20 +736,22 @@ goToMerit() {
         ctx.font = '11px sans-serif';
         ctx.fillText('长按识别小程序码查看更多', W / 2, H - 25);
 
-        setTimeout(function() {
-          wx.canvasToTempFilePath({
-            canvas: canvas, width: W, height: H,
-            destWidth: W * 2, destHeight: H * 2,
-            fileType: 'jpg', quality: 0.95,
-            success: function(saveRes) {
-              wx.hideLoading(); callback({ success: true, tempFilePath: saveRes.tempFilePath });
-            },
-            fail: function(err) {
-              console.error('canvasToTempFilePath 失败:', err);
-              wx.hideLoading(); callback({ success: false });
-            }
-          });
-        }, 100);
+        poster.drawPromotionCode(canvas, ctx, { x: W - 116, y: H - 150, size: 76 }, function() {
+          setTimeout(function() {
+            wx.canvasToTempFilePath({
+              canvas: canvas, width: W, height: H,
+              destWidth: W * 2, destHeight: H * 2,
+              fileType: 'jpg', quality: 0.95,
+              success: function(saveRes) {
+                wx.hideLoading(); callback({ success: true, tempFilePath: saveRes.tempFilePath });
+              },
+              fail: function(err) {
+                console.error('canvasToTempFilePath 失败:', err);
+                wx.hideLoading(); callback({ success: false });
+              }
+            });
+          }, 100);
+        });
       } catch (e) {
         console.error('绘制出错:', e); wx.hideLoading(); callback({ success: false });
       }

@@ -1,5 +1,8 @@
 // pages/chanting/chanting.js — 功课计数器主页面
 const chant = require('../../utils/chanting');
+const privacy = require('../../utils/privacy');
+const share = require('../../utils/share');
+const poster = require('../../utils/poster');
 
 Page({
   data: {
@@ -8,15 +11,27 @@ Page({
     todaySummary: { completed: 0, total: 0, tasks: 0 },
     showYesterdayTip: false,
     yesterdayIncomplete: [],
-    quickCount: 0       // 通用计数器
+    pageMotto: '',
+    quickSuggestions: [
+      { id: 'b2', name: '大悲咒' },
+      { id: 'b3', name: '心经' }
+    ],
+    quickCount: 0,       // 通用计数器
+    showPrivacyAuthorization: false,
+    privacyContractName: '用户隐私保护指引'
   },
 
   onShow() {
+    share.enableShareMenu();
+    getApp().applyDisplaySettings(this);
     try {
       this.loadData();
       // 加载通用计数器
       const qc = wx.getStorageSync('quick_count') || 0;
-      this.setData({ quickCount: qc });
+      this.setData({
+        quickCount: qc,
+        pageMotto: chant.getRandomMotto()
+      });
     } catch (e) {
       console.error('loadData 出错:', e);
       this.setData({ tasks: [], taskData: [], todaySummary: { completed: 0, total: 0, tasks: 0 } });
@@ -76,6 +91,21 @@ Page({
       todaySummary: summary,
       showYesterdayTip: showTip,
       yesterdayIncomplete: incomplete || []
+    });
+  },
+
+  onShareAppMessage() {
+    const summary = this.data.todaySummary || {};
+    return share.appMessage({
+      title: `今日修行 ${summary.completed || 0}/${summary.total || 0} 项 · 岁时记`,
+      path: '/pages/chanting/chanting'
+    });
+  },
+
+  onShareTimeline() {
+    const summary = this.data.todaySummary || {};
+    return share.timeline({
+      title: `今日修行 ${summary.completed || 0}/${summary.total || 0} 项 · 岁时记`
     });
   },
 
@@ -142,28 +172,56 @@ Page({
   goAdd() {
     wx.navigateTo({ url: '/pages/chanting-add/chanting-add' });
   },
+
+  onQuickAddTask(e) {
+    const id = e.currentTarget.dataset.id;
+    const item = chant.BUILTIN.find(task => task.id === id);
+    if (!item) return;
+
+    const task = chant.addTask(item.name, item.unit, 0, 0, false, item.id);
+    if (!task) {
+      wx.showToast({ title: '已添加过', icon: 'none' });
+      return;
+    }
+
+    wx.showToast({ title: '已添加', icon: 'success' });
+    this.loadData();
+  },
+
   goDetail(e) {
     wx.navigateTo({ url: '/pages/chanting-detail/chanting-detail?id=' + e.currentTarget.dataset.id });
   },
   goSupplement() {
-    wx.navigateTo({ url: '/pages/chanting-detail/chanting-detail?mode=supplement' });
+    const first = this.data.yesterdayIncomplete && this.data.yesterdayIncomplete[0];
+    if (!first || !first.id) {
+      wx.showToast({ title: '暂无可补录功课', icon: 'none' });
+      return;
+    }
+    wx.navigateTo({ url: '/pages/chanting-detail/chanting-detail?id=' + first.id + '&mode=supplement' });
   },
 
-  // ==================== 联系方式 ====================
+  goSetTarget() {
+    const tasks = this.data.tasks || [];
+    if (!tasks.length) {
+      wx.showToast({ title: '请先添加功课', icon: 'none' });
+      return;
+    }
 
-  /** 复制微信号 */
-  copyWechat() {
-    wx.setClipboardData({
-      data: 'HSTS08',
-      success: () => { wx.showToast({ title: '微信号已复制', icon: 'success' }); }
-    });
-  },
+    const openDetail = (taskId) => {
+      wx.navigateTo({ url: '/pages/chanting-detail/chanting-detail?id=' + taskId + '&mode=target' });
+    };
 
-  /** 复制邮箱 */
-  copyEmail() {
-    wx.setClipboardData({
-      data: '914949158@qq.com',
-      success: () => { wx.showToast({ title: '邮箱已复制', icon: 'success' }); }
+    if (tasks.length === 1) {
+      openDetail(tasks[0].id);
+      return;
+    }
+
+    wx.showActionSheet({
+      itemList: tasks.slice(0, 6).map(task => task.name.length > 12 ? task.name.slice(0, 12) + '...' : task.name),
+      success: (res) => {
+        const task = tasks[res.tapIndex];
+        if (task) openDetail(task.id);
+      }
     });
   },
 
@@ -218,22 +276,12 @@ Page({
 
   /** 保存到相册 */
   saveShareImage() {
+    const that = this;
     this.generateShareImage((res) => {
       if (res.success) {
-        wx.saveImageToPhotosAlbum({
-          filePath: res.tempFilePath,
-          success: () => { wx.showToast({ title: '已保存到相册', icon: 'success' }); },
-          fail: (err) => {
-            if (err.errMsg.indexOf('auth deny') !== -1 || err.errMsg.indexOf('authorize') !== -1) {
-              wx.showModal({
-                title: '提示',
-                content: '需要您授权保存相册权限',
-                confirmText: '去设置',
-                success: (modalRes) => { if (modalRes.confirm) wx.openSetting(); }
-              });
-            } else {
-              wx.showToast({ title: '保存失败', icon: 'none' });
-            }
+        privacy.ensurePrivacyAuthorized({
+          success: () => {
+            that.saveImageToAlbum(res.tempFilePath);
           }
         });
       } else {
@@ -241,6 +289,39 @@ Page({
       }
     });
   },
+
+  saveImageToAlbum(filePath) {
+    wx.saveImageToPhotosAlbum({
+      filePath: filePath,
+      success: () => { wx.showToast({ title: '已保存到相册', icon: 'success' }); },
+      fail: (err) => {
+        if (err.errMsg.indexOf('auth deny') !== -1 || err.errMsg.indexOf('authorize') !== -1) {
+          wx.showModal({
+            title: '提示',
+            content: '需要您授权保存相册权限',
+            confirmText: '去设置',
+            success: (modalRes) => { if (modalRes.confirm) wx.openSetting(); }
+          });
+        } else {
+          wx.showToast({ title: '保存失败', icon: 'none' });
+        }
+      }
+    });
+  },
+
+  openPrivacyContract() {
+    privacy.openPrivacyContract();
+  },
+
+  onAgreePrivacyAuthorization(e) {
+    privacy.agreePrivacyAuthorization(this, e.detail);
+  },
+
+  onDisagreePrivacyAuthorization() {
+    privacy.disagreePrivacyAuthorization(this);
+  },
+
+  noop() {},
 
   /** 生成朋友圈分享图 */
   generateShareImage(callback) {
@@ -474,26 +555,28 @@ Page({
         ctx.fillText('长按识别小程序码，一起修行打卡', W / 2, brandY + 22);
 
         // 导出为临时文件
-        setTimeout(function() {
-          wx.canvasToTempFilePath({
-            canvas: canvas,
-            width: W,
-            height: H,
-            destWidth: W * 2,
-            destHeight: H * 2,
-            fileType: 'jpg',
-            quality: 0.95,
-            success: function(saveRes) {
-              wx.hideLoading();
-              callback({ success: true, tempFilePath: saveRes.tempFilePath });
-            },
-            fail: function(err) {
-              console.error('canvasToTempFilePath 失败:', err);
-              wx.hideLoading();
-              callback({ success: false });
-            }
-          });
-        }, 150);
+        poster.drawPromotionCode(canvas, ctx, { x: W - 112, y: 42, size: 72 }, function() {
+          setTimeout(function() {
+            wx.canvasToTempFilePath({
+              canvas: canvas,
+              width: W,
+              height: H,
+              destWidth: W * 2,
+              destHeight: H * 2,
+              fileType: 'jpg',
+              quality: 0.95,
+              success: function(saveRes) {
+                wx.hideLoading();
+                callback({ success: true, tempFilePath: saveRes.tempFilePath });
+              },
+              fail: function(err) {
+                console.error('canvasToTempFilePath 失败:', err);
+                wx.hideLoading();
+                callback({ success: false });
+              }
+            });
+          }, 150);
+        });
 
       } catch (e) {
         console.error('绘制朋友圈图出错:', e);

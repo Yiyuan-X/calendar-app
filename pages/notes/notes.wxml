@@ -1,5 +1,5 @@
 <!--pages/notes/notes.wxml-->
-<view class="page-container">
+<view class="page-container {{elderMode ? 'elder-mode' : ''}}">
   <!-- 日期头部 -->
   <view class="date-header">
     <text class="date-main">{{displayDate}}</text>
@@ -8,7 +8,7 @@
 
   <!-- 编辑区域 -->
   <view class="editor-section card">
-    <textarea 
+    <textarea
       class="note-editor"
       placeholder="{{placeholder}}"
       value="{{noteContent}}"
@@ -29,15 +29,15 @@
 
   <!-- 保存按钮 -->
   <view class="save-section">
-    <button 
-      class="save-btn {{canSave ? '' : 'disabled'}}" 
+    <button
+      class="save-btn {{canSave ? '' : 'disabled'}}"
       disabled="{{!canSave}}"
       bindtap="onSave"
     >
       {{hasExistingNote ? '更新备注' : '保存备注'}}
     </button>
 
-    <button 
+    <button
       class="clear-btn"
       wx:if="{{hasExistingNote && noteContent}}"
       bindtap="onClear"

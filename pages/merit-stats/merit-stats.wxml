@@ -1,0 +1,58 @@
+<view class="page-container {{elderMode ? 'elder-mode' : ''}}">
+  <view class="header-card" wx:if="{{stats}}">
+    <text class="header-title">功德累计</text>
+    <text class="net-value {{stats.totalNet >= 0 ? 'positive' : 'negative'}}">{{stats.totalNet >= 0 ? '+' : ''}}{{stats.totalNet}}</text>
+    <view class="level-badge" wx:if="{{level}}" style="background: {{level.color}}15; color: {{level.color}};">
+      <text>{{level.title}} · {{level.desc}}</text>
+    </view>
+  </view>
+
+  <view class="stats-grid" wx:if="{{stats}}">
+    <view class="stat-card">
+      <text class="stat-num good">+{{stats.totalGood}}</text>
+      <text class="stat-label">善行</text>
+    </view>
+    <view class="stat-card">
+      <text class="stat-num bad">-{{stats.totalBad}}</text>
+      <text class="stat-label">过失</text>
+    </view>
+    <view class="stat-card">
+      <text class="stat-num">{{stats.dayCount}}</text>
+      <text class="stat-label">记录天数</text>
+    </view>
+    <view class="stat-card">
+      <text class="stat-num">{{stats.avgPerDay}}</text>
+      <text class="stat-label">日均净值</text>
+    </view>
+  </view>
+
+  <view class="section" wx:if="{{categoryGoodList.length > 0}}">
+    <view class="section-title">善行分类</view>
+    <view class="category-row" wx:for="{{categoryGoodList}}" wx:key="id">
+      <text class="category-name">{{item.name}}</text>
+      <text class="category-value good">+{{item.value}}</text>
+    </view>
+  </view>
+
+  <view class="section" wx:if="{{categoryBadList.length > 0}}">
+    <view class="section-title">过失分类</view>
+    <view class="category-row" wx:for="{{categoryBadList}}" wx:key="id">
+      <text class="category-name">{{item.name}}</text>
+      <text class="category-value bad">-{{item.value}}</text>
+    </view>
+  </view>
+
+  <view class="section">
+    <view class="section-title">最近记录</view>
+    <view class="record-row" wx:for="{{recentRecords}}" wx:key="dateStr">
+      <view class="record-main">
+        <text class="record-date">{{item.dateText}}</text>
+        <text class="record-meta">善 {{item.goodCount}} · 过 {{item.badCount}}</text>
+      </view>
+      <text class="record-net {{item.net >= 0 ? 'positive' : 'negative'}}">{{item.netText}}</text>
+    </view>
+    <view class="empty" wx:if="{{recentRecords.length === 0}}">
+      <text>暂无功过记录</text>
+    </view>
+  </view>
+</view>

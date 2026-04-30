@@ -1,5 +1,6 @@
 // pages/chanting-focus/chanting-focus.js — 专注模式
 const chant = require('../../utils/chanting');
+const share = require('../../utils/share');
 
 Page({
   data: {
@@ -8,6 +9,8 @@ Page({
   },
 
   onLoad(opts) {
+    share.enableShareMenu();
+    getApp().applyDisplaySettings(this);
     const id = opts.id;
     if (!id) { wx.navigateBack(); return; }
     const tasks = chant.getTasks();
@@ -27,5 +30,18 @@ Page({
     wx.vibrateShort({ type: 'light' });
   },
 
-  goBack() { wx.navigateBack(); }
+  goBack() { wx.navigateBack(); },
+
+  onShareAppMessage() {
+    const taskName = this.data.task.name || '专注计数';
+    return share.appMessage({
+      title: `${taskName} · 岁时记计数器`,
+      path: '/pages/chanting/chanting'
+    });
+  },
+
+  onShareTimeline() {
+    const taskName = this.data.task.name || '专注计数';
+    return share.timeline({ title: `${taskName} · 岁时记计数器` });
+  }
 });

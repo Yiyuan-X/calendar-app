@@ -1,6 +1,7 @@
 // pages/festival-detail/festival-detail.js
 const storage = require('../../utils/storage');
 const quotes = require('../../utils/quotes');
+const share = require('../../utils/share');
 
 Page({
   data: {
@@ -12,6 +13,8 @@ Page({
   },
 
   onLoad(options) {
+    share.enableShareMenu();
+    getApp().applyDisplaySettings(this);
     if (options.data) {
       try {
         const festivalInfo = JSON.parse(decodeURIComponent(options.data));
@@ -102,5 +105,12 @@ Page({
       title: `${festivalInfo.name} · ${festivalQuote}`,
       path: '/pages/index/index'
     };
+  },
+
+  onShareTimeline() {
+    const { festivalInfo, festivalQuote } = this.data;
+    return share.timeline({
+      title: `${festivalInfo.name} · ${festivalQuote}`
+    });
   }
 });

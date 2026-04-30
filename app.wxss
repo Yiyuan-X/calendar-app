@@ -27,7 +27,7 @@ page {
   background-color: var(--bg-color);
   color: var(--text-primary);
   font-family: -apple-system, BlinkMacSystemFont, 'SF Pro Display', 'SF Pro Text', 'Helvetica Neue', 'PingFang SC', 'Noto Sans SC', sans-serif;
-  font-size: 28rpx;
+  font-size: 30rpx;
   line-height: 1.55;
   -webkit-font-smoothing: antialiased;
 }
@@ -35,6 +35,13 @@ page {
 /* 基础重置 */
 view, text, image, scroll-view, button {
   box-sizing: border-box;
+}
+
+button {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  line-height: 1;
 }
 
 /* 安全区域适配 */
@@ -69,11 +76,11 @@ view, text, image, scroll-view, button {
 .text-gold { color: var(--festival-gold); }
 
 /* 字体大小 */
-.font-xs { font-size: 22rpx; }
-.font-sm { font-size: 24rpx; }
-.font-md { font-size: 28rpx; }
-.font-lg { font-size: 32rpx; }
-.font-xl { font-size: 40rpx; }
+.font-xs { font-size: 25rpx; }
+.font-sm { font-size: 26rpx; }
+.font-md { font-size: 30rpx; }
+.font-lg { font-size: 34rpx; }
+.font-xl { font-size: 41rpx; }
 .font-xxl { font-size: 56rpx; }
 .font-display { font-size: 80rpx; font-weight: 300; }
 
@@ -126,7 +133,7 @@ view, text, image, scroll-view, button {
   align-items: center;
   padding: 6rpx 18rpx;
   border-radius: 20rpx;
-  font-size: 21rpx;
+  font-size: 24rpx;
   font-weight: 600;
   letter-spacing: 0.5rpx;
 }
@@ -209,4 +216,201 @@ view, text, image, scroll-view, button {
   display: none;
   width: 0;
   height: 0;
+}
+
+/* 长辈模式：更大字号，保持原布局比例 */
+.elder-mode {
+  font-size: 34rpx;
+}
+
+.elder-mode .page-title,
+.elder-mode .title,
+.elder-mode .header-title,
+.elder-mode .date-main {
+  font-size: 42rpx !important;
+}
+
+.elder-mode .section-title,
+.elder-mode .section-title-text,
+.elder-mode .custom-title-text,
+.elder-mode .reflection-title,
+.elder-mode .summary-title,
+.elder-mode .modal-title,
+.elder-mode .category-name,
+.elder-mode .qc-title-text,
+.elder-mode .setting-name,
+.elder-mode .promo-title,
+.elder-mode .tips-title,
+.elder-mode .info-name,
+.elder-mode .task-name,
+.elder-mode .event-name,
+.elder-mode .fc-name,
+.elder-mode .item-text,
+.elder-mode .custom-item-text,
+.elder-mode .p-name {
+  font-size: 34rpx !important;
+}
+
+.elder-mode .today-lunar,
+.elder-mode .date-sub,
+.elder-mode .quote-text,
+.elder-mode .quote-text-inline,
+.elder-mode .sth2-desc,
+.elder-mode .sth2-text,
+.elder-mode .daily-tip-text,
+.elder-mode .festival-desc,
+.elder-mode .desc-text,
+.elder-mode .info-desc,
+.elder-mode .st-desc,
+.elder-mode .tip-text,
+.elder-mode .foli-text,
+.elder-mode .pengzu-text,
+.elder-mode .jianchu-desc-text,
+.elder-mode .tips-text,
+.elder-mode .promo-desc,
+.elder-mode .empty-text,
+.elder-mode .empty-hint {
+  font-size: 31rpx !important;
+}
+
+.elder-mode .page-subtitle,
+.elder-mode .setting-desc,
+.elder-mode .event-subtitle,
+.elder-mode .fc-desc,
+.elder-mode .fc-desc-alt,
+.elder-mode .task-target,
+.elder-mode .task-total,
+.elder-mode .sum-label,
+.elder-mode .stat-label,
+.elder-mode .overview-label,
+.elder-mode .summary-label,
+.elder-mode .form-label,
+.elder-mode .preview-label,
+.elder-mode .detail-label,
+.elder-mode .info-label,
+.elder-mode .st-label,
+.elder-mode .hl-nongli-label,
+.elder-mode .r-date,
+.elder-mode .p-meta,
+.elder-mode .qc-subtitle,
+.elder-mode .nav-text {
+  font-size: 29rpx !important;
+}
+
+.elder-mode input,
+.elder-mode textarea,
+.elder-mode .form-input,
+.elder-mode .form-textarea,
+.elder-mode .search-input,
+.elder-mode .c-input,
+.elder-mode .c-input-sm,
+.elder-mode .ts-input,
+.elder-mode .m-input,
+.elder-mode .s-date,
+.elder-mode .s-input,
+.elder-mode .t-editor,
+.elder-mode .score-number-input {
+  font-size: 32rpx !important;
+}
+
+.elder-mode button,
+.elder-mode .save-btn,
+.elder-mode .clear-btn,
+.elder-mode .promo-share-btn,
+.elder-mode .share-btn,
+.elder-mode .empty-add,
+.elder-mode .c-btn,
+.elder-mode .q-btn,
+.elder-mode .m-btn,
+.elder-mode .s-btn,
+.elder-mode .ab-btn,
+.elder-mode .modal-confirm-btn,
+.elder-mode .quick-btn,
+.elder-mode .setting-action {
+  font-size: 32rpx !important;
+}
+
+.elder-mode .week-day-text,
+.elder-mode .day-lunar,
+.elder-mode .marker-text,
+.elder-mode .combined-marker,
+.elder-mode .event-category-tag,
+.elder-mode .fc-type-tag,
+.elder-mode .p-hot,
+.elder-mode .tag-text,
+.elder-mode .tag-value,
+.elder-mode .selected-count {
+  font-size: 27rpx !important;
+}
+
+/* 隐私授权弹窗 */
+.privacy-mask {
+  position: fixed;
+  left: 0;
+  top: 0;
+  right: 0;
+  bottom: 0;
+  z-index: 9999;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 40rpx;
+  background: rgba(0, 0, 0, 0.45);
+}
+
+.privacy-dialog {
+  width: 100%;
+  max-width: 640rpx;
+  padding: 36rpx 32rpx 28rpx;
+  border-radius: 24rpx;
+  background: #FFFFFF;
+  box-shadow: 0 20rpx 60rpx rgba(0, 0, 0, 0.18);
+}
+
+.privacy-title {
+  color: #1D1D1F;
+  font-size: 36rpx;
+  font-weight: 600;
+  line-height: 1.35;
+}
+
+.privacy-content {
+  margin-top: 20rpx;
+  color: #5F6368;
+  font-size: 29rpx;
+  line-height: 1.7;
+}
+
+.privacy-link {
+  color: #007AFF;
+  font-weight: 500;
+}
+
+.privacy-actions {
+  display: flex;
+  gap: 20rpx;
+  margin-top: 34rpx;
+}
+
+.privacy-btn {
+  flex: 1;
+  height: 84rpx;
+  margin: 0;
+  border-radius: 16rpx;
+  font-size: 30rpx;
+  line-height: 1;
+}
+
+.privacy-btn::after {
+  border: 0;
+}
+
+.privacy-btn-cancel {
+  color: #5F6368;
+  background: #F2F3F5;
+}
+
+.privacy-btn-agree {
+  color: #FFFFFF;
+  background: #1D1D1F;
 }

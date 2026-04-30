@@ -28,7 +28,7 @@
 .nav-btn:active { background: rgba(0, 0, 0, 0.04); }
 
 .nav-arrow {
-  font-size: 38rpx;
+  font-size: 39rpx;
   color: #86868B;
   line-height: 1;
   font-weight: 300;
@@ -42,14 +42,14 @@
 }
 
 .year-text {
-  font-size: 26rpx;
+  font-size: 28rpx;
   color: #AEAEB2;
   font-weight: 400;
   letter-spacing: 1rpx;
 }
 
 .month-text {
-  font-size: 40rpx;
+  font-size: 41rpx;
   color: #1D1D1F;
   font-weight: 700;
   letter-spacing: 3rpx;
@@ -69,13 +69,13 @@
 }
 
 .back-today-icon-text {
-  font-size: 30rpx;
+  font-size: 32rpx;
   color: #FF9800;
   line-height: 1;
 }
 
 .back-today-text {
-  font-size: 26rpx;
+  font-size: 28rpx;
   color: #E65100;
   font-weight: 600;
 }
@@ -99,7 +99,7 @@
 }
 
 .week-day-text {
-  font-size: 26rpx;
+  font-size: 28rpx;
   color: #8E8E93;
   font-weight: 600;
   letter-spacing: 2rpx;
@@ -145,7 +145,7 @@
 
 /* 日期数字 — 主视觉：大字加粗 */
 .day-number {
-  font-size: 38rpx;
+  font-size: 39rpx;
   color: #1D1D1F;
   font-weight: 700;
   line-height: 1.2;
@@ -177,7 +177,7 @@
   color: #FFFFFF !important;
   border-radius: 12rpx !important;
   font-weight: 800 !important;
-  font-size: 32rpx !important;
+  font-size: 34rpx !important;
   box-shadow: 0 3rpx 10rpx rgba(183, 28, 28, 0.35) !important;
   display: inline-block !important;
 }
@@ -185,7 +185,7 @@
 /* ==================== 标记文字（节气/农历/节日） ==================== */
 /* 农历/标记 — 辅助小字 */
 .marker {
-  font-size: 19rpx;
+  font-size: 24rpx;
   line-height: 1.4;
   text-align: center;
   overflow: hidden;
@@ -199,10 +199,10 @@
 
 /* 合并标记（如"父亲节·夏至"）：缩小字体以适配多文字 */
 .combined-marker {
-  font-size: 17rpx !important;
+  font-size: 24rpx !important;
   color: #666;
   font-weight: 500;
-  letter-spacing: -0.5rpx;
+  letter-spacing: 0;
 }
 
 /* 节气 — 绿色醒目 */
@@ -290,14 +290,14 @@
 
 /* 面板日期标题（大标题） */
 .panel-solar {
-  font-size: 36rpx;
+  font-size: 37rpx;
   font-weight: 700;
   color: #1D1D1F;
   letter-spacing: 0.5rpx;
 }
 
 .panel-weekday {
-  font-size: 28rpx;
+  font-size: 30rpx;
   color: #86868B;
   font-weight: 500;
 }
@@ -310,24 +310,24 @@
 }
 
 .lunar-year {
-  font-size: 26rpx;
+  font-size: 28rpx;
   color: #B8860B;
   font-weight: 500;
 }
 
 .lunar-animal {
-  font-size: 26rpx;
+  font-size: 28rpx;
   color: #B8860B;
 }
 
 .lunar-date {
-  font-size: 26rpx;
+  font-size: 28rpx;
   color: #AEAEB2;
 }
 
 /* 当天节日名称（跟在星期后面同一行） */
 .festival-name-inline {
-  font-size: 25rpx;
+  font-size: 27rpx;
   font-weight: 600;
   padding: 2rpx 12rpx;
   border-radius: 8rpx;
@@ -378,7 +378,7 @@
 
 /* 卡片内标题（略大于标准正文） */
 .info-name {
-  font-size: 32rpx;
+  font-size: 34rpx;
   font-weight: 700;
   color: #1D1D1F;
   display: block;
@@ -388,7 +388,7 @@
 
 /* 卡片描述（标准正文） */
 .info-desc {
-  font-size: 28rpx;
+  font-size: 30rpx;
   color: #86868B;
   line-height: 1.65;
   display: block;
@@ -413,7 +413,7 @@
 
 /* 节日名称（略大于标准正文） */
 .festival-name {
-  font-size: 30rpx;
+  font-size: 32rpx;
   font-weight: 600;
   color: #1D1D1F;
   display: block;
@@ -422,7 +422,7 @@
 
 /* 节日描述（标准正文） */
 .festival-desc {
-  font-size: 26rpx;
+  font-size: 28rpx;
   color: #86868B;
   line-height: 1.55;
   display: block;
@@ -431,7 +431,7 @@
 
 /* 节日引言（标准正文） */
 .festival-quote {
-  font-size: 27rpx;
+  font-size: 29rpx;
   color: #B8860B;
   font-style: italic;
   display: block;
@@ -442,7 +442,7 @@
 }
 
 .arrow {
-  font-size: 32rpx;
+  font-size: 34rpx;
   color: #AEAEB2;
   flex-shrink: 0;
   font-weight: 300;
@@ -459,13 +459,13 @@
 
 /* 备注预览（标准正文） */
 .note-preview {
-  font-size: 28rpx;
+  font-size: 30rpx;
   color: #86868B;
   line-height: 1.65;
 }
 
 .edit-hint {
-  font-size: 26rpx;
+  font-size: 28rpx;
   color: #007AFF;
   font-weight: 500;
 }
@@ -482,7 +482,8 @@
   border-radius: 18rpx;
   margin-top: 14rpx;
   color: #AEAEB2;
-  font-size: 28rpx;
+  font-size: 30rpx;
+  line-height: 1;
   transition: border-color 0.2s;
 }
 
@@ -491,7 +492,7 @@
   color: #007AFF;
 }
 
-.add-note-icon { font-size: 32rpx; }
+.add-note-icon { font-size: 34rpx; }
 
 /* 添加重要日子入口 */
 .add-event-from-calendar {
@@ -502,8 +503,9 @@
   padding: 22rpx;
   margin-top: 10rpx;
   color: #007AFF;
-  font-size: 28rpx;
+  font-size: 30rpx;
   font-weight: 600;
+  line-height: 1;
   letter-spacing: 1rpx;
   background: rgba(0, 122, 255, 0.05);
   border-radius: 18rpx;
@@ -513,7 +515,7 @@
 .add-event-from-calendar:active { background: rgba(0, 122, 255, 0.1); }
 
 .add-event-icon {
-  font-size: 36rpx;
+  font-size: 37rpx;
   line-height: 1;
   font-weight: 300;
 }
@@ -525,7 +527,8 @@
   display: flex;
   justify-content: center;
   gap: 20rpx;
-  padding: 18rpx 0 10rpx;
+  padding: 8rpx 0 4rpx;
+  opacity: 0.72;
 }
 
 .share-btn {
@@ -536,9 +539,9 @@
   margin: 0 !important;
   padding: 16rpx 36rpx !important;
   border-radius: 50rpx !important;
-  font-size: 28rpx !important;
+  font-size: 30rpx !important;
   font-weight: 600 !important;
-  line-height: 1.2 !important;
+  line-height: 1 !important;
 
   /* 去除 button 默认样式 */
   border: none !important;
@@ -554,16 +557,16 @@
 
 /* 一键分享（浅绿调） */
 .share-btn-primary {
-  background: linear-gradient(135deg, #E8F5E9, #F1F8E9) !important;
-  color: #2E7D32 !important;
-  box-shadow: 0 2rpx 10rpx rgba(46, 125, 50, 0.12) !important;
+  background: #FFFFFF !important;
+  color: #8B6914 !important;
+  box-shadow: none !important;
 }
 
 /* 朋友圈（浅蓝调） */
 .share-btn-primary:nth-child(2) {
-  background: linear-gradient(135deg, #E3F2FD, #E8F5E9) !important;
-  color: #1565C0 !important;
-  box-shadow: 0 2rpx 10rpx rgba(21, 101, 192, 0.1) !important;
+  background: #FFFFFF !important;
+  color: #8B6914 !important;
+  box-shadow: none !important;
 }
 
 .share-btn-icon {
@@ -571,7 +574,7 @@
   height: 32rpx;
 }
 
-.share-btn-text { font-size: 27rpx; letter-spacing: 1rpx; }
+.share-btn-text { font-size: 29rpx; letter-spacing: 1rpx; }
 
 /* 保存按钮（次要样式） */
 .share-btn-save {
@@ -592,7 +595,7 @@
 
 /* 小标签（辅助信息，可稍小） */
 .tag {
-  font-size: 22rpx;
+  font-size: 25rpx;
   padding: 4rpx 14rpx;
   border-radius: 8rpx;
   font-weight: 600;
@@ -613,13 +616,13 @@
 /* 节气名称（大标题） */
 .st-name {
   color: #2E7D32 !important;
-  font-size: 36rpx !important;
+  font-size: 37rpx !important;
   margin-bottom: 6rpx !important;
 }
 
 /* 节气简介（标准正文） */
 .st-desc {
-  font-size: 28rpx;
+  font-size: 30rpx;
   color: #555;
   line-height: 1.6;
   display: block;
@@ -634,7 +637,7 @@
 
 /* 节气小标签 */
 .st-label {
-  font-size: 26rpx;
+  font-size: 28rpx;
   font-weight: 600;
   color: #34C759;
   white-space: nowrap;
@@ -644,7 +647,7 @@
 
 /* 节气内容（标准正文） */
 .st-text {
-  font-size: 28rpx;
+  font-size: 30rpx;
   color: #444;
   line-height: 1.65;
   flex: 1;
@@ -660,7 +663,7 @@
 
 /* 养生金句（标准正文） */
 .tip-text {
-  font-size: 28rpx;
+  font-size: 30rpx;
   color: #2E7D32;
   line-height: 1.6;
   display: block;
@@ -692,7 +695,7 @@
 }
 
 .hl-nongli-label {
-  font-size: 24rpx;
+  font-size: 26rpx;
   font-weight: 700;
   color: #fff;
   background: linear-gradient(135deg, #B71C1C, #D32F2F);
@@ -703,7 +706,7 @@
 
 /* 农历大字（特大标题） */
 .hl-nongli-value {
-  font-size: 40rpx;
+  font-size: 41rpx;
   font-weight: 800;
   color: #1D1D1F;
   letter-spacing: 3rpx;
@@ -715,7 +718,7 @@
 }
 
 .hl-set-reminder {
-  font-size: 24rpx;
+  font-size: 26rpx;
   color: #AEAEB2;
   font-weight: 500;
 }
@@ -731,12 +734,12 @@
 }
 
 .hl-ganzhi-prefix {
-  font-size: 24rpx;
+  font-size: 26rpx;
 }
 
 /* 干支文字（标准正文） */
 .hl-ganzhi-text {
-  font-size: 28rpx;
+  font-size: 30rpx;
   color: #5D4037;
   font-weight: 600;
   letter-spacing: 1rpx;
@@ -756,7 +759,7 @@
 
 /* 佛历文字（标准正文） */
 .foli-text {
-  font-size: 26rpx;
+  font-size: 28rpx;
   color: #7B1FA2;
   font-weight: 600;
 }
@@ -765,7 +768,7 @@
   display: inline-flex;
   padding: 4rpx 14rpx;
   border-radius: 20rpx;
-  font-size: 22rpx;
+  font-size: 25rpx;
   font-weight: 600;
 }
 
@@ -796,7 +799,7 @@
 
 /* 宜忌大字标签 */
 .hl-yiji-label {
-  font-size: 28rpx;
+  font-size: 30rpx;
   font-weight: 800;
   width: 38rpx;
   height: 38rpx;
@@ -828,7 +831,7 @@
 
 /* 宜忌标签文字（参考竞品：纯黑大字，无背景） */
 .yi-tag {
-  font-size: 30rpx;
+  font-size: 32rpx;
   color: #1a1a1a;
   background: transparent;
   padding: 2rpx 6rpx;
@@ -838,7 +841,7 @@
 }
 
 .ji-tag {
-  font-size: 30rpx;
+  font-size: 32rpx;
   color: #1a1a1a;
   background: transparent;
   padding: 2rpx 6rpx;
@@ -869,14 +872,14 @@
 
 /* 详情小标签 */
 .detail-label {
-  font-size: 22rpx;
+  font-size: 25rpx;
   color: #AEAEB2;
   font-weight: 500;
 }
 
 /* 详情数值（标准正文） */
 .detail-value {
-  font-size: 26rpx;
+  font-size: 28rpx;
   font-weight: 700;
   color: #3C3C43;
   letter-spacing: 0.5rpx;
@@ -904,12 +907,12 @@
 }
 
 .pengzu-icon {
-  font-size: 24rpx;
+  font-size: 26rpx;
 }
 
 /* 彭祖标题（标准正文） */
 .pengzu-text {
-  font-size: 26rpx;
+  font-size: 28rpx;
   font-weight: 700;
   color: #8B6914;
 }
@@ -922,7 +925,7 @@
 
 /* 彭祖条目（标准正文） */
 .pengzu-item {
-  font-size: 26rpx;
+  font-size: 28rpx;
   color: #5D4037;
   line-height: 1.65;
   padding-left: 12rpx;
@@ -939,7 +942,7 @@
 
 /* 建除说明文字（标准正文） */
 .jianchu-desc-text {
-  font-size: 26rpx;
+  font-size: 28rpx;
   color: #6D5A2E;
   line-height: 1.65;
   display: block;
@@ -961,14 +964,14 @@
 
 /* 时辰标题 */
 .shichen-title {
-  font-size: 30rpx;
+  font-size: 32rpx;
   font-weight: 800;
   color: #8B6914;
   letter-spacing: 1rpx;
 }
 
 .shichen-sub {
-  font-size: 22rpx;
+  font-size: 25rpx;
   color: #AEAEB2;
   flex-shrink: 0;
 }
@@ -1020,7 +1023,7 @@
 
 /* 地支字 */
 .sc-zhi-name {
-  font-size: 28rpx;
+  font-size: 30rpx;
   font-weight: 800;
   color: #fff;
   font-family: -apple-system, 'SF Pro Display', serif;
@@ -1035,7 +1038,7 @@
 
 /* 第一行：时辰名 + 时间（主文字） */
 .sc-time-main {
-  font-size: 26rpx;
+  font-size: 28rpx;
   color: #1a1a1a;
   font-weight: 600;
   line-height: 1.4;
@@ -1043,7 +1046,7 @@
 
 /* 第二行：冲煞（辅助小字） */
 .sc-time-sub {
-  font-size: 22rpx;
+  font-size: 25rpx;
   color: #E65100;
   font-weight: 500;
   line-height: 1.3;
@@ -1070,7 +1073,7 @@
 /* 宜/忌 圆角标签 */
 .sc-yi-label,
 .sc-ji-label {
-  font-size: 22rpx;
+  font-size: 25rpx;
   font-weight: 800;
   width: 34rpx;
   height: 34rpx;
@@ -1106,7 +1109,7 @@
 /* 宜忌文字标签（纯黑大字，参考竞品） */
 .sc-yi-tag,
 .sc-ji-tag {
-  font-size: 27rpx;
+  font-size: 29rpx;
   color: #1a1a1a;
   background: transparent;
   padding: 0;
@@ -1118,7 +1121,7 @@
 
 /* 空状态占位文字 */
 .sc-empty-tag {
-  font-size: 25rpx;
+  font-size: 27rpx;
   color: #999;
   line-height: 36rpx;
 }
@@ -1133,7 +1136,7 @@
   display: flex;
   align-items: center;
   gap: 6rpx;
-  font-size: 24rpx;
+  font-size: 26rpx;
   color: #AEAEB2;
   font-weight: 500;
 }

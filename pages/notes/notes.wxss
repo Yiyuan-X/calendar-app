@@ -15,14 +15,14 @@
 }
 
 .date-main {
-  font-size: 38rpx;
+  font-size: 39rpx;
   font-weight: 700;
   color: #1D1D1F;
   letter-spacing: 0;
 }
 
 .date-sub {
-  font-size: 26rpx;
+  font-size: 28rpx;
   color: #5F6368;
   font-weight: 500;
 }
@@ -42,7 +42,7 @@
   min-height: 320rpx;
   max-height: 60vh;
   padding: 32rpx;
-  font-size: 31rpx;
+  font-size: 33rpx;
   color: #1D1D1F;
   line-height: 1.7;
   background: #FFFFFF;
@@ -60,7 +60,7 @@
 }
 
 .char-count {
-  font-size: 22rpx;
+  font-size: 25rpx;
   color: #6B7280;
 }
 
@@ -71,7 +71,7 @@
 }
 
 .tips-text {
-  font-size: 25rpx;
+  font-size: 27rpx;
   color: #5F6368;
   line-height: 1.6;
   letter-spacing: 0;
@@ -92,13 +92,17 @@
   height: 96rpx;
   background: #1D1D1F !important;
   color: #ffffff;
-  font-size: 33rpx;
+  font-size: 35rpx;
   font-weight: 700;
   border-radius: 18rpx;
   border: none;
   letter-spacing: 0;
   transition: opacity 0.15s;
   box-shadow: 0 8rpx 20rpx rgba(29, 29, 31, 0.18);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  line-height: 1;
 }
 
 .save-btn.disabled {
@@ -113,13 +117,17 @@
 }
 
 .clear-btn {
-  font-size: 26rpx;
+  font-size: 28rpx;
   color: #D32F2F;
   background: transparent;
   padding: 14rpx 36rpx;
   border: none;
   font-weight: 600;
   letter-spacing: 0;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  line-height: 1;
 }
 
 .clear-btn::after {

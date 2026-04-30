@@ -1,5 +1,6 @@
 // pages/chanting-detail/chanting-detail.js — 功课详情
 const chant = require('../../utils/chanting');
+const share = require('../../utils/share');
 
 Page({
   data: {
@@ -13,6 +14,8 @@ Page({
     manualNum: '',
     suppDate: '',
     suppNum: '',
+    highlightSupplement: false,
+    highlightTarget: false,
     todayStr: '',
     editDailyTarget: '',  // 编辑中的每日目标
     editTotalTarget: '',  // 编辑中的总目标
@@ -21,17 +24,27 @@ Page({
   },
 
   onLoad(opts) {
+    share.enableShareMenu();
+    getApp().applyDisplaySettings(this);
     const id = opts.id;
     if (!id) { wx.navigateBack(); return; }
     const tasks = chant.getTasks();
     const task = tasks.find(t => t.id === id);
     if (!task) { wx.navigateBack(); return; }
 
-    this.setData({ taskId: id, task, todayStr: chant.getToday() });
+    this.setData({
+      taskId: id,
+      task,
+      todayStr: chant.getToday(),
+      highlightSupplement: opts.mode === 'supplement',
+      highlightTarget: opts.mode === 'target'
+    });
     this.loadDetail();
   },
 
   onShow() {
+    share.enableShareMenu();
+    getApp().applyDisplaySettings(this);
     if (!this.data.taskId) return;
     this.loadDetail();
   },
@@ -158,6 +171,19 @@ Page({
         }
       }
     });
+  },
+
+  onShareAppMessage() {
+    const taskName = this.data.task.name || '功课计数';
+    return share.appMessage({
+      title: `${taskName} · 岁时记计数器`,
+      path: '/pages/chanting/chanting'
+    });
+  },
+
+  onShareTimeline() {
+    const taskName = this.data.task.name || '功课计数';
+    return share.timeline({ title: `${taskName} · 岁时记计数器` });
   }
 });
 
