@@ -73,6 +73,15 @@
   font-style: italic;
 }
 
+/* 右半边引号 */
+.quote-close {
+  font-size: 41rpx;
+  color: #DAA520;
+  font-weight: 300;
+  line-height: 1;
+  opacity: 0.6;
+}
+
 /* ==================== 功德总览 ==================== */
 .overview-card {
   background: #FFFFFF;

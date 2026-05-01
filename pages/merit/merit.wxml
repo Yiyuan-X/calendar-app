@@ -12,6 +12,7 @@
     <view class="quote-card" wx:if="{{dailyQuote}}">
       <text class="quote-mark">「</text>
       <text class="quote-text">{{dailyQuote.text}}</text>
+      <text class="quote-close">」</text>
       <text class="quote-source">— {{dailyQuote.source}}</text>
     </view>
   </view>

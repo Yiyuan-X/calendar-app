@@ -6,8 +6,8 @@
 .header-top { display:flex; align-items:center; justify-content:space-between; margin-bottom:8rpx; }
 .title { font-size: 37rpx; font-weight:700; color:#1D1D1F; }
 .title text { color:#FFB300; }
-.add-btn { padding: 8rpx 20rpx; border-radius: 24rpx; background: linear-gradient(135deg, #FFB300, #FF8F00); display: flex; align-items: center; justify-content: center; box-shadow: 0 4rpx 16rpx rgba(255, 179, 0, 0.35); }
-.add-btn text { color: #fff; font-size: 25rpx; font-weight: 600; line-height: 1; white-space: nowrap; }
+.add-btn { padding: 14rpx 32rpx; border-radius: 28rpx; background: linear-gradient(135deg, #FFB300, #FF8F00); display: flex; align-items: center; justify-content: center; box-shadow: 0 4rpx 16rpx rgba(255, 179, 0, 0.35); }
+.add-btn text { color: #fff; font-size: 29rpx; font-weight: 600; line-height: 1; white-space: nowrap; letter-spacing: 2rpx; }
 
 /* 理念引导语 */
 .motto { text-align:center; font-size: 29rpx; color:#B09A68; margin-top:8rpx; letter-spacing:2rpx; }
@@ -33,11 +33,11 @@
 /* 功课列表 */
 .task-list { display:flex; flex-direction:column; gap:16rpx; padding-bottom:20rpx; }
 .task-card { background:#fff; border-radius:18rpx; padding:22rpx 24rpx; box-shadow:0 2rpx 10rpx rgba(0,0,0,.03); }
-.task-header { display:flex; align-items:center; justify-content:space-between; margin-bottom:14rpx; padding-bottom: 8rpx; }
-.task-info { display:flex; align-items:center; gap:12rpx; flex:1; min-width:0; }
-.task-name { font-size: 30rpx; font-weight:600; color:#1D1D1F; overflow:hidden;text-overflow:ellipsis;white-space:nowrap; }
-.task-target { font-size: 24rpx; color:#AEAEB2; white-space:nowrap; }
-.task-total { font-size: 24rpx; color:#FFB300; font-weight:600; white-space:nowrap; }
+.task-header { display:flex; align-items:center; justify-content:space-between; margin-bottom:14rpx; padding-bottom: 8rpx; gap:6rpx; flex-wrap:nowrap; }
+.task-info { display:flex; align-items:center; gap:10rpx; flex:1; min-width:0; overflow:hidden; }
+.task-name { font-size: 30rpx; font-weight:600; color:#1D1D1F; overflow:hidden;text-overflow:ellipsis;white-space:nowrap; flex-shrink:1; }
+.task-target { font-size: 24rpx; color:#AEAEB2; white-space:nowrap; flex-shrink:0; }
+.task-total { font-size: 24rpx; color:#FFB300; font-weight:600; white-space:nowrap; flex-shrink:0; }
 .task-arrow { font-size: 28rpx; color:#C7C7CC; }
 
 /* 功课列表顶部提示语 */
