@@ -67,16 +67,12 @@
   <!-- 选中日期详情面板 -->
   <view class="detail-panel" wx:if="{{selectedDate}}">
     <view class="panel-header">
-      <view class="panel-date">
+      <!-- 第一行：公历日期 + 星期 -->
+      <view class="panel-date-row">
         <text class="panel-solar">{{selectedDate.year}}年{{selectedDate.month}}月{{selectedDate.day}}日</text>
         <text class="panel-weekday">星期{{selectedDate.weekNameShort}}</text>
-        <!-- 当天节日名称（跟在星期后面同一行） -->
-        <text
-          class="festival-name-inline {{item.tagClass}}"
-          wx:for="{{selectedDate.festivals}}"
-          wx:key="name"
-        >{{item.name}}</text>
       </view>
+      <!-- 第二行：农历 -->
       <view class="panel-lunar" wx:if="{{selectedDate.lunarDisplay}}">
         <text class="lunar-year">{{selectedDate.ganzhiYear}}年</text>
         <text class="lunar-animal">·{{selectedDate.animalYear}}年·</text>
@@ -135,15 +131,15 @@
         bindtap="goToFestivalDetail"
         data-festival="{{item}}"
       >
-        <view class="festival-tag {{item.tagClass}}">
-          <text>{{item.categoryText}}</text>
-        </view>
+        <view class="festival-color-bar {{item.tagClass}}"></view>
         <view class="festival-content">
-          <text class="festival-name">{{item.name}}</text>
+          <view class="festival-top-row">
+            <text class="festival-name">{{item.name}}</text>
+            <text class="arrow">›</text>
+          </view>
           <text class="festival-desc" wx:if="{{item.description}}">{{item.description}}</text>
           <text class="festival-quote" wx:if="{{item.quote}}">「{{item.quote}}」</text>
         </view>
-        <text class="arrow">›</text>
       </view>
     </view>
 
@@ -159,7 +155,7 @@
     <!-- 添加备注按钮 -->
     <view class="add-note-btn" wx:if="{{!selectedNote}}" bindtap="goToNotes">
       <image class="add-note-icon-img" src="/images/icons/edit.svg" mode="aspectFit"></image>
-      <text>给这一天写点什么</text>
+      <text>备忘录记事本</text>
     </view>
 
     <!-- 添加重要日子快捷入口 -->

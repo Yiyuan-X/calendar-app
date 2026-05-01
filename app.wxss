@@ -330,6 +330,13 @@ button {
   font-size: 32rpx !important;
 }
 
+/* 老年模式：功过格保存按钮防止文字换行 */
+.elder-mode .save-btn {
+  font-size: 30rpx !important;
+  letter-spacing: 2rpx !important;
+  white-space: nowrap !important;
+}
+
 .elder-mode .week-day-text,
 .elder-mode .day-lunar,
 .elder-mode .marker-text,

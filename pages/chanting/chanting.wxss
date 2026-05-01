@@ -6,8 +6,8 @@
 .header-top { display:flex; align-items:center; justify-content:space-between; margin-bottom:8rpx; }
 .title { font-size: 37rpx; font-weight:700; color:#1D1D1F; }
 .title text { color:#FFB300; }
-.add-btn { width:64rpx; height:64rpx; border-radius:50%; background:linear-gradient(135deg,#FFB300,#FF8F00); display:flex;align-items:center;justify-content:center; box-shadow:0 4rpx 16rpx rgba(255,179,0,0.35); }
-.add-btn text { color:#fff; font-size: 37rpx; font-weight:300; line-height:1; }
+.add-btn { padding: 8rpx 20rpx; border-radius: 24rpx; background: linear-gradient(135deg, #FFB300, #FF8F00); display: flex; align-items: center; justify-content: center; box-shadow: 0 4rpx 16rpx rgba(255, 179, 0, 0.35); }
+.add-btn text { color: #fff; font-size: 25rpx; font-weight: 600; line-height: 1; white-space: nowrap; }
 
 /* 理念引导语 */
 .motto { text-align:center; font-size: 29rpx; color:#B09A68; margin-top:8rpx; letter-spacing:2rpx; }
@@ -33,12 +33,15 @@
 /* 功课列表 */
 .task-list { display:flex; flex-direction:column; gap:16rpx; padding-bottom:20rpx; }
 .task-card { background:#fff; border-radius:18rpx; padding:22rpx 24rpx; box-shadow:0 2rpx 10rpx rgba(0,0,0,.03); }
-.task-header { display:flex; align-items:center; justify-content:space-between; margin-bottom:14rpx; }
+.task-header { display:flex; align-items:center; justify-content:space-between; margin-bottom:14rpx; padding-bottom: 8rpx; }
 .task-info { display:flex; align-items:center; gap:12rpx; flex:1; min-width:0; }
 .task-name { font-size: 30rpx; font-weight:600; color:#1D1D1F; overflow:hidden;text-overflow:ellipsis;white-space:nowrap; }
 .task-target { font-size: 24rpx; color:#AEAEB2; white-space:nowrap; }
 .task-total { font-size: 24rpx; color:#FFB300; font-weight:600; white-space:nowrap; }
 .task-arrow { font-size: 28rpx; color:#C7C7CC; }
+
+/* 功课列表顶部提示语 */
+.task-list-hint { font-size: 25rpx; color: #B09A68; text-align: center; padding: 16rpx 0 8rpx; line-height: 1.5; }
 
 /* 卡片内删除按钮 */
 .btn-del-task { width:46rpx; height:46rpx; border-radius:50%; background:#FFF5F5; border:1.5rpx solid rgba(198,40,40,.28); display:flex;align-items:center;justify-content:center; flex-shrink:0; margin-left:10rpx; box-shadow:0 2rpx 8rpx rgba(198,40,40,.08); }

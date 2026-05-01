@@ -98,8 +98,9 @@
 
           <!-- 中间内容区（点击 +1） -->
           <view class="item-body" bindtap="onToggleGoodItem" bindlongpress="onLongPressBuiltinItem" data-category-id="{{item.id}}" data-category-name="{{item.name}}" data-item-id="{{mItem.id}}" data-text="{{mItem.text}}" data-merit="{{mItem.merit}}" data-type="good">
-            <image class="item-check-img" wx:if="{{mItem.count > 0}}" src="/images/icons/gen-check.svg" mode="aspectFit"></image>
-            <view class="item-check-placeholder" wx:else></view>
+            <view class="item-check {{mItem.count > 0 ? 'checked' : ''}} good">
+              <text wx:if="{{mItem.count > 0}}">✓</text>
+            </view>
             <text class="item-text">{{mItem.text}}</text>
           </view>
 
@@ -138,8 +139,9 @@
 
           <!-- 中间内容区（点击 +1） -->
           <view class="item-body" bindtap="onToggleBadItem" bindlongpress="onLongPressBuiltinItem" data-category-id="{{item.id}}" data-category-name="{{item.name}}" data-item-id="{{mItem.id}}" data-text="{{mItem.text}}" data-demerit="{{mItem.demerit}}" data-type="bad">
-            <image class="item-check-img" wx:if="{{mItem.count > 0}}" src="/images/icons/gen-cross.svg" mode="aspectFit"></image>
-            <view class="item-check-placeholder" wx:else></view>
+            <view class="item-check {{mItem.count > 0 ? 'checked' : ''}} bad">
+              <text wx:if="{{mItem.count > 0}}">✕</text>
+            </view>
             <text class="item-text">{{mItem.text}}</text>
           </view>
 
@@ -185,8 +187,9 @@
         >
           <!-- 点击区域：增加 +1 -->
           <view class="custom-item-body" bindtap="onIncrementCustomGood" data-item-id="{{cItem.id}}" data-text="{{cItem.text}}" data-merit="{{cItem.merit}}">
-            <image class="custom-check-img" wx:if="{{cItem.selected}}" src="/images/icons/gen-check.svg" mode="aspectFit"></image>
-            <view class="custom-check-placeholder" wx:else></view>
+            <view class="custom-check {{cItem.selected ? 'checked' : ''}} good">
+              <text wx:if="{{cItem.selected}}">✓</text>
+            </view>
             <text class="custom-item-text">{{cItem.text}}</text>
             <text class="custom-item-score score-good">+{{cItem.merit}}</text>
             <!-- 累计次数 -->
@@ -230,8 +233,9 @@
         >
           <!-- 点击区域：增加 +1 -->
           <view class="custom-item-body" bindtap="onIncrementCustomBad" data-item-id="{{cItem.id}}" data-text="{{cItem.text}}" data-demerit="{{cItem.demerit}}">
-            <image class="custom-check-img" wx:if="{{cItem.selected}}" src="/images/icons/gen-cross.svg" mode="aspectFit"></image>
-            <view class="custom-check-placeholder" wx:else></view>
+            <view class="custom-check {{cItem.selected ? 'checked' : ''}} bad">
+              <text wx:if="{{cItem.selected}}">✕</text>
+            </view>
             <text class="custom-item-text">{{cItem.text}}</text>
             <text class="custom-item-score score-bad">-{{cItem.demerit}}</text>
             <!-- 累计次数 -->

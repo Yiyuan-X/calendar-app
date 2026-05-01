@@ -16,6 +16,12 @@
             {{item.name}}
           </view>
         </view>
+        <!-- 今日节日标签 -->
+        <view class="festival-tags-row" wx:if="{{todayFestivals.length > 0}}">
+          <view class="festival-tag {{item.tagClass}}" wx:for="{{todayFestivals}}" wx:key="name">
+            {{item.name}}
+          </view>
+        </view>
       </view>
       <!-- 右侧：每日金句 -->
       <view class="header-quote">

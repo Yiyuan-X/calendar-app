@@ -4,7 +4,7 @@
   <view class="header">
     <view class="header-top">
       <view class="title">计数器</view>
-      <view class="add-btn" bindtap="goAdd"><text>+</text></view>
+      <view class="add-btn" bindtap="goAdd"><text>添加功课</text></view>
     </view>
     <view class="motto">{{pageMotto}}</view>
   </view>
@@ -35,6 +35,9 @@
 
   <!-- 功课列表（多通道） -->
   <view class="task-list" wx:if="{{tasks.length > 0}}">
+    <!-- 列表顶部提示语 -->
+    <view class="task-list-hint">点击具体功课可报数、设置每日目标、总目标等具体功能</view>
+
     <view
       class="task-card"
       wx:for="{{taskData}}"
@@ -98,16 +101,6 @@
     <image class="empty-icon" src="/images/icons/gen-beads.svg" mode="aspectFit"></image>
     <text class="empty-text">还没有添加功课</text>
     <text class="empty-hint">可以从常用功课开始，也可以添加自己的功课</text>
-    <view class="quick-suggestions">
-      <view
-        class="suggestion-chip"
-        wx:for="{{quickSuggestions}}"
-        wx:key="id"
-        data-id="{{item.id}}"
-        bindtap="onQuickAddTask"
-      >{{item.name}}</view>
-    </view>
-    <view class="empty-add" bindtap="goAdd">添加功课</view>
   </view>
 
   <view class="bottom-pad safe-area-bottom"></view>

@@ -302,6 +302,77 @@
   font-weight: 500;
 }
 
+/* 第一行：日期 + 星期 */
+.panel-date-row {
+  display: flex;
+  align-items: baseline;
+  gap: 16rpx;
+}
+
+/* 第二行：节日胶囊标签行 */
+.festival-pills-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10rpx;
+  margin-top: 10rpx;
+}
+
+/* 节日胶囊 */
+.festival-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 6rpx;
+  padding: 4rpx 14rpx;
+  border-radius: 20rpx;
+  font-size: 25rpx;
+  font-weight: 600;
+  line-height: 1.6;
+}
+
+.pill-dot {
+  width: 12rpx;
+  height: 12rpx;
+  border-radius: 50%;
+  flex-shrink: 0;
+}
+
+.pill-name {
+  white-space: nowrap;
+}
+
+/* 节日胶囊颜色 - 红色（法定/传统节日） */
+.festival-pill.tag-red {
+  color: #C62828;
+  background: rgba(198, 40, 40, 0.08);
+}
+.festival-pill.tag-red .pill-dot { background: #C62828; }
+
+/* 紫色（佛教纪念日） */
+.festival-pill.tag-purple {
+  color: #7B1FA2;
+  background: rgba(123, 31, 162, 0.08);
+}
+.festival-pill.tag-purple .pill-dot { background: #7B1FA2; }
+
+/* 金色（其他） */
+.festival-pill.tag-gold {
+  color: #E65100;
+  background: rgba(230, 81, 0, 0.08);
+}
+.festival-pill.tag-gold .pill-dot { background: #E65100; }
+
+/* 其他颜色 */
+.festival-pill.tag-pink { color: #C2185B; background: rgba(194, 24, 91, 0.06); }
+.festival-pill.tag-pink .pill-dot { background: #C2185B; }
+.festival-pill.tag-blue { color: #1976D2; background: rgba(25, 118, 210, 0.06); }
+.festival-pill.tag-blue .pill-dot { background: #1976D2; }
+.festival-pill.tag-green { color: #2E7D32; background: rgba(46, 125, 50, 0.06); }
+.festival-pill.tag-green .pill-dot { background: #2E7D32; }
+.festival-pill.tag-gray,
+.festival-pill.tag-orange { color: #555; background: rgba(0, 0, 0, 0.05); }
+.festival-pill.tag-gray .pill-dot,
+.festival-pill.tag-orange .pill-dot { background: #999; }
+
 .panel-lunar {
   display: flex;
   align-items: center;
@@ -397,18 +468,42 @@
 /* 节日项 */
 .festival-item {
   display: flex;
-  align-items: center;
-  gap: 14rpx;
-  padding: 18rpx 0;
+  align-items: flex-start;
+  gap: 0;
+  padding: 20rpx 0;
   border-bottom: 1rpx solid #F0F0F2;
 }
 
 .festival-item:last-child { border-bottom: none; padding-bottom: 0; }
 .festival-item:first-child { padding-top: 0; }
 
+/* 左侧彩色竖条（替代原来的标签） */
+.festival-color-bar {
+  width: 6rpx;
+  min-height: 100%;
+  border-radius: 3rpx;
+  flex-shrink: 0;
+  margin-right: 18rpx;
+}
+
+.festival-color-bar.tag-red { background: linear-gradient(180deg, #FF6B6B, #EE5A5A); }
+.festival-color-bar.tag-purple { background: linear-gradient(180deg, #9B59B6, #8E44AD); }
+.festival-color-bar.tag-gold { background: linear-gradient(180deg, #DAA520, #B8860B); }
+.festival-color-bar.tag-pink { background: linear-gradient(180deg, #E91E63, #C2185B); }
+.festival-color-bar.tag-blue { background: linear-gradient(180deg, #2196F3, #1976D2); }
+.festival-color-bar.tag-green { background: linear-gradient(180deg, #4CAF50, #388E3C); }
+
 .festival-content {
   flex: 1;
   min-width: 0;
+}
+
+/* 名称 + 箭头同行 */
+.festival-top-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 2rpx;
 }
 
 /* 节日名称（略大于标准正文） */

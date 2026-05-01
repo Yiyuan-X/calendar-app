@@ -7,37 +7,258 @@ const { solarToLunar } = require('./lunar');
 
 // ===== 固定日期节日 =====
 const fixedFestivals = {
-  // 法定节日 - 红色高亮
-  '1-1': { name: '元旦', type: 'legal', color: 'red', category: 'holiday' },
-  '2-14': { name: '情人节', type: 'common', color: 'pink', category: 'commemorate' },
-  '3-8': { name: '妇女节', type: 'legal', color: 'red', category: 'holiday' },
-  '3-12': { name: '植树节', type: 'legal', color: 'green', category: 'holiday' },
-  '4-1': { name: '愚人节', type: 'common', color: 'gray', category: 'other' },
-  '5-1': { name: '劳动节', type: 'legal', color: 'red', category: 'holiday' },
-  '5-4': { name: '青年节', type: 'legal', color: 'blue', category: 'holiday' },
-  '6-1': { name: '儿童节', type: 'legal', color: 'red', category: 'holiday' },
-  '7-1': { name: '建党节', type: 'legal', color: 'red', category: 'holiday' },
-  '8-1': { name: '建军节', type: 'legal', color: 'red', category: 'holiday' },
-  '9-10': { name: '教师节', type: 'common', color: 'orange', category: 'commemorate' },
-  '10-1': { name: '国庆节', type: 'legal', color: 'red', category: 'holiday' },
-  '12-24': { name: '平安夜', type: 'common', color: 'pink', category: 'commemorate' },
-  '12-25': { name: '圣诞节', type: 'common', color: 'pink', category: 'commemorate' }
-};
+  // ===== 法定 / 常见节日 =====
 
+  '1-1': {
+    name: '元旦',
+    shortName: '元旦',
+    type: 'legal',
+    color: 'red',
+    category: 'holiday',
+    description: '新年的开始，万象更新。告别过去，迎接新的希望与可能。',
+    quote: '新的一年，愿一切更好'
+  },
+
+  '2-14': {
+    name: '情人节',
+    shortName: '情人节',
+    type: 'common',
+    color: 'pink',
+    category: 'commemorate',
+    description: '表达爱与心意的日子，适合告白、陪伴与珍惜彼此。',
+    quote: '爱是日常，也是此刻'
+  },
+
+  '3-8': {
+    name: '妇女节',
+    shortName: '妇女节',
+    type: 'legal',
+    color: 'red',
+    category: 'holiday',
+    description: '致敬女性力量，赞美女性在社会与家庭中的重要价值。',
+    quote: '愿每一位女性都被温柔以待'
+  },
+
+  '3-12': {
+    name: '植树节',
+    shortName: '植树节',
+    type: 'legal',
+    color: 'green',
+    category: 'holiday',
+    description: '播种绿色，守护自然。象征希望与生命的延续。',
+    quote: '种下一棵树，也种下一份未来'
+  },
+
+  '4-1': {
+    name: '愚人节',
+    shortName: '愚人节',
+    type: 'common',
+    color: 'gray',
+    category: 'other',
+    description: '轻松玩笑的一天，适度幽默，让生活多一点趣味。',
+    quote: '认真生活，偶尔玩笑'
+  },
+
+  '5-1': {
+    name: '劳动节',
+    shortName: '劳动节',
+    type: 'legal',
+    color: 'red',
+    category: 'holiday',
+    description: '致敬劳动者，所有努力都值得被看见与尊重。',
+    quote: '平凡的努力，成就不平凡的生活'
+  },
+
+  '5-4': {
+    name: '青年节',
+    shortName: '青年节',
+    type: 'legal',
+    color: 'blue',
+    category: 'holiday',
+    description: '属于青年的日子，象征热血、理想与无限可能。',
+    quote: '青春不只是年龄，是一种状态'
+  },
+
+  '6-1': {
+    name: '儿童节',
+    shortName: '儿童节',
+    type: 'legal',
+    color: 'red',
+    category: 'holiday',
+    description: '属于孩子的节日，也提醒我们保留一份纯真与快乐。',
+    quote: '愿你永远有一颗童心'
+  },
+
+  '7-1': {
+    name: '建党节',
+    shortName: '建党节',
+    type: 'legal',
+    color: 'red',
+    category: 'holiday',
+    description: '纪念中国共产党成立的重要日子，承载历史与信念。',
+  },
+
+  '8-1': {
+    name: '建军节',
+    shortName: '建军节',
+    type: 'legal',
+    color: 'red',
+    category: 'holiday',
+    description: '致敬人民军队，守护国家与和平的力量。',
+  },
+
+  '9-10': {
+    name: '教师节',
+    shortName: '教师节',
+    type: 'common',
+    color: 'orange',
+    category: 'commemorate',
+    description: '感谢师恩，致敬每一位照亮他人前路的人。',
+    quote: '一日为师，终身难忘'
+  },
+
+  '10-1': {
+    name: '国庆节',
+    shortName: '国庆',
+    type: 'legal',
+    color: 'red',
+    category: 'holiday',
+    description: '国家成立纪念日，举国同庆，见证时代发展。',
+    quote: '山河无恙，家国安宁'
+  },
+
+  '12-24': {
+    name: '平安夜',
+    shortName: '平安夜',
+    type: 'common',
+    color: 'pink',
+    category: 'commemorate',
+    description: '温馨宁静的一夜，传递祝福与陪伴的时刻。',
+    quote: '愿你平安喜乐'
+  },
+
+  '12-25': {
+    name: '圣诞节',
+    shortName: '圣诞',
+    type: 'common',
+    color: 'pink',
+    category: 'commemorate',
+    description: '充满温暖与祝福的节日，象征爱、给予与希望。',
+    quote: '世界因爱而温暖'
+  }
+};
+// ===== 农历节日（需要转换） =====
 // ===== 农历节日（需要转换） =====
 const lunarFestivals = {
-  // 传统节日
-  '1-1': { name: '春节', type: 'legal', color: 'red', category: 'holiday', weight: 5 },
-  '1-15': { name: '元宵节', type: 'traditional', color: 'red', category: 'holiday', weight: 3 },
-  '2-2': { name: '龙抬头', type: 'traditional', color: 'gold', category: 'traditional', weight: 2 },
-  '5-5': { name: '端午节', type: 'legal', color: 'red', category: 'holiday', weight: 4 },
-  '7-7': { name: '七夕', type: 'traditional', color: 'pink', category: 'commemorate', weight: 3 },
-  '7-15': { name: '中元节', type: 'traditional', color: 'gold', category: 'traditional', weight: 2 },
-  '8-15': { name: '中秋节', type: 'legal', color: 'red', category: 'holiday', weight: 5 },
-  '9-9': { name: '重阳节', type: 'traditional', color: 'gold', category: 'traditional', weight: 3 },
-  '12-8': { name: '腊八节', type: 'traditional', color: 'gold', category: 'traditional', weight: 3 },
-  '12-23': { name: '小年', type: 'traditional', color: 'gold', category: 'traditional', weight: 2 },
-  '12-30': { name: '除夕', type: 'legal', color: 'red', category: 'holiday', weight: 5 }
+  '1-1': {
+    name: '春节',
+    shortName: '春节',
+    type: 'legal',
+    color: 'red',
+    category: 'holiday',
+    weight: 5,
+    description: '农历新年，一年之始。辞旧迎新，阖家团圆，祈愿来年平安顺遂。'
+  },
+
+  '1-15': {
+    name: '元宵节',
+    shortName: '元宵',
+    type: 'traditional',
+    color: 'red',
+    category: 'holiday',
+    weight: 3,
+    description: '正月十五，张灯结彩，赏灯吃元宵，象征团圆美满与光明希望。'
+  },
+
+  '2-2': {
+    name: '龙抬头',
+    shortName: '龙抬头',
+    type: 'traditional',
+    color: 'gold',
+    category: 'traditional',
+    weight: 2,
+    description: '二月二龙抬头，象征万物复苏。民间有理发、祭龙、祈求风调雨顺的习俗。'
+  },
+
+  '5-5': {
+    name: '端午节',
+    shortName: '端午',
+    type: 'legal',
+    color: 'red',
+    category: 'holiday',
+    weight: 4,
+    description: '纪念屈原，赛龙舟、吃粽子、挂艾草，寓意驱邪避疫、安康顺遂。'
+  },
+
+  '7-7': {
+    name: '七夕',
+    shortName: '七夕',
+    type: 'traditional',
+    color: 'pink',
+    category: 'commemorate',
+    weight: 3,
+    description: '牛郎织女相会之日，中国传统情人节，象征爱情与美好相守。'
+  },
+
+  '7-15': {
+    name: '中元节',
+    shortName: '中元',
+    type: 'traditional',
+    color: 'gold',
+    category: 'traditional',
+    weight: 2,
+    description: '祭祖追思之日，民间称鬼节。慎终追远，表达对先人的缅怀与敬意。'
+  },
+
+  '8-15': {
+    name: '中秋节',
+    shortName: '中秋',
+    type: 'legal',
+    color: 'red',
+    category: 'holiday',
+    weight: 5,
+    description: '月圆人团圆之夜，赏月吃月饼，寄托思念与团聚之情。'
+  },
+
+  '9-9': {
+    name: '重阳节',
+    shortName: '重阳',
+    type: 'traditional',
+    color: 'gold',
+    category: 'traditional',
+    weight: 3,
+    description: '登高望远、敬老孝亲之日。九九重阳，寓意长寿与吉祥。'
+  },
+
+  '12-8': {
+    name: '腊八节',
+    shortName: '腊八',
+    type: 'traditional',
+    color: 'gold',
+    category: 'traditional',
+    weight: 3,
+    description: '喝腊八粥，寓意丰收与团圆。亦与佛陀成道日相关，象征觉悟与积福。'
+  },
+
+  '12-23': {
+    name: '小年',
+    shortName: '小年',
+    type: 'traditional',
+    color: 'gold',
+    category: 'traditional',
+    weight: 2,
+    description: '祭灶神、扫尘迎新，为春节做准备，寓意辞旧迎新、家宅清净。'
+  },
+
+  '12-30': {
+    name: '除夕',
+    shortName: '除夕',
+    type: 'legal',
+    color: 'red',
+    category: 'holiday',
+    weight: 5,
+    description: '岁末之夜，守岁团圆，辞旧迎新，迎接新一年的开始。'
+  }
 };
 
 // ===== 佛教纪念日（农历） =====

@@ -517,42 +517,50 @@
   box-shadow: 0 2rpx 8rpx rgba(255, 59, 48, 0.08);
 }
 
+/* ==================== 印章式方形复选框 ==================== */
 .item-check {
-  width: 34rpx;
-  height: 34rpx;
-  border-radius: 50%;
+  width: 36rpx;
+  height: 36rpx;
+  border-radius: 8rpx;
   display: flex;
   align-items: center;
   justify-content: center;
-  font-size: 24rpx;
-  font-weight: 700;
   flex-shrink: 0;
+  transition: all 0.15s ease;
+  /* 未选中状态：浅色描边 */
   border: 2rpx solid #D1D1D6;
-  color: transparent;
+  background: transparent;
 }
 
-.good-item.selected .item-check {
+/* 选中状态 - 善行 */
+.item-check.good.checked {
   background: #34C759;
   border-color: #34C759;
-  color: #fff;
 }
 
-.bad-item.selected .item-check {
+/* 选中状态 - 过失 */
+.item-check.bad.checked {
   background: #FF3B30;
   border-color: #FF3B30;
+}
+
+/* 选中标记 */
+.item-check text {
+  font-size: 22rpx;
+  font-weight: 700;
   color: #fff;
+  line-height: 1;
 }
 
-.item-check-img {
-  width: 30rpx;
-  height: 30rpx;
-  flex-shrink: 0;
+/* 点击反馈 */
+.item-check:active {
+  transform: scale(0.92);
 }
 
+/* 旧样式兼容（删除） */
+.item-check-img,
 .item-check-placeholder {
-  width: 30rpx;
-  height: 30rpx;
-  flex-shrink: 0;
+  display: none;
 }
 
 /* 条目文字（标准正文） */
@@ -761,6 +769,9 @@
   align-items: center;
   justify-content: center;
   line-height: 1;
+  white-space: nowrap;
+  padding: 0 20rpx;
+  box-sizing: border-box;
 }
 
 .save-btn.disabled {
@@ -935,42 +946,47 @@
   min-width: 0;
 }
 
+/* 自定义条目复选框 - 复用印章式方形设计 */
 .custom-check {
-  width: 34rpx;
-  height: 34rpx;
-  border-radius: 50%;
+  width: 36rpx;
+  height: 36rpx;
+  border-radius: 8rpx;
   display: flex;
   align-items: center;
   justify-content: center;
-  font-size: 24rpx;
-  font-weight: 700;
   flex-shrink: 0;
+  transition: all 0.15s ease;
   border: 2rpx solid #D1D1D6;
-  color: transparent;
+  background: transparent;
 }
 
-.selected-good .custom-check {
+/* 自定义善行选中 - 使用橙色区分 */
+.custom-check.good.checked {
   background: #FF9800;
   border-color: #FF9800;
-  color: #fff;
 }
 
-.selected-bad .custom-check {
+/* 自定义过失选中 - 使用玫红区分 */
+.custom-check.bad.checked {
   background: #E91E63;
   border-color: #E91E63;
+}
+
+.custom-check text {
+  font-size: 22rpx;
+  font-weight: 700;
   color: #fff;
+  line-height: 1;
 }
 
-.custom-check-img {
-  width: 30rpx;
-  height: 30rpx;
-  flex-shrink: 0;
+.custom-check:active {
+  transform: scale(0.92);
 }
 
+/* 旧样式兼容（删除） */
+.custom-check-img,
 .custom-check-placeholder {
-  width: 30rpx;
-  height: 30rpx;
-  flex-shrink: 0;
+  display: none;
 }
 
 /* 自定义条目文字（标准正文-） */
