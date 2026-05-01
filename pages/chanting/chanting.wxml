@@ -52,7 +52,7 @@
         </view>
         <text class="task-total">累计 {{item.total}}<text style="font-size:19rpx">{{item.unit}}</text></text>
         <view class="btn-del-task" catchtap="onDeleteTask" data-id="{{item.id}}" data-name="{{item.name}}">
-          <image class="btn-del-task-icon" src="/images/icons/gen-cross.svg" mode="aspectFit"></image>
+          <text class="btn-del-task-text">×</text>
         </view>
       </view>
 

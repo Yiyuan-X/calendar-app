@@ -45,8 +45,7 @@
 
 /* 卡片内删除按钮 */
 .btn-del-task { width:46rpx; height:46rpx; border-radius:50%; background:#FFF5F5; border:1.5rpx solid rgba(198,40,40,.28); display:flex;align-items:center;justify-content:center; flex-shrink:0; margin-left:10rpx; box-shadow:0 2rpx 8rpx rgba(198,40,40,.08); }
-.btn-del-task text { font-size: 25rpx; color:#C62828; line-height:1; }
-.btn-del-task-icon { width:22rpx; height:22rpx; opacity:.95; filter: brightness(0) saturate(100%) invert(21%) sepia(83%) saturate(2202%) hue-rotate(346deg) brightness(86%) contrast(92%); }
+.btn-del-task-text { font-size: 30rpx; color:#E53935; font-weight:600; line-height:1; }
 .btn-del-task:active { background:#FFE1E1; transform:scale(.94); }
 
 /* 进度条 */
@@ -85,9 +84,9 @@
 .btn-count { width:96rpx; height:96rpx; border-radius:50%; background:linear-gradient(135deg,#FFB300,#FF8F00); display:flex;align-items:center;justify-content:center; box-shadow:0 4rpx 16rpx rgba(255,179,0,0.35); }
 .btn-count text { color:#fff; font-size: 44rpx; font-weight:300; }
 .btn-count:active { transform:scale(0.92); opacity:.85; }
-.btn-sub { width:64rpx; height:64rpx; border-radius:50%; background:#FFF8E1; display:flex;align-items:center;justify-content:center; }
-.btn-sub text { color:#FF8F00; font-size: 30rpx; font-weight:600; }
-.btn-sub:active { background:#FFECB3; }
+.btn-sub { width:64rpx; height:64rpx; border-radius:50%; background:#FFF0F0; display:flex;align-items:center;justify-content:center; border:1.5rpx solid rgba(198,40,40,.15); }
+.btn-sub text { color:#E53935; font-size: 32rpx; font-weight:600; }
+.btn-sub:active { background:#FFCDD2; }
 
 /* 空状态 */
 .empty-state { display:flex; flex-direction:column; align-items:center; padding:100rpx 0 40rpx; }
