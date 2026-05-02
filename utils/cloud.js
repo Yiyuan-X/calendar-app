@@ -7,7 +7,7 @@
  */
 
 // ===== 配置 =====
-const ENV_ID = 'your-env-id'; // 替换为你的云开发环境ID
+const ENV_ID = 'test-d5g0jflil769eb9c0'; // 替换为你的云开发环境ID
 const DB_NAME = 'calendar_app'; // MySQL 数据库名（或云开发集合名）
 
 // 云开发是否已初始化

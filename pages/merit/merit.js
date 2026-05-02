@@ -808,6 +808,20 @@ Page({
     this.setData({ reflectionNote: e.detail.value });
   },
 
+  /** 仅保存反省内容（不保存功过条目） */
+  saveReflectionOnly() {
+    const { dateStr, reflectionNote } = this.data;
+    if (!reflectionNote.trim()) {
+      wx.showToast({ title: '反省内容为空', icon: 'none' });
+      return;
+    }
+    // 获取当天已有记录，只更新 note 字段
+    const existingRecord = storage.getMeritRecordByDate(dateStr);
+    const items = existingRecord ? existingRecord.items : [];
+    storage.saveMeritRecord(dateStr, items, reflectionNote.trim());
+    wx.showToast({ title: '反省已保存', icon: 'success' });
+  },
+
   // ==================== 保存 ====================
 
   onSave() {

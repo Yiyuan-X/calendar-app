@@ -3,6 +3,7 @@
  * 初始化云开发、本地存储、隐私授权
  */
 const cloud = require('./utils/cloud');
+const privacy = require('./utils/privacy');
 
 App({
   onLaunch() {
@@ -12,13 +13,11 @@ App({
 
     // 2. 检查本地存储初始化
     this.checkStorageInit();
-    this.initPrivacyAuthorization();
   },
 
   onShow() {
-    setTimeout(() => {
-      this.checkEventReminders();
-    }, 800);
+    // 检查事件提醒（静默，不阻塞）
+    this.checkEventReminders && this.checkEventReminders();
   },
 
   checkStorageInit() {
