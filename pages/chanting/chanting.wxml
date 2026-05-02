@@ -33,66 +33,90 @@
     <text>昨日有 {{yesterdayIncomplete.length}} 项功课未达标，要补吗？</text>
   </view>
 
-  <!-- 功课列表（多通道） -->
+  <!-- 功课列表 -->
   <view class="task-list" wx:if="{{tasks.length > 0}}">
     <!-- 列表顶部提示语 -->
     <view class="task-list-hint">点击具体功课可报数、设置每日目标、总目标等具体功能</view>
 
+    <!-- 排序 + 拖拽提示（同一行） -->
+    <view class="sort-row">
+      <view class="sort-entry" bindtap="showSortModal">
+        <image class="sort-icon" src="/images/icons/gen-gear.svg" mode="aspectFit"></image>
+        <text>输入数字调整顺序</text>
+      </view>
+      <text class="drag-hint-text" wx:if="{{!isDragging}}">长按卡片拖动 ↕</text>
+    </view>
+
     <view
-      class="task-card"
+      class="task-card {{item.isDragging ? 'task-card-dragging' : ''}}"
       wx:for="{{taskData}}"
       wx:key="id"
+      style="{{item.isDragging ? 'position:fixed;z-index:999;transition:none;' : ''}}"
+      data-index="{{index}}"
+      data-id="{{item.id}}"
+      bindtouchstart="onDragStart"
+      bindtouchmove="onDragMove"
+      bindtouchend="onDragEnd"
+      bindlongpress="onLongPress"
     >
-      <!-- 头部：名称 + 总数 + 删除按钮 -->
-      <view class="task-header" bindtap="goDetail" data-id="{{item.id}}">
-        <view class="task-info">
-          <text class="task-name">{{item.name}}</text>
-          <text class="task-target" wx:if="{{item.dailyTarget > 0}}">每日 {{item.dailyTarget}}{{item.unit}}</text>
-          <text class="task-target task-target-total" wx:if="{{item.totalTarget > 0}}">总目标 {{item.totalTarget}}{{item.unit}}</text>
-        </view>
-        <text class="task-total">累计 {{item.total}}<text style="font-size:19rpx">{{item.unit}}</text></text>
-        <view class="btn-del-task" catchtap="onDeleteTask" data-id="{{item.id}}" data-name="{{item.name}}">
-          <text class="btn-del-task-text">×</text>
-        </view>
-      </view>
+      <!-- 占位符（拖拽时原位置显示） -->
+      <block wx:if="{{item.isPlaceholder}}">
+        <view class="placeholder-box"></view>
+      </block>
 
-      <!-- 进度条（每日目标） -->
-      <view class="progress-wrap" wx:if="{{item.dailyTarget > 0}}">
-        <view class="progress-bar">
-          <view class="progress-fill" style="width:{{item.progressPercent}}%"></view>
+      <!-- 正常内容 -->
+      <block wx:else>
+        <!-- 头部：名称 + 总数 + 删除按钮 -->
+        <view class="task-header" bindtap="goDetail" data-id="{{item.id}}">
+          <view class="task-info">
+            <text class="task-name">{{item.name}}</text>
+            <text class="task-target" wx:if="{{item.dailyTarget > 0}}">每日 {{item.dailyTarget}}{{item.unit}}</text>
+            <text class="task-target task-target-total" wx:if="{{item.totalTarget > 0}}">总目标 {{item.totalTarget}}{{item.unit}}</text>
+          </view>
+          <text class="task-total">累计 {{item.total}}<text style="font-size:19rpx">{{item.unit}}</text></text>
+          <view class="btn-del-task" catchtap="onDeleteTask" data-id="{{item.id}}" data-name="{{item.name}}">
+            <text class="btn-del-task-text">×</text>
+          </view>
         </view>
-        <text class="progress-text">{{item.todayCount}}/{{item.dailyTarget}}</text>
-      </view>
 
-      <!-- 总目标进度 -->
-      <view class="progress-wrap progress-total" wx:if="{{item.totalTarget > 0}}">
-        <view class="progress-bar progress-bar-total">
-          <view class="progress-fill progress-fill-total" style="width:{{item.totalProgressPercent}}%"></view>
+        <!-- 进度条（每日目标） -->
+        <view class="progress-wrap" wx:if="{{item.dailyTarget > 0}}">
+          <view class="progress-bar">
+            <view class="progress-fill" style="width:{{item.progressPercent}}%"></view>
+          </view>
+          <text class="progress-text">{{item.todayCount}}/{{item.dailyTarget}}</text>
         </view>
-        <text class="progress-text progress-text-total">累计 {{item.total}}/{{item.totalTarget}}</text>
-      </view>
 
-      <!-- 达标标记 -->
-      <view class="task-badge-done" wx:if="{{item.isDailyDone}}">
-        <image class="task-badge-icon" src="/images/icons/gen-check.svg" mode="aspectFit"></image><text>已达标</text>
-      </view>
+        <!-- 总目标进度 -->
+        <view class="progress-wrap progress-total" wx:if="{{item.totalTarget > 0}}">
+          <view class="progress-bar progress-bar-total">
+            <view class="progress-fill progress-fill-total" style="width:{{item.totalProgressPercent}}%"></view>
+          </view>
+          <text class="progress-text progress-text-total">累计 {{item.total}}/{{item.totalTarget}}</text>
+        </view>
 
-      <!-- 计数区：清零 | -1 | 今日+累计 | +1 -->
-      <view class="count-area">
-        <view class="btn-clear" catchtap="onClear" data-id="{{item.id}}" wx:if="{{item.todayCount > 0}}">
-          <text>清零</text>
+        <!-- 达标标记 -->
+        <view class="task-badge-done" wx:if="{{item.isDailyDone}}">
+          <image class="task-badge-icon" src="/images/icons/gen-check.svg" mode="aspectFit"></image><text>已达标</text>
         </view>
-        <view class="btn-sub" catchtap="onDecrement" data-id="{{item.id}}" wx:if="{{item.todayCount > 0}}">
-          <text>−</text>
+
+        <!-- 计数区：清零 | -1 | 今日+累计 | +1 -->
+        <view class="count-area">
+          <view class="btn-clear" catchtap="onClear" data-id="{{item.id}}" wx:if="{{item.todayCount > 0}}">
+            <text>清零</text>
+          </view>
+          <view class="btn-sub" catchtap="onDecrement" data-id="{{item.id}}" wx:if="{{item.todayCount > 0}}">
+            <text>−</text>
+          </view>
+          <view class="count-display">
+            <text class="count-num number-display">{{item.todayCount}}</text>
+            <text class="count-unit">{{item.unit}}</text>
+          </view>
+          <view class="btn-count" catchtap="onIncrement" data-id="{{item.id}}">
+            <text>+</text>
+          </view>
         </view>
-        <view class="count-display">
-          <text class="count-num number-display">{{item.todayCount}}</text>
-          <text class="count-unit">{{item.unit}}</text>
-        </view>
-        <view class="btn-count" catchtap="onIncrement" data-id="{{item.id}}">
-          <text>+</text>
-        </view>
-      </view>
+      </block>
     </view>
   </view>
 
@@ -143,4 +167,52 @@
       </view>
     </view>
   </view>
+
+  <!-- 备忘录 -->
+  <view class="memo-section">
+    <view class="memo-title"><image class="memo-title-icon" src="/images/icons/gen-pencil.svg" mode="aspectFit"></image><text>备忘录</text></view>
+    <view class="memo-card">
+      <textarea
+        class="memo-editor"
+        placeholder="记录今日待办、灵感或任何想记下的..."
+        value="{{memoContent}}"
+        bindinput="onMemoInput"
+        auto-height
+        maxlength="300"
+      ></textarea>
+      <view class="memo-footer">
+        <text class="memo-count">{{memoContent.length}}/300</text>
+        <text class="memo-save-btn" catchtap="saveMemo">保存</text>
+      </view>
+    </view>
+  </view>
+
+  <!-- 排序弹窗 -->
+  <view class="sort-mask" wx:if="{{showSort}}" catchtap="hideSortModal">
+    <view class="sort-modal" catchtap="stopPropagation">
+      <view class="sort-header">
+        <text class="sort-title">调整功课顺序</text>
+        <text class="sort-desc">数字越小越靠前（1 = 最上面）</text>
+      </view>
+      <view class="sort-list">
+        <view class="sort-item" wx:for="{{taskData}}" wx:key="id">
+          <text class="sort-item-name">{{item.name}}</text>
+          <input
+            class="sort-input"
+            type="digit"
+            value="{{item.sortDisplay}}"
+            data-id="{{item.id}}"
+            data-index="{{index}}"
+            bindinput="onSortInput"
+            confirm-type="done"
+          />
+        </view>
+      </view>
+      <view class="sort-footer">
+        <view class="sort-btn sort-btn-cancel" catchtap="hideSortModal"><text>取消</text></view>
+        <view class="sort-btn sort-btn-save" catchtap="saveSort"><text>保存顺序</text></view>
+      </view>
+    </view>
+  </view>
+
 </view>

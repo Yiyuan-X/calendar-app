@@ -46,13 +46,13 @@ Page({
       const weekNames = ['周日', '周一', '周二', '周三', '周四', '周五', '周六'];
 
       this.setData({
-        displayDate: `${parseInt(parts[1])}月${parseInt(parts[2])}日`,
+        displayDate: `${parseInt(parts[0])}年${parseInt(parts[1])}月${parseInt(parts[2])}日`,
         weekdayText: weekNames[dateObj.getDay()]
       });
 
       // 设置导航栏标题
       wx.setNavigationBarTitle({
-        title: `${parts[1]}月${parts[2]}日 · 备注`
+        title: `${parts[0]}年${parts[1]}月${parts[2]}日 · 备注`
       });
     }
 

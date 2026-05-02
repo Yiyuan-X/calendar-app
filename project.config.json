@@ -1,5 +1,6 @@
 {
   "description": "岁时记 - 日历·节日·倒计时",
+  "cloudbaseRoot": "cloudfunctions/",
   "packOptions": {
     "ignore": [],
     "include": []
@@ -45,7 +46,7 @@
     "disableSWC": true
   },
   "compileType": "miniprogram",
-  "libVersion": "3.10.0",
+  "libVersion": "3.15.2",
   "appid": "wx7659a93e811fa67c",
   "projectname": "calendar-app",
   "condition": {},

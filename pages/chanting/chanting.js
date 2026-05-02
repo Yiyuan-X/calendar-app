@@ -3,6 +3,7 @@ const chant = require('../../utils/chanting');
 const privacy = require('../../utils/privacy');
 const share = require('../../utils/share');
 const poster = require('../../utils/poster');
+const cloud = require('../../utils/cloud');
 
 Page({
   data: {
@@ -17,6 +18,10 @@ Page({
       { id: 'b3', name: '心经' }
     ],
     quickCount: 0,       // 通用计数器
+    memoContent: '',      // 备忘录内容
+    showSort: false,      // 排序弹窗显示状态
+    sortValues: {},       // 排序输入值 { id: sortOrder }
+    isDragging: false,    // 是否正在拖拽
     showPrivacyAuthorization: false,
     privacyContractName: '用户隐私保护指引'
   },
@@ -28,8 +33,11 @@ Page({
       this.loadData();
       // 加载通用计数器
       const qc = wx.getStorageSync('quick_count') || 0;
+      // 加载备忘录
+      const memo = wx.getStorageSync('chanting_memo') || '';
       this.setData({
         quickCount: qc,
+        memoContent: memo,
         pageMotto: chant.getRandomMotto()
       });
     } catch (e) {
@@ -43,13 +51,11 @@ Page({
     const today = chant.getToday();
     const dayRec = chant.getDayRecord(today);
 
-    // 构建展示数据
-    const taskData = (tasks || []).map(t => {
+    // 构建展示数据（含拖拽状态字段）
+    const taskData = (tasks || []).map((t, index) => {
       const todayCount = (dayRec && dayRec[t.id]) || 0;
       const total = chant.getTaskTotal(t.id);
-      // 每日目标达标：今天计数 >= 每日目标
       const isDailyDone = t.dailyTarget > 0 && todayCount >= t.dailyTarget;
-      // 总目标达标：累计总数 >= 总目标
       const isTotalDone = t.totalTarget > 0 && total >= t.totalTarget;
       return {
         ...t,
@@ -58,7 +64,9 @@ Page({
         isDailyDone,
         isTotalDone,
         progressPercent: t.dailyTarget > 0 ? Math.min(100, (todayCount / t.dailyTarget) * 100) : 0,
-        totalProgressPercent: t.totalTarget > 0 ? Math.min(100, ((total || 0) / t.totalTarget) * 100) : 0
+        totalProgressPercent: t.totalTarget > 0 ? Math.min(100, ((total || 0) / t.totalTarget) * 100) : 0,
+        isDragging: false,
+        isPlaceholder: false
       };
     });
 
@@ -179,11 +187,6 @@ Page({
     if (!item) return;
 
     const task = chant.addTask(item.name, item.unit, 0, 0, false, item.id);
-    if (!task) {
-      wx.showToast({ title: '已添加过', icon: 'none' });
-      return;
-    }
-
     wx.showToast({ title: '已添加', icon: 'success' });
     this.loadData();
   },
@@ -232,6 +235,7 @@ Page({
     const newVal = this.data.quickCount + 1;
     this.setData({ quickCount: newVal });
     wx.setStorageSync('quick_count', newVal);
+    cloud.set(cloud.TABLES.QUICK_COUNTER, 'main', newVal);
     wx.vibrateShort({ type: 'light' });
   },
 
@@ -240,6 +244,7 @@ Page({
     const newVal = this.data.quickCount - 1;
     this.setData({ quickCount: newVal });
     wx.setStorageSync('quick_count', newVal);
+    cloud.set(cloud.TABLES.QUICK_COUNTER, 'main', newVal);
   },
 
   /** 通用计数器重置 */
@@ -252,10 +257,181 @@ Page({
         if (res.confirm) {
           this.setData({ quickCount: 0 });
           wx.setStorageSync('quick_count', 0);
+          cloud.set(cloud.TABLES.QUICK_COUNTER, 'main', 0);
           wx.showToast({ title: '已重置', icon: 'success' });
         }
       }
     });
+  },
+
+  // ==================== 备忘录 ====================
+
+  onMemoInput(e) {
+    this.setData({ memoContent: e.detail.value });
+  },
+
+  saveMemo() {
+    const content = this.data.memoContent;
+    wx.setStorageSync('chanting_memo', content);
+    cloud.set(cloud.TABLES.MEMO, 'main', content || '');
+    wx.showToast({ title: '已保存', icon: 'success' });
+  },
+
+  // ==================== 拖拽排序（长按触发） ====================
+
+  _dragState: null,   // { dragIndex, startY, cardRects, cardHeight }
+  _longPressTimer: null,
+  _cardPositions: [], // 缓存卡片位置信息
+
+  /** 长按进入拖拽模式 */
+  onLongPress(e) {
+    if (this._dragState) return; // 已在拖拽中
+    const index = parseInt(e.currentTarget.dataset.index);
+    if (isNaN(index)) return;
+
+    // 获取所有卡片的位置
+    this._cacheCardPositions(() => {
+      if (this._cardPositions.length === 0) return;
+      const taskData = this.data.taskData;
+
+      // 标记当前项为拖拽中，原位置显示占位符
+      const updates = { isDragging: true };
+      taskData.forEach((t, i) => {
+        updates[`taskData[${i}].isDragging`] = (i === index);
+        updates[`taskData[${i}].isPlaceholder`] = (i === index);
+      });
+      this.setData(updates);
+
+      this._dragState = {
+        dragIndex: index,
+        startY: e.changedTouches[0].clientY,
+        cardHeight: this._cardPositions[0] ? this._cardPositions[0].height : 120
+      };
+      wx.vibrateShort({ type: 'medium' });
+    });
+  },
+
+  /** 缓存卡片位置 */
+  _cacheCardPositions(callback) {
+    const query = wx.createSelectorQuery().in(this);
+    query.selectAll('.task-card').boundingClientRect(rects => {
+      this._cardPositions = rects || [];
+      if (callback) callback();
+    }).exec();
+  },
+
+  onDragStart(e) {
+    // 仅在拖拽模式下处理
+    if (!this._dragState) return;
+    this._dragState.startY = e.touches[0].clientY;
+  },
+
+  onDragMove(e) {
+    if (!this._dragState) return;
+    const { dragIndex } = this._dragState;
+    const taskData = this.data.taskData;
+    if (!taskData || taskData.length <= 1) return;
+
+    const touchY = e.touches[0].clientY;
+    const moveY = touchY - this._dragState.startY;
+
+    // 用卡片高度估算目标位置
+    const cardH = this._dragState.cardHeight || 120;
+    const offsetIndex = Math.round(moveY / cardH);
+    let targetIndex = dragIndex + offsetIndex;
+
+    targetIndex = Math.max(0, Math.min(taskData.length - 1, targetIndex));
+    if (targetIndex === dragIndex) return;
+
+    // 重新排列数组
+    const newTaskData = [...taskData];
+    const [dragItem] = newTaskData.splice(dragIndex, 1);
+    newTaskData.splice(targetIndex, 0, dragItem);
+
+    // 更新状态：保持拖拽项的 isDragging，占位符跟随原 dragIndex 移到 targetIndex
+    const updates = { taskData: newTaskData };
+    newTaskData.forEach((t, i) => {
+      updates[`taskData[${i}].isDragging`] = false;
+      updates[`taskData[${i}].isPlaceholder`] = false;
+    });
+    // 找到被拖拽的项目，重新标记
+    const newDragIdx = newTaskData.findIndex(t => t.id === taskData[dragIndex].id);
+    if (newDragIdx >= 0) {
+      updates[`taskData[${newDragIdx}].isDragging`] = true;
+      updates[`taskData[${newDragIdx}].isPlaceholder`] = true;
+    }
+    this.setData(updates);
+
+    this._dragState.dragIndex = newDragIdx;
+    this._dragState.startY = touchY;
+  },
+
+  onDragEnd(e) {
+    if (!this._dragState) return;
+
+    // 保存新的排序
+    const orderedIds = this.data.taskData.map(t => t.id);
+    chant.reorderTasks(orderedIds);
+
+    // 重置所有拖拽状态
+    const taskData = this.data.taskData;
+    const updates = { isDragging: false };
+    taskData.forEach((t, i) => {
+      updates[`taskData[${i}].isDragging`] = false;
+      updates[`taskData[${i}].isPlaceholder`] = false;
+    });
+    this.setData(updates);
+    this._dragState = null;
+    this._cardPositions = [];
+
+    wx.showToast({ title: '顺序已调整', icon: 'success' });
+  },
+
+  // ==================== 数字排序弹窗 ====================
+
+  showSortModal() {
+    // 初始化排序值（sortOrder + 1 显示为从1开始），写入 taskData 每项的 sortDisplay
+    const updates = { showSort: true };
+    this.data.taskData.forEach((t, i) => {
+      updates[`taskData[${i}].sortDisplay`] = (t.sortOrder || 0) + 1;
+    });
+    this.setData(updates);
+  },
+
+  hideSortModal() {
+    this.setData({ showSort: false });
+  },
+
+  stopPropagation() {
+    // 阻止事件冒泡到 mask，防止点击弹窗内容时关闭弹窗
+  },
+
+  onSortInput(e) {
+    const id = e.currentTarget.dataset.id;
+    const index = e.currentTarget.dataset.index;
+    const val = e.detail.value; // 保持字符串，不转数字，避免输入中被截断
+    this.setData({
+      [`taskData[${index}].sortDisplay`]: val
+    });
+  },
+
+  saveSort() {
+    const { taskData } = this.data;
+
+    // 按 sortDisplay（用户输入的1-based数字）排序
+    const sorted = [...taskData].sort((a, b) => {
+      const valA = parseInt(a.sortDisplay) || 999;
+      const valB = parseInt(b.sortDisplay) || 999;
+      return valA - valB;
+    });
+
+    // 重新分配 sortOrder（0-based），按用户输入的顺序
+    const orderedIds = sorted.map(t => t.id);
+    chant.reorderTasks(orderedIds);
+
+    this.setData({ showSort: false });
+    this.loadData(); // 刷新列表（getTasks 现在会按 sortOrder 排序）
+    wx.showToast({ title: '顺序已保存', icon: 'success' });
   },
 
   // ==================== 朋友圈分享图 ====================
@@ -342,11 +518,12 @@ Page({
 
     // 格式化日期
     const now = new Date();
+    const year = now.getFullYear();
     const month = now.getMonth() + 1;
     const day = now.getDate();
     const weekNames = ['周日', '周一', '周二', '周三', '周四', '周五', '周六'];
     const weekDay = weekNames[now.getDay()];
-    const dateStr = month + '月' + day + '日 ' + weekDay;
+    const dateStr = year + '年' + month + '月' + day + '日 ' + weekDay;
 
     wx.showLoading({ title: '正在生成...' });
 

@@ -113,12 +113,12 @@ Page({
       const dateObj = new Date(parseInt(parts[0]), parseInt(parts[1]) - 1, parseInt(parts[2]));
       const weekNames = ['周日', '周一', '周二', '周三', '周四', '周五', '周六'];
       this.setData({
-        displayDate: `${parseInt(parts[1])}月${parseInt(parts[2])}日`,
+        displayDate: `${parseInt(parts[0])}年${parseInt(parts[1])}月${parseInt(parts[2])}日`,
         weekdayText: weekNames[dateObj.getDay()]
       });
 
       wx.setNavigationBarTitle({
-        title: `${parts[1]}月${parts[2]}日 · 功过格`
+        title: `${parts[0]}年${parts[1]}月${parts[2]}日 · 功过格`
       });
     }
 

@@ -1,9 +1,12 @@
 /**
  * 功课计数器 — 数据模型与存储
+ * 支持云端同步 + 本地缓存 + 离线兜底
  */
+const cloud = require('./cloud');
+
 const STORAGE_KEY = 'chanting_tasks';       // 用户功课列表
 const RECORDS_KEY = 'chanting_records';     // 每日记录 { '2026-04-23': { taskId: count, ... } }
-const DAILY_KEY = 'chanting_daily';         // 每日详情 { dateStr: { taskId:{ count,wish,note,dedicate } } }
+const DAILY_KEY = 'chanting_daily';         // 每日详情 { dateStr: { taskId:{ count,wish,note } } }
 
 // ==================== 内置热门功课 ====================
 const BUILTIN = [
@@ -106,24 +109,27 @@ function prevDate(dateStr) {
 
 // ==================== 功课管理（CRUD） ====================
 function getTasks() {
-  return wx.getStorageSync(STORAGE_KEY) || [];
+  const tasks = wx.getStorageSync(STORAGE_KEY) || [];
+  // 按 sortOrder 排序返回
+  return tasks.sort((a, b) => (a.sortOrder || 0) - (b.sortOrder || 0));
 }
 function saveTasks(tasks) {
   wx.setStorageSync(STORAGE_KEY, tasks);
+  cloud.setList(cloud.TABLES.TASKS, tasks);
 }
 
 /** 添加功课（内置 or 自定义） */
 function addTask(name, unit='遍', dailyTarget=0, totalTarget=0, isCustom=false, builtinId=null) {
   const tasks = getTasks();
-  // 检查重名（仅警告，不阻止）
-  const exist = tasks.find(t => t.name === name);
-  if (exist) return null; // 已存在同名则不重复添加
+  // 每个功课都生成唯一 id，避免同名内置功课 id 冲突
+  const uniqueId = (isCustom ? 'c_' : 'b_') + Date.now() + '_' + Math.random().toString(36).substr(2, 5);
   const task = {
-    id: isCustom ? 'c_'+Date.now() : builtinId,
+    id: uniqueId,
+    builtinId: isCustom ? null : builtinId, // 保留原始 builtinId 用于识别来源
     name,
     unit,
-    dailyTarget,       // 每日目标，0=不限
-    totalTarget,       // 总目标，0=不限
+    dailyTarget,
+    totalTarget,
     isCustom,
     sortOrder: tasks.length,
     createdAt: Date.now()
@@ -143,10 +149,10 @@ function updateTask(id, updates) {
 function deleteTask(id) {
   let tasks = getTasks().filter(t => t.id !== id);
   saveTasks(tasks);
-  // 同时清理相关记录
   const allRecords = wx.getStorageSync(RECORDS_KEY) || {};
   Object.keys(allRecords).forEach(d => delete allRecords[d][id]);
   wx.setStorageSync(RECORDS_KEY, allRecords);
+  cloud.setList(cloud.TABLES.RECORDS, allRecords);
   return true;
 }
 function reorderTasks(orderedIds) {
@@ -174,6 +180,7 @@ function increment(taskId, dateStr, amount=1) {
   if (!records[dateStr]) records[dateStr] = {};
   records[dateStr][taskId] = (records[dateStr][taskId] || 0) + amount;
   wx.setStorageSync(RECORDS_KEY, records);
+  cloud.set(cloud.TABLES.RECORDS, dateStr, records[dateStr]);
   return records[dateStr][taskId];
 }
 
@@ -183,6 +190,7 @@ function setCount(taskId, dateStr, count) {
   if (!records[dateStr]) records[dateStr] = {};
   records[dateStr][taskId] = Math.max(0, count | 0);
   wx.setStorageSync(RECORDS_KEY, records);
+  cloud.set(cloud.TABLES.RECORDS, dateStr, records[dateStr]);
   return records[dateStr][taskId];
 }
 
@@ -192,17 +200,35 @@ function clearCount(taskId, dateStr) {
   if (records[dateStr]) {
     delete records[dateStr][taskId];
     wx.setStorageSync(RECORDS_KEY, records);
+    cloud.set(cloud.TABLES.RECORDS, dateStr, records[dateStr] || {});
   }
 }
 
 // ==================== 每日详情（发愿/回向/备注） ====================
-function getDailyDetail(dateStr) {
-  return (wx.getStorageSync(DAILY_KEY) || {})[dateStr] || null;
-}
-function saveDailyDetail(dateStr, detail) {
+function getDailyDetail(dateStr, taskId) {
   const all = wx.getStorageSync(DAILY_KEY) || {};
-  all[dateStr] = { ...detail, updatedAt: Date.now() };
+  const dayData = all[dateStr] || null;
+  if (!dayData || !taskId) return dayData;
+  // 返回该 taskId 对应的详情（兼容旧数据：无 _byTask 字段时返回全局数据）
+  if (dayData._byTask && dayData._byTask[taskId]) {
+    return dayData._byTask[taskId];
+  }
+  // 兼容旧数据：如果只有一个任务，返回全局数据
+  return { wish: dayData.wish, note: dayData.note };
+}
+function saveDailyDetail(dateStr, detail, taskId) {
+  const all = wx.getStorageSync(DAILY_KEY) || {};
+  if (taskId) {
+    // 按 taskId 隔离存储
+    if (!all[dateStr]) all[dateStr] = { updatedAt: Date.now() };
+    if (!all[dateStr]._byTask) all[dateStr]._byTask = {};
+    all[dateStr]._byTask[taskId] = { ...detail, updatedAt: Date.now() };
+    all[dateStr].updatedAt = Date.now();
+  } else {
+    all[dateStr] = { ...detail, updatedAt: Date.now() };
+  }
   wx.setStorageSync(DAILY_KEY, all);
+  cloud.set(cloud.TABLES.DAILY_DETAIL, dateStr, all[dateStr]);
 }
 
 // ==================== 统计 ====================

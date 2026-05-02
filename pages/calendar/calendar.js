@@ -39,7 +39,7 @@ Page({
       currentYear: now.getFullYear(),
       currentMonth: now.getMonth() + 1,
       todayStr: `${now.getFullYear()}-${calendarUtil.padZero(now.getMonth() + 1)}-${calendarUtil.padZero(now.getDate())}`,
-      todayDisplay: `${now.getMonth() + 1}月${now.getDate()}日`,
+      todayDisplay: `${now.getFullYear()}年${now.getMonth() + 1}月${now.getDate()}日`,
       isCurrentMonth: true
     });
 

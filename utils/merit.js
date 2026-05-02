@@ -66,7 +66,6 @@ const GOOD_CATEGORIES = [
     color: '#2196F3',
     desc: '言而有信，行而不欺',
     items: [
-      { id: 'g17', text: '借人财物如期归还', merit: 1 },
       { id: 'g18', text: '工作或学习尽心尽责', merit: 1 },
       { id: 'g45', text: '推荐贤能之人', merit: 10 },
       { id: 'g15', text: '信守承诺，说到做到', merit: 5 },
@@ -74,7 +73,8 @@ const GOOD_CATEGORIES = [
       { id: 'g19', text: '不占小便宜', merit: 1 },
       { id: 'g20', text: '传播真实有益的信息', merit: 1 },
       { id: 'g43', text: '主动承担过错', merit: 2 },
-      { id: 'g44', text: '把功劳让给他人', merit: 2 }
+      { id: 'g44', text: '把功劳让给他人', merit: 2 },
+      { id: 'g17', text: '借人财物如期归还', merit: 1 },
     ]
   },
   {
@@ -84,11 +84,11 @@ const GOOD_CATEGORIES = [
     color: '#9C27B0',
     desc: '反省自省，克己复礼',
     items: [
-      { id: 'g46', text: '见善必行，不再拖延', merit: 1 },
+      { id: 'g46', text: '见善必行', merit: 1 },
+      { id: 'g21', text: '读诵经典组合', merit: 5 },
       { id: 'g56', text: '诵经一卷', merit: 2 },
       { id: 'g26', text: '改正一个已知过失', merit: 1 },
-      { id: 'g21', text: '读诵经典或善书一段', merit: 2 },
-      { id: 'g21', text: '读诵经典组合', merit: 5 },
+      { id: 'g57', text: '读诵经典或善书一段', merit: 2 },
       { id: 'g47', text: '今日持续记录善行', merit: 1 },
       { id: 'g23', text: '静坐收心十五分钟以上', merit: 1 },
       { id: 'g24', text: '反省今日过失并写下改法', merit: 2 },

@@ -144,7 +144,7 @@ Page({
       if (e.date) {
         const d = new Date(e.date);
         if (!isNaN(d.getTime())) {
-          displayDate = `${d.getMonth() + 1}月${d.getDate()}日`;
+          displayDate = `${d.getFullYear()}年${d.getMonth() + 1}月${d.getDate()}日`;
         } else {
           // 如果date不是标准日期格式，尝试直接展示
           displayDate = String(e.date);
@@ -323,7 +323,7 @@ Page({
       const currentTerm = nearby.prev || nearby.next;
       const nextTerm = nearby.next || nearby.prev;
       if (currentTerm && nextTerm) {
-        return `${currentTerm.month}月${currentTerm.day}日 — ${nextTerm.month}月${nextTerm.day}日`;
+        return `${currentTerm.year || year}年${currentTerm.month}月${currentTerm.day}日 — ${nextTerm.year || year}年${nextTerm.month}月${nextTerm.day}日`;
       } else if (currentTerm) {
         return `${currentTerm.month}月起`;
       }
@@ -602,7 +602,7 @@ goToMerit() {
   onShareAppMessage() {
     const { todayInfo, dailyQuote } = this.data;
     return {
-      title: `${todayInfo.month}月${todayInfo.day}日 · ${dailyQuote}`,
+      title: `${todayInfo.year}年${todayInfo.month}月${todayInfo.day}日 · ${dailyQuote}`,
       path: '/pages/index/index'
     };
   },
@@ -610,7 +610,7 @@ goToMerit() {
   onShareTimeline() {
     const { todayInfo, dailyQuote } = this.data;
     return share.timeline({
-      title: `${todayInfo.month}月${todayInfo.day}日 · ${dailyQuote}`
+      title: `${todayInfo.year}年${todayInfo.month}月${todayInfo.day}日 · ${dailyQuote}`
     });
   },
 
@@ -712,7 +712,7 @@ goToMerit() {
 
         // 日期
         ctx.fillStyle = '#5D4037'; ctx.font = '28px sans-serif';
-        ctx.fillText((ti.month || '') + '月' + (ti.day || '') + '日', W / 2, 115);
+        ctx.fillText((ti.year || '') + '年' + (ti.month || '') + '月' + (ti.day || '') + '日', W / 2, 115);
 
         // 农历
         ctx.fillStyle = '#A08520'; ctx.font = '20px sans-serif';

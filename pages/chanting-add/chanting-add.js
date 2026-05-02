@@ -31,25 +31,18 @@ Page({
 
   doSearch(keyword) {
     let list = chant.searchBuiltin(keyword);
-    // 标记已添加的
-    const tasks = chant.getTasks();
-    const addedIds = new Set(tasks.map(t => t.id));
-    list = list.map(item => ({ ...item, added: addedIds.has(item.id) }));
+    // 不再标记已添加状态，允许重复添加
+    list = list.map(item => ({ ...item, added: false }));
     this.setData({ results: list });
   },
 
   /** 添加内置功课 */
   onAddBuiltin(e) {
     const item = e.currentTarget.dataset.item;
-    if (item.added) return;
     const task = chant.addTask(item.name, item.unit, 0, 0, false, item.id);
-    if (task) {
-      wx.showToast({ title: '已添加「' + item.name + '」', icon: 'success' });
-      this.doSearch(this.data.keyword);
-      setTimeout(() => { wx.navigateBack(); }, 800);
-    } else {
-      wx.showToast({ title: '该功课已存在', icon: 'none' });
-    }
+    wx.showToast({ title: '已添加「' + item.name + '」', icon: 'success' });
+    this.doSearch(this.data.keyword);
+    setTimeout(() => { wx.navigateBack(); }, 800);
   },
 
   /** 删除已添加的内置功课 */
@@ -77,14 +70,6 @@ Page({
   onCreateCustom() {
     const name = this.data.customName.trim();
     if (!name) { wx.showToast({ title: '请输入功课名称', icon: 'none' }); return; }
-
-    // 检查是否已存在同名
-    const tasks = chant.getTasks();
-    const exist = tasks.find(t => t.name === name);
-    if (exist) {
-      wx.showToast({ title: '「' + name + '」已存在', icon: 'none' });
-      return;
-    }
 
     const target = parseInt(this.data.customTarget) || 0;
     const totalTarget = parseInt(this.data.customTotalTarget) || 0;

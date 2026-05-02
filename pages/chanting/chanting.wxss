@@ -32,7 +32,9 @@
 
 /* 功课列表 */
 .task-list { display:flex; flex-direction:column; gap:16rpx; padding-bottom:20rpx; }
-.task-card { background:#fff; border-radius:18rpx; padding:22rpx 24rpx; box-shadow:0 2rpx 10rpx rgba(0,0,0,.03); }
+.task-card { background:#fff; border-radius:18rpx; padding:22rpx 24rpx; box-shadow:0 2rpx 10rpx rgba(0,0,0,.03); position:relative; }
+.task-card-dragging { opacity: .95; box-shadow:0 8rpx 30rpx rgba(0,0,0,.15); z-index:100; transform:scale(1.02); transition:transform .15s ease; }
+.task-card-placeholder { opacity: 0; pointer-events:none; }
 .task-header { display:flex; align-items:center; justify-content:space-between; margin-bottom:14rpx; padding-bottom: 8rpx; gap:6rpx; flex-wrap:nowrap; }
 .task-info { display:flex; align-items:center; gap:10rpx; flex:1; min-width:0; overflow:hidden; }
 .task-name { font-size: 30rpx; font-weight:600; color:#1D1D1F; overflow:hidden;text-overflow:ellipsis;white-space:nowrap; flex-shrink:1; }
@@ -44,8 +46,8 @@
 .task-list-hint { font-size: 25rpx; color: #B09A68; text-align: center; padding: 16rpx 0 8rpx; line-height: 1.5; }
 
 /* 卡片内删除按钮 */
-.btn-del-task { width:46rpx; height:46rpx; border-radius:50%; background:#FFF5F5; border:1.5rpx solid rgba(198,40,40,.28); display:flex;align-items:center;justify-content:center; flex-shrink:0; margin-left:10rpx; box-shadow:0 2rpx 8rpx rgba(198,40,40,.08); }
-.btn-del-task-text { font-size: 30rpx; color:#E53935; font-weight:600; line-height:1; }
+.btn-del-task { width:52rpx; height:52rpx; border-radius:50%; background:#FFF5F5; border:1.5rpx solid rgba(198,40,40,.28); display:flex;align-items:center;justify-content:center; flex-shrink:0; margin-left:12rpx; box-shadow:0 2rpx 8rpx rgba(198,40,40,.08); }
+.btn-del-task-text { font-size: 34rpx; color:#E53935; font-weight:600; line-height:1; }
 .btn-del-task:active { background:#FFE1E1; transform:scale(.94); }
 
 /* 进度条 */
@@ -101,6 +103,17 @@
 /* 底部留白 */
 .bottom-pad { height:40rpx; }
 
+/* 备忘录 */
+.memo-section { margin: 0 24rpx 24rpx; }
+.memo-title { display: flex; align-items: center; gap: 10rpx; margin-bottom: 14rpx; }
+.memo-title-icon { width: 30rpx; height: 30rpx; }
+.memo-title text { font-size: 29rpx; font-weight: 600; color: #1D1D1F; }
+.memo-card { background: #fff; border-radius: 18rpx; padding: 22rpx 24rpx; box-shadow: 0 2rpx 10rpx rgba(0,0,0,.03); }
+.memo-editor { width: 100%; min-height: 120rpx; max-height: 400rpx; font-size: 28rpx; color: #1D1D1F; line-height: 1.6; background: transparent; border: none; }
+.memo-footer { display: flex; justify-content: space-between; align-items: center; margin-top: 12rpx; padding-top: 12rpx; border-top: 1rpx solid rgba(0,0,0,0.04); }
+.memo-count { font-size: 23rpx; color: #AEAEB2; }
+.memo-save-btn { font-size: 26rpx; color: #FF8F00; font-weight: 600; padding: 6rpx 16rpx; }
+
 /* 分享操作栏 */
 .share-bar { display:flex; gap:16rpx; padding:12rpx 24rpx 22rpx; opacity:.76; }
 .share-btn { flex:1; display:flex; align-items:center; justify-content:center; gap:8rpx; height:80rpx; border-radius:40rpx; font-size: 27rpx; font-weight:600; border:none; line-height:1; padding:0; margin:0; background:transparent !important; }
@@ -131,3 +144,32 @@
 .qc-action-btn { padding:8rpx 32rpx; border-radius:20rpx; background:#FFF0E0; display:inline-flex; align-items:center; justify-content:center; line-height:1; }
 .qc-action-btn text { font-size: 25rpx; color:#E65100; font-weight:600; }
 .qc-action-btn:active { background:#FFE0B2; }
+
+/* 排序入口 + 拖拽提示（同一行） */
+.sort-row { display: flex; align-items: center; justify-content: space-between; padding: 10rpx 0 14rpx; }
+.sort-entry { display: flex; align-items: center; gap: 8rpx; }
+.sort-icon { width: 28rpx; height: 28rpx; }
+.sort-entry text { font-size: 25rpx; color: #E68A00; font-weight: 500; }
+.drag-hint-text { font-size: 23rpx; color: #C4A882; }
+
+/* 拖拽提示 */
+.drag-hint { text-align:center; padding: 6rpx 0 10rpx; }
+.drag-hint text { font-size: 23rpx; color: #C4A882; }
+.task-card-dragging { opacity: .95; box-shadow:0 8rpx 30rpx rgba(0,0,0,.15); z-index:100; transform:scale(1.02); transition:transform .15s ease; }
+.task-card-placeholder { opacity: 0; pointer-events:none; }
+.placeholder-box { background: rgba(255,179,0,.08); border: 2rpx dashed rgba(255,179,0,.3); border-radius:18rpx; min-height:120rpx; }
+
+/* 排序弹窗 */
+.sort-mask { position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: rgba(0,0,0,.45); z-index: 999; display: flex; align-items: center; justify-content: center; }
+.sort-modal { width: 620rpx; background: #fff; border-radius: 24rpx; overflow: hidden; }
+.sort-header { padding: 32rpx 28rpx 20rpx; text-align: center; border-bottom: 1rpx solid rgba(0,0,0,.05); }
+.sort-title { font-size: 32rpx; font-weight: 700; color: #1D1D1F; display: block; margin-bottom: 8rpx; }
+.sort-desc { font-size: 24rpx; color: #AEAEB2; display: block; }
+.sort-list { padding: 16rpx 24rpx; max-height: 600rpx; overflow-y: auto; }
+.sort-item { display: flex; align-items: center; justify-content: space-between; padding: 18rpx 0; border-bottom: 1rpx solid rgba(0,0,0,.03); }
+.sort-item-name { font-size: 28rpx; color: #1D1D1F; font-weight: 500; flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.sort-input { width: 120rpx; height: 72rpx; background: #FFF8E1; border: 2rpx solid rgba(255,179,0,.3); border-radius: 14rpx; text-align: center; font-size: 34rpx; font-weight: 700; color: #E65100; box-sizing: border-box; margin-left: 16rpx; }
+.sort-footer { display: flex; gap: 16rpx; padding: 20rpx 24rpx 28rpx; border-top: 1rpx solid rgba(0,0,0,.05); }
+.sort-btn { flex: 1; height: 80rpx; border-radius: 16rpx; display: flex; align-items: center; justify-content: center; font-size: 29rpx; font-weight: 600; }
+.sort-btn-cancel { background: #F5F5F7; color: #3C3C43; }
+.sort-btn-save { background: linear-gradient(135deg, #FFB300, #FF9500); color: #fff; box-shadow: 0 4rpx 12rpx rgba(255,149,0,.25); }

@@ -6,7 +6,7 @@
       <!-- 左侧：日期信息 -->
       <view class="header-left">
         <view class="today-header">
-          <text class="today-date">{{todayInfo.month}}月{{todayInfo.day}}日</text>
+          <text class="today-date">{{todayInfo.year}}年{{todayInfo.month}}月{{todayInfo.day}}日</text>
           <text class="today-lunar">{{todayInfo.lunarMonth}}{{todayInfo.lunarDay}}</text>
           <text class="today-ganzhi" wx:if="{{todayInfo.ganzhiYear}}"> {{todayInfo.ganzhiYear}}年</text>
         </view>

@@ -20,7 +20,8 @@ Page({
     editDailyTarget: '',  // 编辑中的每日目标
     editTotalTarget: '',  // 编辑中的总目标
     isDailyDone: false,   // 今日是否达标
-    isTotalDone: false    // 总目标是否完成
+    isTotalDone: false,  // 总目标是否完成
+    activeTab: 'count'   // 当前标签页：count / supplement / wish / note / records
   },
 
   onLoad(opts) {
@@ -59,8 +60,8 @@ Page({
     const dayRec = chant.getDayRecord(today);
     const todayCount = dayRec[taskId] || 0;
 
-    // 每日详情
-    const detail = chant.getDailyDetail(today) || {};
+    // 每日详情（按 taskId 隔离）
+    const detail = chant.getDailyDetail(today, taskId) || {};
 
     // 最近记录（倒序，取最近30天有数据的）
     const recent = chant.getTaskRecent(taskId, 30)
@@ -84,6 +85,14 @@ Page({
     // 补录默认昨天
     if (!this.data.suppDate) {
       this.setData({ suppDate: prevDay(today) });
+    }
+  },
+
+  // ===== 标签页切换 =====
+  switchTab(e) {
+    const tab = e.currentTarget.dataset.tab;
+    if (tab && tab !== this.data.activeTab) {
+      this.setData({ activeTab: tab });
     }
   },
 
@@ -148,9 +157,9 @@ Page({
   saveNote() { this.saveDaily('note'); },
 
   saveDaily(field) {
-    const d = chant.getDailyDetail(chant.getToday()) || {};
+    const d = chant.getDailyDetail(chant.getToday(), this.data.taskId) || {};
     d[field] = this.data.detail[field];
-    chant.saveDailyDetail(chant.getToday(), d);
+    chant.saveDailyDetail(chant.getToday(), d, this.data.taskId);
     wx.showToast({ title: '已保存', icon: 'success' });
   },
 

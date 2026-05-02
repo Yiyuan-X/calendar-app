@@ -75,8 +75,8 @@
 .textarea-wrap { margin-top:8rpx; }
 .t-label { font-size: 26rpx; font-weight:600; color:#3C3C43; margin-bottom:10rpx; display:flex; align-items:center; gap:6rpx; }
 .t-editor { width:100%; min-height:120rpx; background:#F5F5F7; border-radius:14rpx; padding:18rpx 20rpx; font-size: 28rpx; color:#1D1D1F; box-sizing:border-box; line-height:1.6; }
-.t-footer { display:flex; justify-content:flex-end; padding-top:8rpx; }
-.t-save { font-size: 26rpx; color:#E68A00; font-weight:600; padding:8rpx 20rpx; display:inline-flex; align-items:center; justify-content:center; line-height:1; }
+.t-footer { display:flex; justify-content:flex-end; padding-top:12rpx; }
+.t-save { font-size: 30rpx; color:#E68A00; font-weight:700; padding:12rpx 28rpx; display:inline-flex; align-items:center; justify-content:center; line-height:1; background:rgba(255,179,0,.1); border-radius:20rpx; }
 
 /* 最近记录 */
 .record-list { display:flex; flex-direction:column; gap:8rpx; max-height:400rpx; overflow-y:auto; }
@@ -91,5 +91,18 @@
 .ab-btn::after { border:none; }
 .ab-focus { background:linear-gradient(135deg,#FFD54F,#FF9800); color:#5D3500; box-shadow:0 4rpx 16rpx rgba(255,152,0,.26); }
 .ab-del { background:#FFF0F0; color:#FF3B30; }
+
+/* 标签页导航 */
+.tab-bar { display: flex; background: #fff; border-radius: 16rpx; padding: 6rpx; margin-top: 20rpx; box-shadow: 0 2rpx 10rpx rgba(0,0,0,.03); }
+.tab-item { flex: 1; text-align: center; padding: 16rpx 0; border-radius: 12rpx; font-size: 27rpx; font-weight: 500; color: #AEAEB2; transition: all .2s ease; }
+.tab-item:active { opacity: .7; }
+.tab-active { background: linear-gradient(135deg, #FFD54F, #FFB300); color: #5D3500; font-weight: 700; box-shadow: 0 2rpx 8rpx rgba(255,179,0,.25); }
+
+/* 标签页内容 */
+.tab-panel { margin-top: 20rpx; animation: fadeIn .2s ease; }
+@keyframes fadeIn { from { opacity: 0; transform: translateY(8rpx); } to { opacity: 1; transform: translateY(0); } }
+
+/* 最近记录空状态 */
+.r-empty { padding: 50rpx 0; text-align: center; color: #AEAEB2; font-size: 26rpx; }
 
 .bottom-pad { height:40rpx; }

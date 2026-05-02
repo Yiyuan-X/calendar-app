@@ -1,4 +1,4 @@
-<!--pages/chanting-detail/chanting-detail.wxml — 功课详情（报数/补录/发愿/回向/备注/统计）-->
+<!--pages/chanting-detail/chanting-detail.wxml — 功课详情（标签页切换）-->
 <view class="page {{elderMode ? 'elder-mode' : ''}}">
   <!-- 提示语 -->
   <view class="detail-tip">点击具体功课可设置每日目标、总目标等具体功能</view>
@@ -59,9 +59,47 @@
     </view>
   </view>
 
-  <!-- 快捷报数 -->
-  <view class="section">
-    <view class="section-title"><image class="section-title-icon" src="/images/icons/gen-note.svg" mode="aspectFit"></image><text>报数</text></view>
+  <!-- 标签页导航 -->
+  <view class="tab-bar">
+    <view
+      class="tab-item {{activeTab === 'count' ? 'tab-active' : ''}}"
+      data-tab="count"
+      catchtap="switchTab"
+    >
+      <text>报数</text>
+    </view>
+    <view
+      class="tab-item {{activeTab === 'supplement' ? 'tab-active' : ''}}"
+      data-tab="supplement"
+      catchtap="switchTab"
+    >
+      <text>补录</text>
+    </view>
+    <view
+      class="tab-item {{activeTab === 'wish' ? 'tab-active' : ''}}"
+      data-tab="wish"
+      catchtap="switchTab"
+    >
+      <text>发愿</text>
+    </view>
+    <view
+      class="tab-item {{activeTab === 'note' ? 'tab-active' : ''}}"
+      data-tab="note"
+      catchtap="switchTab"
+    >
+      <text>备注</text>
+    </view>
+    <view
+      class="tab-item {{activeTab === 'records' ? 'tab-active' : ''}}"
+      data-tab="records"
+      catchtap="switchTab"
+    >
+      <text>记录</text>
+    </view>
+  </view>
+
+  <!-- 标签页内容：报数 -->
+  <view class="tab-panel" wx:if="{{activeTab === 'count'}}">
     <view class="card">
       <view class="quick-row">
         <view class="q-btn q-btn-1" catchtap="onQuick" data-n="21"><text>+21</text></view>
@@ -75,9 +113,8 @@
     </view>
   </view>
 
-  <!-- 补录 -->
-  <view class="section">
-    <view class="section-title"><image class="section-title-icon" src="/images/icons/gen-calendar.svg" mode="aspectFit"></image><text>补录（选择日期）</text></view>
+  <!-- 标签页内容：补录 -->
+  <view class="tab-panel" wx:if="{{activeTab === 'supplement'}}">
     <view class="card">
       <view class="supplement-area">
         <picker mode="date" value="{{suppDate}}" bindchange="onDatePick" end="{{todayStr}}">
@@ -89,9 +126,8 @@
     </view>
   </view>
 
-  <!-- 发愿 -->
-  <view class="section">
-    <view class="section-title"><image class="section-title-icon" src="/images/icons/gen-prayer.svg" mode="aspectFit"></image><text>发愿 / 今日目标</text></view>
+  <!-- 标签页内容：发愿 -->
+  <view class="tab-panel" wx:if="{{activeTab === 'wish'}}">
     <view class="card textarea-wrap">
       <text class="t-label">今日发愿</text>
       <textarea
@@ -106,26 +142,8 @@
     </view>
   </view>
 
-  <!-- 回向 -->
-  <view class="section">
-    <view class="section-title"><image class="section-title-icon" src="/images/icons/gen-dove.svg" mode="aspectFit"></image><text>回向</text></view>
-    <view class="card textarea-wrap">
-      <text class="t-label">回向文</text>
-      <textarea
-        class="t-editor"
-        placeholder="愿以此功德，庄严佛净土..."
-        value="{{detail.dedicate || ''}}"
-        bindinput="onDedicateInput"
-        auto-height
-        maxlength="200"
-      ></textarea>
-      <view class="t-footer"><text class="t-save" catchtap="saveDedicate">保存</text></view>
-    </view>
-  </view>
-
-  <!-- 备注 -->
-  <view class="section">
-    <view class="section-title"><image class="section-title-icon" src="/images/icons/gen-note.svg" mode="aspectFit"></image><text>备注 / 感受</text></view>
+  <!-- 标签页内容：备注 -->
+  <view class="tab-panel" wx:if="{{activeTab === 'note'}}">
     <view class="card textarea-wrap">
       <textarea
         class="t-editor"
@@ -139,17 +157,16 @@
     </view>
   </view>
 
-  <!-- 最近记录 -->
-  <view class="section">
-    <view class="section-title"><image class="section-title-icon" src="/images/icons/gen-chart.svg" mode="aspectFit"></image><text>最近记录</text></view>
+  <!-- 标签页内容：最近记录 -->
+  <view class="tab-panel" wx:if="{{activeTab === 'records'}}">
     <view class="card">
-      <scroll-view scroll-y style="max-height:360rpx;">
+      <scroll-view scroll-y style="max-height:500rpx;">
         <view class="record-list">
           <view class="r-item" wx:for="{{recentRecords}}" wx:key="date">
             <text class="r-date">{{item.date}}</text>
             <text class="r-count">{{item.count}}</text><text class="r-unit">{{task.unit}}</text>
           </view>
-          <view wx:if="{{recentRecords.length === 0}}" style="padding:30rpx;text-align:center;color:#AEAEB2;font-size:26rpx;">暂无记录</view>
+          <view wx:if="{{recentRecords.length === 0}}" class="r-empty">暂无记录</view>
         </view>
       </scroll-view>
     </view>
