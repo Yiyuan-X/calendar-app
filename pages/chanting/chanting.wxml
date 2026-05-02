@@ -127,20 +127,6 @@
     <text class="empty-hint">可以从常用功课开始，也可以添加自己的功课</text>
   </view>
 
-  <view class="bottom-pad safe-area-bottom"></view>
-
-  <!-- 分享操作栏 -->
-  <view class="share-bar" wx:if="{{tasks.length > 0}}">
-    <button class="share-btn share-btn-primary" bindtap="shareToMoments">
-      <image class="share-btn-icon" src="/images/icons/gen-camera.svg" mode="aspectFit"></image>
-      <text class="share-btn-text">生成朋友圈图</text>
-    </button>
-    <button class="share-btn share-btn-save" bindtap="saveShareImage">
-      <image class="share-btn-icon" src="/images/icons/gen-save.svg" mode="aspectFit"></image>
-      <text class="share-btn-text">保存</text>
-    </button>
-  </view>
-
   <!-- 隐藏的 Canvas（用于生成朋友圈海报） -->
   <canvas type="2d" id="shareCanvas" style="position:fixed;left:-9999px;top:-9999px;width:500px;height:750px;"></canvas>
 
@@ -214,5 +200,19 @@
       </view>
     </view>
   </view>
+
+  <!-- 分享操作栏（页面最底部） -->
+  <view class="share-bar" wx:if="{{tasks.length > 0}}">
+    <button class="share-btn share-btn-primary" bindtap="shareToMoments">
+      <image class="share-btn-icon" src="/images/icons/gen-camera.svg" mode="aspectFit"></image>
+      <text class="share-btn-text">生成朋友圈图</text>
+    </button>
+    <button class="share-btn share-btn-save" bindtap="saveShareImage">
+      <image class="share-btn-icon" src="/images/icons/gen-save.svg" mode="aspectFit"></image>
+      <text class="share-btn-text">保存</text>
+    </button>
+  </view>
+
+  <view class="bottom-pad safe-area-bottom"></view>
 
 </view>

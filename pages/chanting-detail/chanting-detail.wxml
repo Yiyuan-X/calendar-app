@@ -1,8 +1,5 @@
 <!--pages/chanting-detail/chanting-detail.wxml — 功课详情（标签页切换）-->
 <view class="page {{elderMode ? 'elder-mode' : ''}}">
-  <!-- 提示语 -->
-  <view class="detail-tip">点击具体功课可设置每日目标、总目标等具体功能</view>
-
   <!-- 基本信息 -->
   <view class="info-card">
     <text class="info-name">{{task.name}}</text>

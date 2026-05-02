@@ -29,6 +29,7 @@ Page({
   onShow() {
     share.enableShareMenu();
     getApp().applyDisplaySettings(this);
+
     try {
       this.loadData();
       // 加载通用计数器

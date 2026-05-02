@@ -71,7 +71,7 @@
 .s-btn { width:120rpx; height:76rpx; border-radius:14rpx; background:#FF9500; color:#fff; font-size: 26rpx; font-weight:600; display:flex;align-items:center;justify-content:center; line-height:1; }
 .s-btn::after { border:none; }
 
-/* 发愿/回向/备注 */
+/* 发愿/备注 */
 .textarea-wrap { margin-top:8rpx; }
 .t-label { font-size: 26rpx; font-weight:600; color:#3C3C43; margin-bottom:10rpx; display:flex; align-items:center; gap:6rpx; }
 .t-editor { width:100%; min-height:120rpx; background:#F5F5F7; border-radius:14rpx; padding:18rpx 20rpx; font-size: 28rpx; color:#1D1D1F; box-sizing:border-box; line-height:1.6; }

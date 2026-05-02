@@ -148,11 +148,9 @@ Page({
   saveDailyTarget() { this.saveTargets(); },
   saveTotalTarget() { this.saveTargets(); },
 
-  // ===== 发愿 / 回向 / 备注 =====
+  // ===== 发愿 / 备注 =====
   onWishInput(e) { this.setData({ 'detail.wish': e.detail.value }); },
   saveWish() { this.saveDaily('wish'); },
-  onDedicateInput(e) { this.setData({ 'detail.dedicate': e.detail.value }); },
-  saveDedicate() { this.saveDaily('dedicate'); },
   onNoteInput(e) { this.setData({ 'detail.note': e.detail.value }); },
   saveNote() { this.saveDaily('note'); },
 

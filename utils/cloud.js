@@ -7,7 +7,7 @@
  */
 
 // ===== 配置 =====
-const ENV_ID = 'test-d5g0jflil769eb9c0'; // 替换为你的云开发环境ID
+const ENV_ID = 'test-d5g0jflil769eb9c0'; // 云开发环境ID（与控制台一致）
 const DB_NAME = 'calendar_app'; // MySQL 数据库名（或云开发集合名）
 
 // 云开发是否已初始化
@@ -87,17 +87,19 @@ async function get(table, key) {
   if (_isOnline && _cloudInitialized) {
     try {
       const db = wx.cloud.database();
-      const openid = await getOpenId();
+      // 直接用 key 查询，_openid 由云数据库安全规则自动过滤
       const res = await db.collection(table)
-        .where({ _openid: openid, key: key })
+        .where({ key: key })
         .get();
 
       if (res.data && res.data.length > 0) {
         const data = res.data[0].data;
         // 更新本地缓存
         setLocalCache(cacheKey, data);
+        console.log(`[Cloud] ✅ ${table}.${key} 读取成功`);
         return data;
       }
+      console.log(`[Cloud] ℹ️ ${table}.${key} 云端无数据，返回本地`);
     } catch (e) {
       console.warn(`[Cloud] ${table}.${key} 读取失败，降级到本地:`, e);
     }
@@ -118,15 +120,15 @@ async function getAll(table) {
   if (_isOnline && _cloudInitialized) {
     try {
       const db = wx.cloud.database();
-      const openid = await getOpenId();
+      // _openid 由云数据库安全规则自动过滤，无需手动指定
       const res = await db.collection(table)
-        .where({ _openid: openid })
         .orderBy('createdAt', 'desc')
         .get();
 
       if (res.data) {
         const list = res.data.map(item => item.data || item);
         setLocalCache(cacheKey, list);
+        console.log(`[Cloud] ✅ ${table} 列表读取成功，共 ${list.length} 条`);
         return list;
       }
     } catch (e) {
@@ -153,11 +155,10 @@ async function set(table, key, data) {
   if (_isOnline && _cloudInitialized) {
     try {
       const db = wx.cloud.database();
-      const openid = await getOpenId();
 
-      // upsert：先查再更新或插入
+      // upsert：先查再更新或插入（不手动指定 _openid，由系统自动注入）
       const existing = await db.collection(table)
-        .where({ _openid: openid, key: key })
+        .where({ key: key })
         .get();
 
       if (existing.data && existing.data.length > 0) {
@@ -165,21 +166,22 @@ async function set(table, key, data) {
         await db.collection(table).doc(existing.data[0]._id).update({
           data: { data: data, updatedAt: Date.now() }
         });
+        console.log(`[Cloud] ✅ ${table}.${key} 更新成功`);
       } else {
-        // 新增
+        // 新增（不写 _openid，让云数据库自动注入当前用户的 openid）
         await db.collection(table).add({
           data: {
-            _openid: openid,
             key: key,
             data: data,
             createdAt: Date.now(),
             updatedAt: Date.now()
           }
         });
+        console.log(`[Cloud] ✅ ${table}.${key} 新增成功`);
       }
       return true;
     } catch (e) {
-      console.warn(`[Cloud] ${table}.${key} 写入失败，加入待同步队列:`, e);
+      console.warn(`[Cloud] ❌ ${table}.${key} 写入失败:`, e);
       // 加入待同步队列
       addPendingSync(table, key, data);
       return false; // 返回false但本地已有数据
@@ -204,17 +206,17 @@ async function remove(table, key) {
   if (_isOnline && _cloudInitialized) {
     try {
       const db = wx.cloud.database();
-      const openid = await getOpenId();
       const existing = await db.collection(table)
-        .where({ _openid: openid, key: key })
+        .where({ key: key })
         .get();
 
       if (existing.data && existing.data.length > 0) {
         await db.collection(table).doc(existing.data[0]._id).remove();
+        console.log(`[Cloud] ✅ ${table}.${key} 删除成功`);
       }
       return true;
     } catch (e) {
-      console.warn(`[Cloud] ${table}.${key} 删除失败:`, e);
+      console.warn(`[Cloud] ❌ ${table}.${key} 删除失败:`, e);
       return false;
     }
   }
@@ -237,11 +239,10 @@ async function setList(table, list) {
   if (_isOnline && _cloudInitialized) {
     try {
       const db = wx.cloud.database();
-      const openid = await getOpenId();
 
-      // 删除旧数据
+      // 删除旧数据（不手动指定 _openid）
       const oldData = await db.collection(table)
-        .where({ _openid: openid })
+        .where({})
         .get();
 
       if (oldData.data && oldData.data.length > 0) {
@@ -250,12 +251,11 @@ async function setList(table, list) {
         }
       }
 
-      // 批量插入新数据
+      // 批量插入新数据（不写 _openid，让系统自动注入）
       if (list.length > 0) {
         for (const item of list) {
           await db.collection(table).add({
             data: {
-              _openid: openid,
               key: item.id || item._id || String(Date.now()) + Math.random().toString(36).substr(2, 5),
               data: item,
               createdAt: item.createdAt || Date.now(),
@@ -264,9 +264,10 @@ async function setList(table, list) {
           });
         }
       }
+      console.log(`[Cloud] ✅ ${table} 批量写入成功，共 ${list.length} 条`);
       return true;
     } catch (e) {
-      console.warn(`[Cloud] ${table} 批量写入失败:`, e);
+      console.warn(`[Cloud] ❌ ${table} 批量写入失败:`, e);
       return false;
     }
   }

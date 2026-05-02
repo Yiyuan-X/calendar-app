@@ -53,7 +53,7 @@
       <text class="item">用于记录诵经、念佛、持咒、拜忏等日常功课。</text>
       <text class="item">可添加内置功课，也可创建自定义功课和单位。</text>
       <text class="item">每项功课可设置每日目标和总目标，完成后会显示达标状态。</text>
-      <text class="item">详情页支持报数、补录日期、发愿、回向、备注和最近记录。</text>
+      <text class="item">详情页支持报数、补录日期、发愿、备注和最近记录。</text>
       <text class="item">专注模式适合只保留一个大按钮进行连续计数。</text>
     </view>
   </view>
@@ -75,9 +75,9 @@
       <text class="section-title">数据与备份</text>
     </view>
     <view class="card">
-      <text class="item">本小程序不依赖后台数据库，数据保存在当前设备的微信本地存储中。</text>
-      <text class="item">更换设备、清理微信缓存或卸载小程序，可能导致本地数据丢失。</text>
-      <text class="item">建议定期在功过格页面导出 CSV，作为本地备份。</text>
+      <text class="item">已接入云开发，数据自动保存到云端，支持多设备同步。</text>
+      <text class="item">无网络时数据暂存本地，恢复网络后自动同步到云端。</text>
+      <text class="item">功过格页面可导出 CSV，作为本地备份留存。</text>
     </view>
   </view>
 
