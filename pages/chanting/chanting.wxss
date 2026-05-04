@@ -33,6 +33,10 @@
 /* 功课列表 */
 .task-list { display:flex; flex-direction:column; gap:16rpx; padding-bottom:20rpx; }
 .task-card { background:#fff; border-radius:18rpx; padding:22rpx 24rpx; box-shadow:0 2rpx 10rpx rgba(0,0,0,.03); position:relative; }
+.task-warm-1 { background:#FFF8E8; border:1.5rpx solid rgba(255,179,0,.24); }
+.task-warm-2 { background:#FFF1E8; border:1.5rpx solid rgba(255,126,51,.22); }
+.task-warm-3 { background:#FFF6DE; border:1.5rpx solid rgba(218,165,32,.24); }
+.task-warm-4 { background:#FFF0F0; border:1.5rpx solid rgba(255,99,71,.18); }
 .task-card-dragging { opacity: .95; box-shadow:0 8rpx 30rpx rgba(0,0,0,.15); z-index:100; transform:scale(1.02); transition:transform .15s ease; }
 .task-card-placeholder { opacity: 0; pointer-events:none; }
 .task-header { display:flex; align-items:center; justify-content:space-between; margin-bottom:14rpx; padding-bottom: 8rpx; gap:6rpx; flex-wrap:nowrap; }
@@ -69,6 +73,7 @@
 
 /* 目标标签 */
 .task-target-total { color:#E65100 !important; }
+.task-target-combo { color:#AF52DE !important; background:rgba(175,82,222,.09); padding:2rpx 8rpx; border-radius:8rpx; }
 
 /* 计数区 */
 .count-area { display:flex; align-items:center; gap:10rpx; }

@@ -1,7 +1,8 @@
 <view class="page-container {{elderMode ? 'elder-mode' : ''}}">
   <view class="header-card" wx:if="{{stats}}">
-    <text class="header-title">功德累计</text>
+    <text class="header-title">积善累计</text>
     <text class="net-value {{stats.totalNet >= 0 ? 'positive' : 'negative'}}">{{stats.totalNet >= 0 ? '+' : ''}}{{stats.totalNet}}</text>
+    <text class="header-sub">折算功德 {{stats.totalNetGongDe}}</text>
     <view class="level-badge" wx:if="{{level}}" style="background: {{level.color}}15; color: {{level.color}};">
       <text>{{level.title}} · {{level.desc}}</text>
     </view>
@@ -10,11 +11,11 @@
   <view class="stats-grid" wx:if="{{stats}}">
     <view class="stat-card">
       <text class="stat-num good">+{{stats.totalGood}}</text>
-      <text class="stat-label">善行</text>
+      <text class="stat-label">积善</text>
     </view>
     <view class="stat-card">
       <text class="stat-num bad">-{{stats.totalBad}}</text>
-      <text class="stat-label">过失</text>
+      <text class="stat-label">削善</text>
     </view>
     <view class="stat-card">
       <text class="stat-num">{{stats.dayCount}}</text>
@@ -22,12 +23,12 @@
     </view>
     <view class="stat-card">
       <text class="stat-num">{{stats.avgPerDay}}</text>
-      <text class="stat-label">日均净值</text>
+      <text class="stat-label">日均净善</text>
     </view>
   </view>
 
   <view class="section" wx:if="{{categoryGoodList.length > 0}}">
-    <view class="section-title">善行分类</view>
+    <view class="section-title">积善分类</view>
     <view class="category-row" wx:for="{{categoryGoodList}}" wx:key="id">
       <text class="category-name">{{item.name}}</text>
       <text class="category-value good">+{{item.value}}</text>
@@ -35,7 +36,7 @@
   </view>
 
   <view class="section" wx:if="{{categoryBadList.length > 0}}">
-    <view class="section-title">过失分类</view>
+    <view class="section-title">削善分类</view>
     <view class="category-row" wx:for="{{categoryBadList}}" wx:key="id">
       <text class="category-name">{{item.name}}</text>
       <text class="category-value bad">-{{item.value}}</text>
@@ -47,12 +48,12 @@
     <view class="record-row" wx:for="{{recentRecords}}" wx:key="dateStr">
       <view class="record-main">
         <text class="record-date">{{item.dateText}}</text>
-        <text class="record-meta">善 {{item.goodCount}} · 过 {{item.badCount}}</text>
+        <text class="record-meta">积善 {{item.goodCount}} · 削善 {{item.badCount}}</text>
       </view>
       <text class="record-net {{item.net >= 0 ? 'positive' : 'negative'}}">{{item.netText}}</text>
     </view>
     <view class="empty" wx:if="{{recentRecords.length === 0}}">
-      <text>暂无功过记录</text>
+      <text>暂无积善记录</text>
     </view>
   </view>
 </view>

@@ -4,6 +4,7 @@
  */
 const cloud = require('./utils/cloud');
 const privacy = require('./utils/privacy');
+const storage = require('./utils/storage');
 
 App({
   onLaunch() {
@@ -13,6 +14,11 @@ App({
 
     // 2. 检查本地存储初始化
     this.checkStorageInit();
+
+    // 3. 将本地已有数据补同步到云端
+    setTimeout(() => {
+      storage.syncLocalDataToCloud();
+    }, 0);
   },
 
   onShow() {

@@ -17,22 +17,23 @@
     </view>
   </view>
 
-  <!-- 功过总览卡片 -->
+  <!-- 积善总览卡片 -->
   <view class="overview-card" wx:if="{{selectedItems.length > 0 || hasExistingRecord}}">
     <view class="overview-row">
       <view class="overview-item good">
-        <text class="overview-label">善行</text>
+        <text class="overview-label">积善</text>
         <text class="overview-value">+{{currentGoodTotal}}</text>
       </view>
       <view class="overview-divider"></view>
       <view class="overview-item bad">
-        <text class="overview-label">过失</text>
+        <text class="overview-label">削善</text>
         <text class="overview-value">-{{currentBadTotal}}</text>
       </view>
       <view class="overview-divider"></view>
       <view class="overview-item net {{currentNetMerit >= 0 ? 'positive' : 'negative'}}">
-        <text class="overview-label">净德分</text>
+        <text class="overview-label">净善</text>
         <text class="overview-value">{{currentNetMerit >= 0 ? '+' : ''}}{{currentNetMerit}}</text>
+        <text class="overview-label">功德 {{currentNetGongDe}}</text>
       </view>
     </view>
   </view>
@@ -48,7 +49,7 @@
     <view class="selected-group" wx:if="{{currentGoodTotal > 0}}">
       <view class="group-label group-label-good">
         <image class="group-label-icon-img" src="/images/icons/gen-check.svg" mode="aspectFit"></image>
-        <text class="group-label-text">善行</text>
+        <text class="group-label-text">积善</text>
         <text class="group-label-total">+{{currentGoodTotal}}</text>
       </view>
     </view>
@@ -57,7 +58,7 @@
     <view class="selected-group" wx:if="{{currentBadTotal > 0}}">
       <view class="group-label group-label-bad">
         <image class="group-label-icon-img" src="/images/icons/gen-cross.svg" mode="aspectFit"></image>
-        <text class="group-label-text">过失</text>
+        <text class="group-label-text">削善</text>
         <text class="group-label-total">-{{currentBadTotal}}</text>
       </view>
     </view>
@@ -66,8 +67,8 @@
   <!-- ==================== 内置条目区域（默认收起，避免页面过长） ==================== -->
   <view class="builtin-toggle card" bindtap="toggleBuiltinItems">
     <view class="builtin-toggle-main">
-      <text class="builtin-toggle-title">内置功过条目</text>
-      <text class="builtin-toggle-desc">{{showBuiltinItems ? '收起后页面更短，方便快速上拉' : '默认隐藏，需要时展开记录善行或过失'}}</text>
+      <text class="builtin-toggle-title">积善方法条目</text>
+      <text class="builtin-toggle-desc">{{showBuiltinItems ? '收起后页面更短，方便快速上拉' : '默认隐藏，需要时展开记录积善或削善'}}</text>
     </view>
     <text class="builtin-toggle-action">{{showBuiltinItems ? '收起' : '展开'}}</text>
   </view>
@@ -156,7 +157,7 @@
     </view>
   </view>
 
-  <!-- ==================== 自定义功过条目区域（累计模式 + 增减按钮） ==================== -->
+  <!-- ==================== 自定义积善条目区域（累计模式 + 增减按钮） ==================== -->
   <view class="custom-section card">
     <view class="custom-header">
       <view class="custom-title-row">
@@ -166,18 +167,18 @@
       </view>
       <view class="custom-add-btns">
         <view class="add-btn add-good" bindtap="onShowAddCustom" data-type="good">
-          <text>+ 善行</text>
+          <text>+ 积善</text>
         </view>
         <view class="add-btn add-bad" bindtap="onShowAddCustom" data-type="bad">
-          <text>+ 过失</text>
+          <text>+ 削善</text>
         </view>
       </view>
     </view>
 
-    <!-- 自定义善行列表（带增减按钮） -->
+    <!-- 自定义积善列表（带增减按钮） -->
     <view class="custom-group" wx:if="{{customGoodItems.length > 0}}">
       <view class="custom-group-label good-label">
-        <view class="custom-group-label-icon"><image class="leaf-icon-sm" src="/images/icons/leaf.svg" mode="aspectFit"></image><text>自定义善行（{{customGoodItems.length}}）</text></view>
+        <view class="custom-group-label-icon"><image class="leaf-icon-sm" src="/images/icons/leaf.svg" mode="aspectFit"></image><text>自定义积善（{{customGoodItems.length}}）</text></view>
       </view>
       <view class="custom-items-list">
         <view
@@ -220,10 +221,10 @@
       </view>
     </view>
 
-    <!-- 自定义恶行列表（带增减按钮） -->
+    <!-- 自定义削善列表（带增减按钮） -->
     <view class="custom-group" wx:if="{{customBadItems.length > 0}}">
       <view class="custom-group-label bad-label">
-        <image class="custom-group-label-img" src="/images/icons/gen-lightning.svg" mode="aspectFit"></image><text>自定义过失（{{customBadItems.length}}）</text>
+        <image class="custom-group-label-img" src="/images/icons/gen-lightning.svg" mode="aspectFit"></image><text>自定义削善（{{customBadItems.length}}）</text>
       </view>
       <view class="custom-items-list">
         <view
@@ -268,7 +269,7 @@
     <!-- 空状态提示 -->
     <view class="custom-empty" wx:if="{{customGoodItems.length === 0 && customBadItems.length === 0}}">
       <text class="empty-text">还没有自定义条目</text>
-      <text class="empty-hint">点击上方按钮添加你自己的功过项目</text>
+      <text class="empty-hint">点击上方按钮添加你自己的积善项目</text>
     </view>
   </view>
 
@@ -294,23 +295,23 @@
   <!-- 统计概览入口 -->
   <view class="stats-summary card" wx:if="{{stats}}" bindtap="goToStats">
     <view class="summary-header">
-      <text class="summary-title">德分累计</text>
+      <text class="summary-title">积善累计</text>
       <text class="summary-arrow">›</text>
     </view>
     <view class="summary-body">
       <view class="summary-item">
         <text class="summary-num {{stats.totalNet >= 0 ? 'num-good' : 'num-bad'}}">{{stats.totalNet}}</text>
-        <text class="summary-label">净德分</text>
+        <text class="summary-label">净善</text>
+      </view>
+      <view class="summary-divider"></view>
+      <view class="summary-item">
+        <text class="summary-num num-good">{{stats.totalNetGongDe}}</text>
+        <text class="summary-label">功德</text>
       </view>
       <view class="summary-divider"></view>
       <view class="summary-item">
         <text class="summary-num num-good">{{streakDays}}</text>
         <text class="summary-label">连续天数</text>
-      </view>
-      <view class="summary-divider"></view>
-      <view class="summary-item">
-        <text class="summary-num">{{totalDays}}</text>
-        <text class="summary-label">记录天数</text>
       </view>
     </view>
     <view class="level-badge" wx:if="{{meritLevel}}" style="background: {{meritLevel.color}}15; color: {{meritLevel.color}};">
@@ -325,7 +326,7 @@
       disabled="{{selectedItems.length === 0 && !reflectionNote.trim()}}"
       bindtap="onSave"
     >
-      {{hasExistingRecord ? '更新功过' : '记录今日功过'}}
+      {{hasExistingRecord ? '更新积善' : '记录今日积善'}}
     </button>
 
     <button
@@ -360,14 +361,14 @@
         bindtap="onCustomTypeSwitch"
         data-type="good"
       >
-        <image class="type-option-icon" src="/images/icons/gen-check.svg" mode="aspectFit"></image><text>善行</text>
+        <image class="type-option-icon" src="/images/icons/gen-check.svg" mode="aspectFit"></image><text>积善</text>
       </view>
       <view
         class="type-option {{customEditType === 'bad' ? 'active-bad' : ''}}"
         bindtap="onCustomTypeSwitch"
         data-type="bad"
       >
-        <image class="type-option-icon" src="/images/icons/gen-cross.svg" mode="aspectFit"></image><text>过失</text>
+        <image class="type-option-icon" src="/images/icons/gen-cross.svg" mode="aspectFit"></image><text>削善</text>
       </view>
     </view>
 
@@ -386,7 +387,7 @@
 
     <!-- 分数设置（可自由输入） -->
     <view class="form-group">
-      <text class="form-label">分数（{{customEditType === 'good' ? '善行分' : '过失分'}}）</text>
+      <text class="form-label">善数（{{customEditType === 'good' ? '积善' : '削善'}}）</text>
       <view class="score-input-row">
         <input
           class="score-number-input"
@@ -395,7 +396,7 @@
           value="{{customEditScore}}"
           bindinput="onCustomScoreInput"
         />
-        <text class="score-unit">分</text>
+        <text class="score-unit">善</text>
       </view>
       <!-- 快捷选择 -->
       <view class="score-quick-btns">

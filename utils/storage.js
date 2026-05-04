@@ -49,6 +49,78 @@ function removeStorage(key) {
   }
 }
 
+function hasStorageKey(key) {
+  try {
+    const info = wx.getStorageInfoSync();
+    return !!(info && info.keys && info.keys.includes(key));
+  } catch (e) {
+    return false;
+  }
+}
+
+function isPlainObjectWithData(value) {
+  return value && typeof value === 'object' && !Array.isArray(value) && Object.keys(value).length > 0;
+}
+
+/**
+ * 启动时补同步本地已有数据到云端。
+ * 只同步本地已存在且有内容的数据，避免空本地缓存覆盖云端数据。
+ */
+function syncLocalDataToCloud() {
+  try {
+    const events = getEvents();
+    if (events.length > 0) cloud.setList(cloud.TABLES.EVENTS, events);
+
+    const notes = getNotes();
+    if (isPlainObjectWithData(notes)) cloud.set(cloud.TABLES.NOTES, 'all', notes);
+
+    const reminders = getReminders();
+    if (isPlainObjectWithData(reminders)) cloud.set(cloud.TABLES.REMINDERS, 'all', reminders);
+
+    if (hasStorageKey(STORAGE_KEYS.SETTINGS)) {
+      cloud.set(cloud.TABLES.SETTINGS, 'user', getSettings());
+    }
+
+    const meritRecords = getMeritRecords();
+    Object.keys(meritRecords).forEach(dateStr => {
+      cloud.set(cloud.TABLES.MERIT_RECORDS, dateStr, meritRecords[dateStr]);
+    });
+
+    const customMeritItems = getCustomMeritItems();
+    if (customMeritItems.length > 0) cloud.setList(cloud.TABLES.CUSTOM_MERIT_ITEMS, customMeritItems);
+
+    const deletedBuiltinItems = getDeletedBuiltinItems();
+    if (deletedBuiltinItems.length > 0) cloud.set(cloud.TABLES.DELETED_BUILTIN_ITEMS, 'list', deletedBuiltinItems);
+
+    const chantingTasks = wx.getStorageSync('chanting_tasks') || [];
+    if (chantingTasks.length > 0) cloud.setList(cloud.TABLES.TASKS, chantingTasks);
+
+    let chantingRecords = wx.getStorageSync('chanting_records') || {};
+    const recordsBackup = wx.getStorageSync('chanting_records_backup') || null;
+    if (!isPlainObjectWithData(chantingRecords) && recordsBackup && recordsBackup.records) {
+      chantingRecords = recordsBackup.records;
+    }
+    Object.keys(chantingRecords || {}).forEach(dateStr => {
+      cloud.set(cloud.TABLES.RECORDS, dateStr, chantingRecords[dateStr] || {});
+    });
+
+    const chantingDaily = wx.getStorageSync('chanting_daily') || {};
+    Object.keys(chantingDaily || {}).forEach(dateStr => {
+      cloud.set(cloud.TABLES.DAILY_DETAIL, dateStr, chantingDaily[dateStr]);
+    });
+
+    if (hasStorageKey('quick_count')) {
+      cloud.set(cloud.TABLES.QUICK_COUNTER, 'main', wx.getStorageSync('quick_count') || 0);
+    }
+
+    if (hasStorageKey('chanting_memo')) {
+      cloud.set(cloud.TABLES.MEMO, 'main', wx.getStorageSync('chanting_memo') || '');
+    }
+  } catch (e) {
+    console.warn('[Storage] 本地数据补同步到云端失败:', e);
+  }
+}
+
 // ==================== 事件（重要日子）管理 ====================
 
 function getEvents() {
@@ -318,6 +390,7 @@ module.exports = {
   getStorage,
   setStorage,
   removeStorage,
+  syncLocalDataToCloud,
   getEvents,
   getEventsAsync,
   addEvent,

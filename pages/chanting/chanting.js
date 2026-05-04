@@ -51,6 +51,13 @@ Page({
     const tasks = chant.getTasks();
     const today = chant.getToday();
     const dayRec = chant.getDayRecord(today);
+    const comboProgressMap = {};
+    try {
+      chant.getClassicComboProgress().forEach(combo => {
+        comboProgressMap[combo.comboId] = combo;
+      });
+    } catch(e) { /* 忽略 */ }
+    const warmClassMap = buildDuplicateWarmClassMap(tasks || []);
 
     // 构建展示数据（含拖拽状态字段）
     const taskData = (tasks || []).map((t, index) => {
@@ -58,6 +65,7 @@ Page({
       const total = chant.getTaskTotal(t.id);
       const isDailyDone = t.dailyTarget > 0 && todayCount >= t.dailyTarget;
       const isTotalDone = t.totalTarget > 0 && total >= t.totalTarget;
+      const comboProgress = t.comboId ? comboProgressMap[t.comboId] : null;
       return {
         ...t,
         todayCount,
@@ -66,6 +74,8 @@ Page({
         isTotalDone,
         progressPercent: t.dailyTarget > 0 ? Math.min(100, (todayCount / t.dailyTarget) * 100) : 0,
         totalProgressPercent: t.totalTarget > 0 ? Math.min(100, ((total || 0) / t.totalTarget) * 100) : 0,
+        comboProgressText: comboProgress ? `${comboProgress.completedGroups}/${comboProgress.groupTarget}组` : '',
+        warmClass: warmClassMap[t.id] || '',
         isDragging: false,
         isPlaceholder: false
       };
@@ -163,17 +173,30 @@ Page({
   onDeleteTask(e) {
     const id = e.currentTarget.dataset.id;
     const name = e.currentTarget.dataset.name;
-    wx.showModal({
-      title: '删除功课',
-      content: '确定删除「' + name + '」？所有记录将被清除',
-      confirmColor: '#FF3B30',
-      confirmText: '删除',
-      success: (res) => {
-        if (res.confirm) {
-          chant.deleteTask(id);
+    const task = (this.data.tasks || []).find(item => item.id === id);
+    const archiveText = task && task.comboId ? '存档整组组合' : '存档功课';
+    wx.showActionSheet({
+      itemList: [archiveText, '彻底删除'],
+      success: (sheetRes) => {
+        if (sheetRes.tapIndex === 0) {
+          chant.archiveTask(id);
           this.loadData();
-          wx.showToast({ title: '已删除', icon: 'success' });
+          wx.showToast({ title: '已存档', icon: 'success' });
+          return;
         }
+        wx.showModal({
+          title: '删除功课',
+          content: '确定删除「' + name + '」？所有记录将被清除',
+          confirmColor: '#FF3B30',
+          confirmText: '删除',
+          success: (res) => {
+            if (res.confirm) {
+              chant.deleteTask(id);
+              this.loadData();
+              wx.showToast({ title: '已删除', icon: 'success' });
+            }
+          }
+        });
       }
     });
   },
@@ -500,7 +523,7 @@ Page({
 
   noop() {},
 
-  /** 生成朋友圈分享图 */
+  /** 生成朋友圈分享图（大字优化版 + 自定义二维码） */
   generateShareImage(callback) {
     const that = this;
     const tasks = that.data.tasks;
@@ -541,7 +564,7 @@ Page({
       const dpr = wx.getSystemInfoSync().pixelRatio;
 
       const W = 500;
-      const H = 750;
+      const H = 760;  // 紧凑高度，减少底部空白
       canvas.width = W * dpr;
       canvas.height = H * dpr;
       ctx.scale(dpr, dpr);
@@ -556,39 +579,43 @@ Page({
         ctx.fillStyle = bgGrad;
         ctx.fillRect(0, 0, W, H);
 
-        // ===== 顶部装饰圆 =====
-        ctx.beginPath();
-        ctx.arc(W / 2, -80, 220, 0, Math.PI * 2);
-        ctx.fillStyle = 'rgba(255,179,0,0.08)';
-        ctx.fill();
+        // ===== 外边框（金色装饰） =====
+        ctx.strokeStyle = '#DAA520';
+        ctx.lineWidth = 2;
+        ctx.strokeRect(15, 15, W - 30, H - 30);
+
+        // ===== 内框装饰线 =====
+        ctx.strokeStyle = 'rgba(218,165,32,0.2)';
+        ctx.lineWidth = 1;
+        ctx.strokeRect(22, 22, W - 44, H - 44);
 
         // ===== 标题区域 =====
         ctx.fillStyle = '#8B6914';
-        ctx.font = 'bold 34px sans-serif';
+        ctx.font = 'bold 40px sans-serif';
         ctx.textAlign = 'center';
-        ctx.fillText('今日修行打卡', W / 2, 65);
+        ctx.fillText('今日修行打卡', W / 2, 62);
 
         // ===== 日期 =====
         ctx.fillStyle = '#A0824A';
-        ctx.font = '22px sans-serif';
+        ctx.font = '26px sans-serif';
         ctx.fillText(dateStr, W / 2, 100);
 
         // ===== 主数据卡片 =====
-        const cardY = 130;
+        const cardY = 128;
         const cardH = 200;
 
         // 卡片背景（白色圆角）
         ctx.fillStyle = '#FFFFFF';
-        roundRect(ctx, 25, cardY, W - 50, cardH, 20);
+        roundRect(ctx, 28, cardY, W - 56, cardH, 22);
         ctx.fill();
 
-        // 卡片阴影效果（用边框模拟）
-        ctx.strokeStyle = 'rgba(218,165,32,0.15)';
+        // 卡片边框
+        ctx.strokeStyle = 'rgba(218,165,32,0.18)';
         ctx.lineWidth = 1.5;
-        roundRect(ctx, 25, cardY, W - 50, cardH, 20);
+        roundRect(ctx, 28, cardY, W - 56, cardH, 22);
         ctx.stroke();
 
-        // 今日行善数（大字）
+        // 今日行善数
         ctx.fillStyle = '#FF8F00';
         ctx.font = 'bold 72px sans-serif';
         ctx.textAlign = 'center';
@@ -596,74 +623,76 @@ Page({
         ctx.fillText(countStr, W / 2, cardY + 75);
 
         ctx.fillStyle = '#AEAEB2';
-        ctx.font = '20px sans-serif';
+        ctx.font = '22px sans-serif';
         ctx.fillText('今日行善', W / 2, cardY + 105);
 
         // 分割线
         ctx.beginPath();
-        ctx.moveTo(60, cardY + 125);
-        ctx.lineTo(W - 60, cardY + 125);
-        ctx.strokeStyle = 'rgba(0,0,0,0.06)';
+        ctx.moveTo(55, cardY + 126);
+        ctx.lineTo(W - 55, cardY + 126);
+        ctx.strokeStyle = 'rgba(0,0,0,0.07)';
         ctx.lineWidth = 1;
         ctx.stroke();
 
         // 底部两列数据：连续天数 | 完成情况
-        const bottomY = cardY + 162;
+        const bottomY = cardY + 164;
 
         // 连续天数
         ctx.fillStyle = '#5D4037';
-        ctx.font = 'bold 28px sans-serif';
+        ctx.font = 'bold 30px sans-serif';
         ctx.textAlign = 'center';
         ctx.fillText(streakDays + '天', W / 4, bottomY);
         ctx.fillStyle = '#AEAEB2';
-        ctx.font = '17px sans-serif';
-        ctx.fillText('已连续修行', W / 4, bottomY + 22);
+        ctx.font = '18px sans-serif';
+        ctx.fillText('已连续修行', W / 4, bottomY + 24);
 
         // 完成情况
         ctx.fillStyle = '#2E7D32';
-        ctx.font = 'bold 28px sans-serif';
+        ctx.font = 'bold 30px sans-serif';
         ctx.textAlign = 'center';
         ctx.fillText(summary.completed + '/' + summary.total, W * 3 / 4, bottomY);
         ctx.fillStyle = '#AEAEB2';
-        ctx.font = '17px sans-serif';
-        ctx.fillText('今日达标', W * 3 / 4, bottomY + 22);
+        ctx.font = '18px sans-serif';
+        ctx.fillText('今日达标', W * 3 / 4, bottomY + 24);
 
-        // ===== 金句卡片 =====
-        const quoteY = 355;
-        ctx.fillStyle = 'rgba(255,255,255,0.7)';
-        roundRect(ctx, 30, quoteY, W - 60, 90, 14);
+        // ===== 金句卡片（居中绘制，防止溢出） =====
+        const quoteY = cardY + cardH + 18;
+        const quoteText = quote.text ? ('「' + quote.text + '」') : '';
+        // 根据文字长度动态计算所需行数和高度
+        var quoteLines = 1;
+        if (quoteText.length > 14) quoteLines = 2;
+        if (quoteText.length > 28) quoteLines = 3;
+        const quoteH = Math.max(70, 28 + quoteLines * 30);
+        ctx.fillStyle = 'rgba(255,255,255,0.75)';
+        roundRect(ctx, 30, quoteY, W - 60, quoteH, 14);
         ctx.fill();
+        ctx.strokeStyle = 'rgba(218,165,32,0.12)';
+        ctx.lineWidth = 1;
+        roundRect(ctx, 30, quoteY, W - 60, quoteH, 14);
+        ctx.stroke();
 
-        ctx.fillStyle = '#6D5A2E';
-        ctx.font = '19px sans-serif';
-        ctx.textAlign = 'center';
-
-        // 金句文字（自动换行）
-        const maxW = W - 90;
-        let displayQuote = quote.text;
-        if (displayQuote.length > 22) {
-          // 简单分行处理
-          const line1 = displayQuote.substring(0, Math.ceil(displayQuote.length / 2));
-          const line2 = displayQuote.substring(Math.ceil(displayQuote.length / 2));
-          ctx.fillText('「' + line1, W / 2, quoteY + 35);
-          ctx.fillText(line2 + '」', W / 2, quoteY + 62);
-        } else {
-          ctx.fillText('「' + displayQuote + '」', W / 2, quoteY + 50);
+        // 金句文字（居中换行绘制，防止溢出）
+        if (quoteText) {
+          ctx.fillStyle = '#6D5A2E';
+          ctx.font = '21px sans-serif';
+          ctx.textAlign = 'center';
+          that._wrapTextCenter(ctx, quoteText, W / 2, quoteY + 32, W - 90, 29);
         }
 
         ctx.fillStyle = '#B09A68';
-        ctx.font = '14px sans-serif';
-        ctx.fillText('— ' + quote.source, W / 2, quoteY + 78);
+        ctx.font = '15px sans-serif';
+        ctx.textAlign = 'center';
+        ctx.fillText('— ' + (quote.source || '佛教偈语'), W / 2, quoteY + quoteH - 13);
 
         // ===== 功课列表摘要 =====
-        const listY = 465;
+        const listY = quoteY + quoteH + 16;
         ctx.fillStyle = '#5D4037';
-        ctx.font = 'bold 18px sans-serif';
+        ctx.font = 'bold 22px sans-serif';
         ctx.textAlign = 'left';
         ctx.fillText('今日功课', 35, listY);
 
-        let listOffsetY = listY + 28;
-        const maxShow = 5; // 最多显示5个功课
+        let listOffsetY = listY + 30;
+        const maxShow = 5;
         const showTasks = taskData.slice(0, maxShow);
 
         showTasks.forEach((item, idx) => {
@@ -672,31 +701,31 @@ Page({
           if (name.length > 14) name = name.substring(0, 13) + '…';
 
           ctx.fillStyle = '#333';
-          ctx.font = '16px sans-serif';
+          ctx.font = '19px sans-serif';
           ctx.textAlign = 'left';
-          ctx.fillText(name, 45, listOffsetY);
+          ctx.fillText(name, 48, listOffsetY);
 
-          // 计数
+          // 计数（金色醒目）
           ctx.fillStyle = '#FF8F00';
-          ctx.font = '16px sans-serif';
+          ctx.font = 'bold 19px sans-serif';
           ctx.textAlign = 'right';
-          ctx.fillText(item.todayCount + item.unit, W - 45, listOffsetY);
+          ctx.fillText(item.todayCount + item.unit, W - 48, listOffsetY);
 
-          // 进度小条（如果有目标）
+          // 进度条（如果有目标）
           if (item.dailyTarget > 0) {
-            const barX = 45;
-            const barY = listOffsetY + 6;
-            const barW = W - 90;
-            const barH = 4;
+            const barX = 48;
+            const barY2 = listOffsetY + 8;
+            const barW = W - 96;
+            const barH = 5;
             const pct = Math.min(1, item.todayCount / item.dailyTarget);
 
             ctx.fillStyle = '#F0F0F0';
-            roundRect(ctx, barX, barY, barW, barH, 2);
+            roundRect(ctx, barX, barY2, barW, barH, 3);
             ctx.fill();
 
             if (pct > 0) {
               ctx.fillStyle = '#FFB300';
-              roundRect(ctx, barX, barY, barW * pct, barH, 2);
+              roundRect(ctx, barX, barY2, barW * pct, barH, 3);
               ctx.fill();
             }
           }
@@ -707,33 +736,26 @@ Page({
         // 如果有更多功课
         if (taskData.length > maxShow) {
           ctx.fillStyle = '#AEAEB2';
-          ctx.font = '14px sans-serif';
+          ctx.font = '16px sans-serif';
           ctx.textAlign = 'center';
-          ctx.fillText('等 ' + taskData.length + ' 项功课...', W / 2, listOffsetY + 6);
+          ctx.fillText('等 ' + taskData.length + ' 项功课...', W / 2, listOffsetY + 4);
         }
 
         // ===== 底部品牌区 =====
-        const brandY = H - 70;
-
-        // 底部分割线上方装饰
-        ctx.beginPath();
-        ctx.moveTo(120, brandY - 25);
-        ctx.lineTo(W - 120, brandY - 25);
-        ctx.strokeStyle = 'rgba(0,0,0,0.06)';
-        ctx.lineWidth = 1;
-        ctx.stroke();
-
         ctx.fillStyle = '#B09A68';
-        ctx.font = '14px sans-serif';
+        ctx.font = '15px sans-serif';
         ctx.textAlign = 'center';
-        ctx.fillText('— 岁时记 · 计数器 —', W / 2, brandY);
+        ctx.fillText('— 岁时记 · 计数器 —', W / 2, H - 50);
 
         ctx.fillStyle = '#AEAEB2';
         ctx.font = '12px sans-serif';
-        ctx.fillText('长按识别小程序码，一起修行打卡', W / 2, brandY + 22);
+        ctx.fillText('长按识别小程序码，一起修行打卡', W / 2, H - 28);
 
-        // 导出为临时文件
-        poster.drawPromotionCode(canvas, ctx, { x: W - 112, y: 42, size: 72 }, function() {
+        // 使用自定义二维码图片（右下角位置）
+        poster.drawPromotionCode(canvas, ctx, {
+          x: W - 110, y: H - 135, size: 72,
+          src: '/images/PQ_chanting.png'
+        }, function() {
           setTimeout(function() {
             wx.canvasToTempFilePath({
               canvas: canvas,
@@ -762,6 +784,54 @@ Page({
         callback({ success: false });
       }
     });
+  },
+
+  /** 文字自动换行绘制（左对齐） */
+  _wrapText: function(ctx, text, x, y, maxWidth, lineHeight) {
+    if (!text) return y;
+    var chars = text.split('');
+    var line = '';
+    var curY = y;
+    for (var i = 0; i < chars.length; i++) {
+      var testLine = line + chars[i];
+      var metrics = ctx.measureText(testLine);
+      if (metrics.width > maxWidth && line.length > 0) {
+        ctx.fillText(line, x, curY);
+        line = chars[i];
+        curY += lineHeight;
+      } else {
+        line = testLine;
+      }
+    }
+    if (line) {
+      ctx.fillText(line, x, curY);
+      curY += lineHeight;
+    }
+    return curY;
+  },
+
+  /** 文字自动换行 + 居中绘制（每行居中于 centerX） */
+  _wrapTextCenter: function(ctx, text, centerX, y, maxWidth, lineHeight) {
+    if (!text) return y;
+    var chars = text.split('');
+    var line = '';
+    var curY = y;
+    for (var i = 0; i < chars.length; i++) {
+      var testLine = line + chars[i];
+      var metrics = ctx.measureText(testLine);
+      if (metrics.width > maxWidth && line.length > 0) {
+        ctx.fillText(line, centerX, curY);
+        line = chars[i];
+        curY += lineHeight;
+      } else {
+        line = testLine;
+      }
+    }
+    if (line) {
+      ctx.fillText(line, centerX, curY);
+      curY += lineHeight;
+    }
+    return curY;
   }
 });
 
@@ -778,4 +848,44 @@ function roundRect(ctx, x, y, w, h, r) {
   ctx.lineTo(x, y + r);
   ctx.arcTo(x, y, x + r, y, r);
   ctx.closePath();
+}
+
+function buildDuplicateWarmClassMap(tasks) {
+  const warmClasses = ['task-warm-1', 'task-warm-2', 'task-warm-3', 'task-warm-4'];
+  const result = {};
+
+  const comboIds = [];
+  const comboSeen = {};
+  tasks.forEach(task => {
+    if (!task.comboId) return;
+    if (!comboSeen[task.comboId]) {
+      comboSeen[task.comboId] = true;
+      comboIds.push(task.comboId);
+    }
+  });
+  if (comboIds.length > 1) {
+    comboIds.forEach((comboId, index) => {
+      const className = warmClasses[index % warmClasses.length];
+      tasks.forEach(task => {
+        if (task.comboId === comboId) result[task.id] = className;
+      });
+    });
+  }
+
+  const regularGroups = {};
+  tasks.forEach(task => {
+    if (task.comboId) return;
+    const key = task.builtinId || task.name;
+    if (!regularGroups[key]) regularGroups[key] = [];
+    regularGroups[key].push(task);
+  });
+  Object.keys(regularGroups).forEach(key => {
+    const group = regularGroups[key];
+    if (group.length <= 1) return;
+    group.forEach((task, index) => {
+      result[task.id] = warmClasses[index % warmClasses.length];
+    });
+  });
+
+  return result;
 }

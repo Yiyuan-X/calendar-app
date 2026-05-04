@@ -1,203 +1,142 @@
 /**
- * 功德记录模块 — 基于传统功过格
+ * 积善记录模块 — 基于《积善的方法》
  *
  * 核心理念：
- * - 善行积累德分，过失折损德分
- * - 每日反省，积微成著
- * - 功过相抵，净德分为真
+ * - 记录单位为“善”
+ * - 过失按“削善”扣减
+ * - 十个善业折算一个功德
  */
 
 // ==================== 功过分类体系 ====================
 
 /**
- * 善行分类
- *
- * 计分参考：
- * - 1分：日常一念一行，如忍一句、敬长一天、尽责一天。
- * - 2分：主动承担、让功、诵读善书、持续照护等较完整善行。
- * - 5分：劝止是非、化解冲突、保护生命、安慰解忧等影响他人的善行。
- * - 10分：举荐贤能、公益服务、救急济困等较大善行。
- * - 20分以上：救命、献血、长期或重大公益等较大善举。
+ * 善行分类。
+ * 字段名仍使用 merit 以兼容现有记录结构，数值含义为“善”。
  */
 const GOOD_CATEGORIES = [
   {
-    id: 'benevolence',
-    name: '仁爱济人',
-    icon: 'benevolence',
-    color: '#E91E63',
-    desc: '救人之急，济人之困',
-    items: [
-      { id: 'g3', text: '安慰烦恼忧愁的人', merit: 1 },
-      { id: 'g55', text: '发善贤大德善言一次一善', merit: 1 },
-      { id: 'g1', text: '帮助他人解决实际困难一次一善', merit: 1 },
-      { id: 'g2', text: '救急济困，随力资助', merit: 1 },
-      { id: 'g4', text: '主动给人方便或让行', merit: 1 },
-      { id: 'g5', text: '保护弱小或照护小动物', merit: 1 },
-      { id: 'g6', text: '参与公益或志愿服务', merit: 1 },
-      { id: 'g7', text: '无偿分享有价值技能或经验一次一善', merit: 1 },
-      { id: 'g8', text: '拾金不昧并归还失主', merit: 5 },
-      { id: 'g37', text: '把脏乱处顺手清理干净', merit: 1 },
-      { id: 'g38', text: '喂养小动物两次一善', merit: 1 },
-      { id: 'g39', text: '妥善处理受伤或亡故的小动物', merit: 1 },
-      { id: 'g40', text: '救助处于危险中的人', merit: 50 }
-    ]
-  },
-  {
-    id: 'filial',
-    name: '孝亲敬长',
-    icon: 'filial',
-    color: '#FF9800',
-    desc: '孝养父母，尊敬师长',
-    items: [
-      { id: 'g9', text: '尊敬父母，不顶撞', merit: 1 },
-      { id: 'g10', text: '陪伴父母或长辈聊天', merit: 1 },
-      { id: 'g11', text: '关心父母身体健康', merit: 1 },
-      { id: 'g12', text: '尊敬长辈、师长或领导', merit: 1 },
-      { id: 'g13', text: '听取长辈劝告并改正', merit: 2 },
-      { id: 'g14', text: '主动承担家务', merit: 1 },
-      { id: 'g41', text: '为父母长辈做一件贴心事', merit: 2 },
-      { id: 'g42', text: '为父母、亲友读诵善书或诚心祝愿', merit: 2 }
-    ]
-  },
-  {
-    id: 'integrity',
-    name: '诚信尽责',
-    icon: 'integrity',
-    color: '#2196F3',
-    desc: '言而有信，行而不欺',
-    items: [
-      { id: 'g18', text: '工作或学习尽心尽责', merit: 1 },
-      { id: 'g45', text: '推荐贤能之人', merit: 10 },
-      { id: 'g15', text: '信守承诺，说到做到', merit: 5 },
-      { id: 'g16', text: '承认错误不推诿', merit: 2 },
-      { id: 'g19', text: '不占小便宜', merit: 1 },
-      { id: 'g20', text: '传播真实有益的信息', merit: 1 },
-      { id: 'g43', text: '主动承担过错', merit: 2 },
-      { id: 'g44', text: '把功劳让给他人', merit: 2 },
-      { id: 'g17', text: '借人财物如期归还', merit: 1 },
-    ]
-  },
-  {
-    id: 'cultivation',
-    name: '修身养性',
-    icon: 'cultivation',
-    color: '#9C27B0',
-    desc: '反省自省，克己复礼',
-    items: [
-      { id: 'g46', text: '见善必行', merit: 1 },
-      { id: 'g21', text: '读诵经典组合', merit: 5 },
-      { id: 'g56', text: '诵经一卷', merit: 2 },
-      { id: 'g26', text: '改正一个已知过失', merit: 1 },
-      { id: 'g57', text: '读诵经典或善书一段', merit: 2 },
-      { id: 'g47', text: '今日持续记录善行', merit: 1 },
-      { id: 'g23', text: '静坐收心十五分钟以上', merit: 1 },
-      { id: 'g24', text: '反省今日过失并写下改法', merit: 2 },
-      { id: 'g25', text: '不发脾气', merit: 1 },
-      { id: 'g27', text: '早睡早起，作息有度', merit: 1 },
-      { id: 'g28', text: '饮食节制，不贪口腹', merit: 1 },
-      { id: 'g29', text: '护生救生，方法妥当，放生一命一善', merit: 1 },
-      { id: 'g30', text: '礼敬先贤或诚心自省', merit: 2 }
-    ]
-  },
-  {
-    id: 'kindness_speech',
-    name: '善言和众',
+    id: 'speech_guard',
+    name: '护口劝善',
     icon: 'speech',
     color: '#4CAF50',
-    desc: '言语温和，不伤人心',
+    desc: '不随恶语，劝止是非',
     items: [
-      { id: 'g35', text: '别人说是非时你不讲或不附和', merit: 1 },
-      { id: 'g50', text: '被人责骂时不还口', merit: 1 },
-      { id: 'g51', text: '别人伤害你，你不伤害别人', merit: 1 },
-      { id: 'g31', text: '真诚赞美他人的优点', merit: 1 },
-      { id: 'g32', text: '耐心倾听他人倾诉', merit: 1 },
-      { id: 'g33', text: '化解他人的矛盾', merit: 5 },
-      { id: 'g34', text: '说鼓励的话使人振作', merit: 5 },
-      { id: 'g36', text: '主动道歉并求得谅解', merit: 2 },
-      { id: 'g48', text: '劝别人不要传播是非', merit: 5 },
-      { id: 'g49', text: '劝人不要辱骂善良的人', merit: 5 },
-      { id: 'g52', text: '宣扬他人的善行', merit: 1 },
-      { id: 'g53', text: '分享有益修身的好话', merit: 1 },
-      { id: 'g54', text: '以善言劝人改过向好', merit: 5 }
+      { id: 'g1', text: '人家讲别人不好，自己不讲别人不好', merit: 1 },
+      { id: 'g2', text: '人家传播别人不好，你去劝他', merit: 5 },
+      { id: 'g3', text: '见到伪经劝人不要学', merit: 1 },
+      { id: 'g4', text: '见到别人骂善人，劝他不要这样做', merit: 5 },
+      { id: 'g5', text: '别人骂你，你不骂他', merit: 1 },
+      { id: 'g6', text: '别人伤害你，你不伤害别人', merit: 1 },
+      { id: 'g7', text: '宣扬他人的善行', merit: 1 },
+      { id: 'g8', text: '发善贤大德向善的话语给大家看', merit: 10 },
+      { id: 'g9', text: '随喜赞叹他人善言善行', merit: 1 },
+      { id: 'g10', text: '以正能量语言鼓励懈怠者精进', merit: 1 }
+    ]
+  },
+  {
+    id: 'filial_duty',
+    name: '孝敬尽责',
+    icon: 'filial',
+    color: '#FF9800',
+    desc: '尊亲敬长，尽心做事',
+    items: [
+      { id: 'g20', text: '对父母亲一天尊敬不顶撞', merit: 1 },
+      { id: 'g21', text: '工作一天非常努力', merit: 1 },
+      { id: 'g22', text: '尊敬长辈、尊敬领导一天', merit: 1 },
+      { id: 'g23', text: '借人财富如期而还，不过期限', merit: 1 },
+      { id: 'g24', text: '向老板上司说别人的优点，推荐有能力的人', merit: 10 },
+      { id: 'g25', text: '自己承担过错', merit: 2 },
+      { id: 'g26', text: '把功劳推给别人', merit: 2 },
+      { id: 'g27', text: '为父母送一张小房子', merit: 5 },
+      { id: 'g28', text: '给人方便，让老人优先', merit: 1 }
+    ]
+  },
+  {
+    id: 'life_release',
+    name: '护生施食',
+    icon: 'benevolence',
+    color: '#E91E63',
+    desc: '慈悲护生，随缘施食',
+    items: [
+      { id: 'g40', text: '放生一命', merit: 1 },
+      { id: 'g41', text: '放生小命十命', merit: 1 },
+      { id: 'g42', text: '放生大命，如狗、牛', merit: 10 },
+      { id: 'g43', text: '放生一条大鱼或黑鱼', merit: 1 },
+      { id: 'g44', text: '把死掉的小动物埋葬，一条命', merit: 5 },
+      { id: 'g45', text: '埋葬小的亡故生命五条', merit: 1 },
+      { id: 'g46', text: '用米饭喂小鸟、蚂蚁、小虫子等两次', merit: 1 },
+      { id: 'g47', text: '每天放生一条，发心真实', merit: 1 },
+      { id: 'g48', text: '一次放生很多生命，记为一件大好事', merit: 1 }
+    ]
+  },
+  {
+    id: 'practice',
+    name: '修行',
+    icon: 'cultivation',
+    color: '#9C27B0',
+    desc: '诵经礼佛，闻法修心',
+    items: [
+      { id: 'g60', text: '为亲友、父母、善知识诵经一卷', merit: 2 },
+      { id: 'g61', text: '念佛号千声', merit: 2 },
+      { id: 'g62', text: '礼佛百拜，为别人拜', merit: 2 },
+      { id: 'g63', text: '礼佛百拜，为自己拜', merit: 1 },
+      { id: 'g64', text: '讲大乘佛经，五个人浏览', merit: 1 },
+      { id: 'g65', text: '参与设佛台', merit: 2 },
+      { id: 'g66', text: '念一张组合给人家', merit: 5 },
+      { id: 'g67', text: '听闻开示后发心学习', merit: 1 },
+      { id: 'g68', text: '把好的开示分享给别人听', merit: 1 },
+      { id: 'g69', text: '法布施一条，法喜充满并利益他人', merit: 1 }
+    ]
+  },
+  {
+    id: 'wake_help',
+    name: '改过助缘',
+    icon: 'integrity',
+    color: '#2196F3',
+    desc: '知错即改，助人向善',
+    items: [
+      { id: 'g80', text: '见善必行', merit: 1 },
+      { id: 'g81', text: '知错必改，一事一善', merit: 1 },
+      { id: 'g82', text: '安慰有烦恼忧愁的人', merit: 1 },
+      { id: 'g83', text: '正确解答佛友问题，使其明白', merit: 1 },
+      { id: 'g84', text: '用佛法或正念救起想不开的人', merit: 10 },
+      { id: 'g85', text: '度人学佛修心，使其命运改变', merit: 10 },
+      { id: 'g86', text: '随缘帮助别人解决困难', merit: 1 },
+      { id: 'g87', text: '把脏乱处顺手清理干净', merit: 1 },
+      { id: 'g88', text: '发愿做一百件好事并记下一件', merit: 1 }
     ]
   }
 ];
 
 /**
- * 恶行分类（需警惕和改正）
+ * 过失分类。
+ * 字段名仍使用 demerit 以兼容现有记录结构，数值含义为“削善”。
  */
 const BAD_CATEGORIES = [
   {
-    id: 'anger',
-    name: '怨怒暴躁',
+    id: 'speech_fault',
+    name: '口业是非',
     icon: 'anger',
-    desc: '怒气伤人，怨怼损己',
+    desc: '乱语伤人，挑拨离间',
     items: [
-      { id: 'b1', text: '对家人或亲近的人发脾气', demerit: 5 },
-      { id: 'b2', text: '对陌生人发怒或路怒', demerit: 5 },
-      { id: 'b3', text: '怨天尤人，开口埋怨', demerit: 3 },
-      { id: 'b4', text: '说伤人的话', demerit: 5 },
-      { id: 'b5', text: '摔东西或有暴力行为', demerit: 10 },
-      { id: 'b26', text: '心怀怨恨，久久不放', demerit: 10 }
+      { id: 'b1', text: '怨天尤人一次', demerit: 3 },
+      { id: 'b2', text: '乱讲话、嚼舌头、挑拨离间', demerit: 10 },
+      { id: 'b3', text: '讽刺别人并以对方难过为开心', demerit: 10 },
+      { id: 'b4', text: '帮人解答错误，导致别人退转或失误', demerit: 10 },
+      { id: 'b5', text: '明知会造成不善果，仍劝别人去做', demerit: 10 },
+      { id: 'b6', text: '记录并回味自己做过的坏事', demerit: 5 }
     ]
   },
   {
-    id: 'greed',
-    name: '贪占浪费',
-    icon: 'greed',
-    desc: '贪得无厌，奢侈浪费',
-    items: [
-      { id: 'b6', text: '过度消费/浪费', demerit: 5 },
-      { id: 'b7', text: '嫉妒他人的成就', demerit: 8 },
-      { id: 'b8', text: '占别人便宜', demerit: 10 },
-      { id: 'b9', text: '沉迷娱乐/游戏荒废正事', demerit: 5 },
-      { id: 'b10', text: '攀比虚荣心作祟', demerit: 5 },
-      { id: 'b27', text: '借人财物逾期不还', demerit: 5 },
-      { id: 'b28', text: '见利忘义，损人利己', demerit: 15 }
-    ]
-  },
-  {
-    id: 'dishonesty',
-    name: '欺妄是非',
-    icon: 'dishonesty',
-    desc: '欺骗失信，是非伤人',
-    items: [
-      { id: 'b11', text: '说谎/隐瞒事实', demerit: 10 },
-      { id: 'b12', text: '违背承诺', demerit: 8 },
-      { id: 'b13', text: '背后说人坏话', demerit: 8 },
-      { id: 'b14', text: '传播未经证实的信息', demerit: 5 },
-      { id: 'b15', text: '抄袭/作弊', demerit: 15 },
-      { id: 'b29', text: '挑拨离间，制造矛盾', demerit: 10 },
-      { id: 'b30', text: '讥讽他人并以此为乐', demerit: 10 },
-      { id: 'b31', text: '明知有害仍劝人去做', demerit: 10 }
-    ]
-  },
-  {
-    id: 'laziness',
-    name: '懈怠失度',
-    icon: 'laziness',
-    desc: '因循苟且，虚度光阴',
-    items: [
-      { id: 'b18', text: '沉迷手机浪费时间', demerit: 3 },
-      { id: 'b19', text: '不完成当日计划', demerit: 3 },
-      { id: 'b20', text: '暴饮暴食/饮食无度', demerit: 5 },
-      { id: 'b32', text: '明知有错却不改', demerit: 5 },
-      { id: 'b33', text: '能帮而故意不帮', demerit: 3 }
-    ]
-  },
-  {
-    id: 'cruelty',
-    name: '伤生损物',
+    id: 'life_harm',
+    name: '伤生杀生',
     icon: 'harm',
-    desc: '伤害生命，损坏公物',
+    desc: '伤害生命，削损善业',
     items: [
-      { id: 'b21', text: '故意伤害动物', demerit: 20 },
-      { id: 'b22', text: '杀伤生命', demerit: 20 },
-      { id: 'b23', text: '浪费食物', demerit: 5 },
-      { id: 'b24', text: '破坏环境/公物', demerit: 8 },
-      { id: 'b25', text: '幸灾乐祸', demerit: 10 },
-      { id: 'b34', text: '烹杀活鱼活物', demerit: 20 },
-      { id: 'b35', text: '见人遇险而冷漠旁观', demerit: 20 }
+      { id: 'b20', text: '煮死一条鱼', demerit: 20 },
+      { id: 'b21', text: '烹杀活鱼活物', demerit: 20 },
+      { id: 'b22', text: '杀伤一条生命', demerit: 20 },
+      { id: 'b23', text: '造了较大的杀业', demerit: 50 }
     ]
   }
 ];
@@ -282,6 +221,16 @@ function getDailyQuote() {
 }
 
 /**
+ * 善数折算功德。十个善业折算一个功德。
+ * @param {number} goodCount 善数
+ * @returns {number} 功德数，保留1位小数
+ */
+function calculateGongDe(goodCount) {
+  const value = Number(goodCount) || 0;
+  return Math.round((value / 10) * 10) / 10;
+}
+
+/**
  * 计算某条记录的净德分
  * @param {object} record - 单日功过记录
  * @returns {number} 净德分
@@ -352,6 +301,9 @@ function getMeritStats(records) {
     totalGood,
     totalBad,
     totalNet,
+    totalGoodGongDe: calculateGongDe(totalGood),
+    totalBadGongDe: calculateGongDe(totalBad),
+    totalNetGongDe: calculateGongDe(totalNet),
     dayCount,
     goodDays,
     badDays,
@@ -405,15 +357,15 @@ function getStreakDays(records, todayStr) {
  * @returns {object} 等级信息
  */
 function getMeritLevel(netMerit) {
-  if (netMerit >= 1000) return { level: 9, title: '厚德之人', desc: '德被日用，行稳致远', color: '#FFD700' };
-  if (netMerit >= 500) return { level: 8, title: '贤达君子', desc: '厚德载物，福泽绵长', color: '#9C27B0' };
-  if (netMerit >= 200) return { level: 7, title: '有德之士', desc: '积善之家，必有余庆', color: '#2196F3' };
-  if (netMerit >= 100) return { level: 6, title: '向善之人', desc: '去恶从善，日有进益', color: '#009688' };
-  if (netMerit >= 50) return { level: 5, title: '修德初成', desc: '日行一善，久久为功', color: '#4CAF50' };
-  if (netMerit >= 20) return { level: 4, title: '发心向善', desc: '千里之行，始于足下', color: '#8BC34A' };
-  if (netMerit >= 0) return { level: 3, title: '初心未泯', desc: '但行好事，莫问前程', color: '#CDDC39' };
-  if (netMerit >= -20) return { level: 2, title: '迷途知返', desc: '知过能改，善莫大焉', color: '#FF9800' };
-  return { level: 1, title: '当及时改', desc: '知止知改，犹未为晚', color: '#F44336' };
+  if (netMerit >= 1000) return { level: 9, title: '千善圆满', desc: '积善深厚，功德成林', color: '#FFD700' };
+  if (netMerit >= 500) return { level: 8, title: '五百善行', desc: '善念相续，福德增长', color: '#9C27B0' };
+  if (netMerit >= 200) return { level: 7, title: '二百善行', desc: '一善解百灾，久久为功', color: '#2196F3' };
+  if (netMerit >= 100) return { level: 6, title: '百善愿成', desc: '做一件记一件，善业可依', color: '#009688' };
+  if (netMerit >= 50) return { level: 5, title: '五十善行', desc: '见善即行，知错即改', color: '#4CAF50' };
+  if (netMerit >= 20) return { level: 4, title: '善念渐稳', desc: '十善一功德，贵在真实', color: '#8BC34A' };
+  if (netMerit >= 0) return { level: 3, title: '发心积善', desc: '从一善开始，日日不空过', color: '#CDDC39' };
+  if (netMerit >= -20) return { level: 2, title: '及时改过', desc: '少造口业杀业，多行善事补足', color: '#FF9800' };
+  return { level: 1, title: '当下止恶', desc: '先止损，再积善', color: '#F44336' };
 }
 
 module.exports = {
@@ -427,6 +379,7 @@ module.exports = {
   getDailyQuote,
 
   // 计算
+  calculateGongDe,
   calculateNetMerit,
   getMeritStats,
   getStreakDays,

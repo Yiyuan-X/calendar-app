@@ -51,6 +51,38 @@
     未找到「{{keyword}}」，可下方自定义创建
   </view>
 
+  <!-- 经典组合 -->
+  <view class="custom-card combo-card">
+    <view class="c-label"><image class="c-label-icon" src="/images/icons/gen-fire.svg" mode="aspectFit"></image><text>经典组合</text></view>
+    <view class="archived-combo-list" wx:if="{{archivedClassicCombos.length > 0}}">
+      <view class="archived-combo-title">已存档组合</view>
+      <view class="archived-combo-item" wx:for="{{archivedClassicCombos}}" wx:key="comboId">
+        <view class="archived-combo-info">
+          <text class="archived-combo-name">{{item.name}}</text>
+          <text class="archived-combo-meta">{{item.totalText}} · {{item.dailyText}} · {{item.countText}}</text>
+        </view>
+        <view class="archived-combo-btn" catchtap="onRestoreClassicCombo" data-combo-id="{{item.comboId}}">启用</view>
+      </view>
+    </view>
+    <view class="combo-row">
+      <input
+        class="c-input-sm combo-input"
+        placeholder="目标组数，如 108"
+        type="number"
+        value="{{classicGroupTarget}}"
+        bindinput="onClassicGroupInput"
+      />
+      <text class="combo-unit">组</text>
+    </view>
+    <view class="combo-preview">
+      <view class="combo-preview-item" wx:for="{{classicPreview}}" wx:key="key">
+        <text>{{item.name}}</text>
+        <text>{{item.target}}{{item.unit}}</text>
+      </view>
+    </view>
+    <view class="c-btn c-btn-yellow" bindtap="onCreateClassicCombo">添加组合</view>
+  </view>
+
   <!-- 自定义创建 -->
   <view class="custom-card">
     <view class="c-label"><image class="c-label-icon" src="/images/icons/gen-pencil.svg" mode="aspectFit"></image><text>创建自定义功课</text></view>

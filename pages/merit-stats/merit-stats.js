@@ -71,7 +71,7 @@ Page({
     const stats = this.data.stats || {};
     const net = stats.totalNet || 0;
     return share.appMessage({
-      title: `功德累计 ${net >= 0 ? '+' : ''}${net} · 岁时记`,
+      title: `积善累计 ${net >= 0 ? '+' : ''}${net} · 岁时记`,
       path: '/pages/merit/merit'
     });
   },
@@ -80,7 +80,7 @@ Page({
     const stats = this.data.stats || {};
     const net = stats.totalNet || 0;
     return share.timeline({
-      title: `功德累计 ${net >= 0 ? '+' : ''}${net} · 岁时记`
+      title: `积善累计 ${net >= 0 ? '+' : ''}${net} · 岁时记`
     });
   }
 });

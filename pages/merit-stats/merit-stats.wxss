@@ -33,6 +33,14 @@
   line-height: 1.2;
 }
 
+.header-sub {
+  display: block;
+  margin-top: 4rpx;
+  font-size: 27rpx;
+  color: #8B6914;
+  font-weight: 600;
+}
+
 .positive,
 .good {
   color: #2E7D32;

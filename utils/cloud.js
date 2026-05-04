@@ -21,6 +21,7 @@ const TABLES = {
   DAILY_DETAIL: 'daily_detail',// 功课每日详情（发愿/备注）
   EVENTS: 'events',            // 重要日子
   NOTES: 'notes',              // 每日备注
+  REMINDERS: 'reminders',      // 提醒设置
   SETTINGS: 'settings',        // 用户设置
   MERIT_RECORDS: 'merit_records', // 功过格记录
   CUSTOM_MERIT_ITEMS: 'custom_merit_items', // 自定义功过条目

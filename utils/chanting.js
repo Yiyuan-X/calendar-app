@@ -7,16 +7,26 @@ const cloud = require('./cloud');
 const STORAGE_KEY = 'chanting_tasks';       // 用户功课列表
 const RECORDS_KEY = 'chanting_records';     // 每日记录 { '2026-04-23': { taskId: count, ... } }
 const DAILY_KEY = 'chanting_daily';         // 每日详情 { dateStr: { taskId:{ count,wish,note } } }
+const RECORDS_BACKUP_KEY = 'chanting_records_backup';
+
+const CLASSIC_COMBO_ID = 'classic_combo';
+const CLASSIC_COMBO_NAME = '经典组合';
+const CLASSIC_COMBO_ITEMS = [
+  { key: 'great_compassion', name: '大悲咒', builtinId: 'b2', unit: '遍', perGroup: 27 },
+  { key: 'heart_sutra', name: '心经', builtinId: 'b3', unit: '遍', perGroup: 49 },
+  { key: 'rebirth', name: '往生咒', builtinId: 'b46', unit: '遍', perGroup: 84 },
+  { key: 'seven_buddhas', name: '七佛灭罪真言', builtinId: 'b10', unit: '遍', perGroup: 87 }
+];
 
 // ==================== 内置热门功课 ====================
 const BUILTIN = [
   // ===== 常用基础咒语（默认置顶） =====
   { id:'b67', name:'净口业真言', cat:'咒语', unit:'遍' },
-  { id:'b2', name:'大悲咒（千手千眼无碍大悲心陀罗尼）', cat:'咒语', unit:'遍', hot:true },
-  { id:'b3', name:'心经（般若波罗蜜多心经）', cat:'经典', unit:'遍', hot:true },
+  { id:'b2', name:'大悲咒', cat:'咒语', unit:'遍', hot:true },
+  { id:'b3', name:'心经', cat:'经典', unit:'遍', hot:true },
   { id:'b15', name:'礼佛大忏悔文', cat:'礼忏', unit:'遍', hot:true },
   { id:'b5', name:'解结咒', cat:'咒语', unit:'遍', hot:true },
-  { id:'b4', name:'往生净土神咒（拔一切业障根本得生净土陀罗尼）', cat:'咒语', unit:'遍', hot:true },
+  { id:'b4', name:'往生净土神咒', cat:'咒语', unit:'遍', hot:true },
   { id:'b7', name:'消灾吉祥神咒', cat:'咒语', unit:'遍', hot:true },
   { id:'b6', name:'准提神咒', cat:'咒语', unit:'遍', hot:true },
   { id:'b9', name:'大吉祥天女咒', cat:'咒语', unit:'遍', hot:true },
@@ -26,6 +36,7 @@ const BUILTIN = [
   { id:'b16', name:'功德宝山神咒', cat:'咒语', unit:'遍', hot:true },
   { id:'b17', name:'观音灵感真言', cat:'咒语', unit:'遍', hot:true },
   { id:'b11', name:'药师灌顶真言', cat:'咒语', unit:'遍', hot:true },
+  { id: CLASSIC_COMBO_ID, name: CLASSIC_COMBO_NAME, cat: '组合', unit: '组', hot: true, combo: true },
   { id:'b68', name:'补阙真言', cat:'咒语', unit:'遍' },
 
   // ===== 佛号 =====
@@ -109,8 +120,12 @@ function prevDate(dateStr) {
 
 // ==================== 功课管理（CRUD） ====================
 function getTasks() {
-  const tasks = wx.getStorageSync(STORAGE_KEY) || [];
+  const tasks = getStoredTasks().filter(task => !task.archived);
   // 按 sortOrder 排序返回
+  return tasks.sort((a, b) => (a.sortOrder || 0) - (b.sortOrder || 0));
+}
+function getStoredTasks() {
+  const tasks = wx.getStorageSync(STORAGE_KEY) || [];
   return tasks.sort((a, b) => (a.sortOrder || 0) - (b.sortOrder || 0));
 }
 function saveTasks(tasks) {
@@ -118,9 +133,24 @@ function saveTasks(tasks) {
   cloud.setList(cloud.TABLES.TASKS, tasks);
 }
 
+function normalizeGroupCount(value) {
+  return Math.max(0, parseInt(value) || 0);
+}
+
+/** 按组数换算经典组合的四项总目标 */
+function getClassicComboTargets(groupCount=1) {
+  const groups = normalizeGroupCount(groupCount);
+  return CLASSIC_COMBO_ITEMS.map(item => ({
+    ...item,
+    groups,
+    target: item.perGroup * groups,
+    text: `${item.name} ${item.perGroup * groups}${item.unit}`
+  }));
+}
+
 /** 添加功课（内置 or 自定义） */
 function addTask(name, unit='遍', dailyTarget=0, totalTarget=0, isCustom=false, builtinId=null) {
-  const tasks = getTasks();
+  const tasks = getStoredTasks();
   // 每个功课都生成唯一 id，避免同名内置功课 id 冲突
   const uniqueId = (isCustom ? 'c_' : 'b_') + Date.now() + '_' + Math.random().toString(36).substr(2, 5);
   const task = {
@@ -138,8 +168,64 @@ function addTask(name, unit='遍', dailyTarget=0, totalTarget=0, isCustom=false,
   saveTasks(tasks);
   return task;
 }
+
+/** 添加经典组合：创建四个可单独计数的子功课，并用 totalTarget 记录每项目标 */
+function addClassicComboTasks(groupTarget=1) {
+  const groups = normalizeGroupCount(groupTarget);
+  if (groups <= 0) return [];
+
+  const tasks = getStoredTasks();
+  const comboId = CLASSIC_COMBO_ID + '_' + Date.now() + '_' + Math.random().toString(36).substr(2, 5);
+  const createdAt = Date.now();
+  const comboTasks = CLASSIC_COMBO_ITEMS.map((item, index) => ({
+    id: 'combo_' + createdAt + '_' + index + '_' + Math.random().toString(36).substr(2, 5),
+    builtinId: item.builtinId,
+    name: item.name,
+    unit: item.unit,
+    dailyTarget: 0,
+    totalTarget: item.perGroup * groups,
+    isCustom: false,
+    sortOrder: tasks.length + index,
+    createdAt,
+    comboId,
+    comboName: CLASSIC_COMBO_NAME,
+    comboGroupTarget: groups,
+    comboDailyGroupTarget: 0,
+    comboItemKey: item.key,
+    comboPerGroup: item.perGroup
+  }));
+
+  saveTasks(tasks.concat(comboTasks));
+  return comboTasks;
+}
+
+/** 修改经典组合目标组数：同步更新同一组合四个子功课的总目标和每日目标 */
+function updateClassicComboGroupTarget(comboId, groupTarget, dailyGroupTarget) {
+  const groups = normalizeGroupCount(groupTarget);
+  const dailyGroups = normalizeGroupCount(dailyGroupTarget);
+  if (!comboId || groups <= 0) return [];
+
+  const itemByKey = {};
+  CLASSIC_COMBO_ITEMS.forEach(item => { itemByKey[item.key] = item; });
+
+  const tasks = getStoredTasks();
+  const updated = [];
+  tasks.forEach(task => {
+    const comboItem = task.comboId === comboId ? itemByKey[task.comboItemKey] : null;
+    if (!comboItem) return;
+    task.comboGroupTarget = groups;
+    task.comboDailyGroupTarget = dailyGroups;
+    task.comboPerGroup = comboItem.perGroup;
+    task.totalTarget = comboItem.perGroup * groups;
+    task.dailyTarget = comboItem.perGroup * dailyGroups;
+    updated.push(task);
+  });
+
+  saveTasks(tasks);
+  return updated;
+}
 function updateTask(id, updates) {
-  const tasks = getTasks();
+  const tasks = getStoredTasks();
   const idx = tasks.findIndex(t => t.id === id);
   if (idx === -1) return null;
   tasks[idx] = {...tasks[idx], ...updates};
@@ -147,16 +233,57 @@ function updateTask(id, updates) {
   return tasks[idx];
 }
 function deleteTask(id) {
-  let tasks = getTasks().filter(t => t.id !== id);
+  const allTasks = getStoredTasks();
+  const target = allTasks.find(t => t.id === id);
+  const removeIds = target && target.comboId
+    ? allTasks.filter(t => t.comboId === target.comboId).map(t => t.id)
+    : [id];
+  let tasks = allTasks.filter(t => !removeIds.includes(t.id));
   saveTasks(tasks);
   const allRecords = wx.getStorageSync(RECORDS_KEY) || {};
-  Object.keys(allRecords).forEach(d => delete allRecords[d][id]);
-  wx.setStorageSync(RECORDS_KEY, allRecords);
-  cloud.setList(cloud.TABLES.RECORDS, allRecords);
+  Object.keys(allRecords).forEach(d => {
+    removeIds.forEach(taskId => delete allRecords[d][taskId]);
+  });
+  saveAllRecords(allRecords);
+  syncAllRecordsToCloud(allRecords);
   return true;
 }
+function archiveTask(id) {
+  const tasks = getStoredTasks();
+  const target = tasks.find(t => t.id === id);
+  if (!target) return [];
+  const archivedAt = Date.now();
+  const archived = [];
+  tasks.forEach(task => {
+    if (task.id === id || (target.comboId && task.comboId === target.comboId)) {
+      task.archived = true;
+      task.archivedAt = archivedAt;
+      archived.push(task);
+    }
+  });
+  saveTasks(tasks);
+  return archived;
+}
+function restoreTask(id) {
+  const tasks = getStoredTasks();
+  const target = tasks.find(t => t.id === id);
+  if (!target) return [];
+  const maxSortOrder = tasks.reduce((max, task) => Math.max(max, task.sortOrder || 0), -1);
+  let nextSortOrder = maxSortOrder + 1;
+  const restored = [];
+  tasks.forEach(task => {
+    if (task.id === id || (target.comboId && task.comboId === target.comboId)) {
+      task.archived = false;
+      delete task.archivedAt;
+      task.sortOrder = nextSortOrder++;
+      restored.push(task);
+    }
+  });
+  saveTasks(tasks);
+  return restored;
+}
 function reorderTasks(orderedIds) {
-  const tasks = getTasks();
+  const tasks = getStoredTasks();
   orderedIds.forEach((id, i) => {
     const t = tasks.find(x => x.id === id);
     if (t) t.sortOrder = i;
@@ -167,11 +294,59 @@ function reorderTasks(orderedIds) {
 // ==================== 记数（核心） ====================
 /** 获取某日的所有记录 { taskId: count } */
 function getDayRecord(dateStr) {
-  return (wx.getStorageSync(RECORDS_KEY) || {})[dateStr] || {};
+  return getAllRecords()[dateStr] || {};
+}
+
+/** 获取已存档的经典组合，供重新启用 */
+function getArchivedClassicCombos() {
+  const grouped = {};
+  getStoredTasks()
+    .filter(task => task.archived && task.comboId && task.comboName === CLASSIC_COMBO_NAME)
+    .forEach(task => {
+      if (!grouped[task.comboId]) grouped[task.comboId] = [];
+      grouped[task.comboId].push(task);
+    });
+
+  return Object.keys(grouped).map(comboId => {
+    const comboTasks = grouped[comboId];
+    const first = comboTasks[0] || {};
+    const groupTarget = normalizeGroupCount(first.comboGroupTarget);
+    const dailyGroupTarget = normalizeGroupCount(first.comboDailyGroupTarget);
+    const total = comboTasks.reduce((sum, task) => sum + getTaskTotal(task.id), 0);
+    return {
+      comboId,
+      taskId: first.id,
+      name: first.comboName || CLASSIC_COMBO_NAME,
+      groupTarget,
+      dailyGroupTarget,
+      itemCount: comboTasks.length,
+      total,
+      archivedAt: first.archivedAt || 0
+    };
+  }).sort((a, b) => (b.archivedAt || 0) - (a.archivedAt || 0));
 }
 /** 获取所有日期记录 */
 function getAllRecords() {
-  return wx.getStorageSync(RECORDS_KEY) || {};
+  const records = wx.getStorageSync(RECORDS_KEY);
+  if (records && Object.keys(records).length > 0) return records;
+
+  const backup = wx.getStorageSync(RECORDS_BACKUP_KEY);
+  if (backup && backup.records) return backup.records;
+  return {};
+}
+
+function saveAllRecords(records) {
+  wx.setStorageSync(RECORDS_KEY, records);
+  wx.setStorageSync(RECORDS_BACKUP_KEY, {
+    updatedAt: Date.now(),
+    records
+  });
+}
+
+function syncAllRecordsToCloud(records) {
+  Object.keys(records || {}).forEach(dateStr => {
+    cloud.set(cloud.TABLES.RECORDS, dateStr, records[dateStr] || {});
+  });
 }
 
 /** +1 计数 */
@@ -179,7 +354,7 @@ function increment(taskId, dateStr, amount=1) {
   const records = getAllRecords();
   if (!records[dateStr]) records[dateStr] = {};
   records[dateStr][taskId] = (records[dateStr][taskId] || 0) + amount;
-  wx.setStorageSync(RECORDS_KEY, records);
+  saveAllRecords(records);
   cloud.set(cloud.TABLES.RECORDS, dateStr, records[dateStr]);
   return records[dateStr][taskId];
 }
@@ -189,7 +364,7 @@ function setCount(taskId, dateStr, count) {
   const records = getAllRecords();
   if (!records[dateStr]) records[dateStr] = {};
   records[dateStr][taskId] = Math.max(0, count | 0);
-  wx.setStorageSync(RECORDS_KEY, records);
+  saveAllRecords(records);
   cloud.set(cloud.TABLES.RECORDS, dateStr, records[dateStr]);
   return records[dateStr][taskId];
 }
@@ -199,7 +374,7 @@ function clearCount(taskId, dateStr) {
   const records = getAllRecords();
   if (records[dateStr]) {
     delete records[dateStr][taskId];
-    wx.setStorageSync(RECORDS_KEY, records);
+    saveAllRecords(records);
     cloud.set(cloud.TABLES.RECORDS, dateStr, records[dateStr] || {});
   }
 }
@@ -237,6 +412,54 @@ function getTaskTotal(taskId) {
   let total = 0;
   Object.values(records).forEach(day => { total += (day[taskId] || 0); });
   return total;
+}
+
+function buildClassicComboProgress(comboTasks) {
+  if (!comboTasks || comboTasks.length === 0) return null;
+  const first = comboTasks[0];
+  const groupTarget = normalizeGroupCount(first.comboGroupTarget);
+  const taskByKey = {};
+  comboTasks.forEach(task => { taskByKey[task.comboItemKey] = task; });
+  const itemProgress = CLASSIC_COMBO_ITEMS.map(item => {
+    const task = taskByKey[item.key];
+    const perGroup = item.perGroup;
+    const total = task ? getTaskTotal(task.id) : 0;
+    return {
+      taskId: task ? task.id : '',
+      name: item.name,
+      unit: item.unit,
+      perGroup,
+      total,
+      target: perGroup * groupTarget,
+      completedGroups: perGroup > 0 ? Math.floor(total / perGroup) : 0
+    };
+  });
+  const completedGroups = itemProgress.length
+    ? Math.min(...itemProgress.map(item => item.completedGroups))
+    : 0;
+  return {
+    comboId: first.comboId,
+    comboName: first.comboName || CLASSIC_COMBO_NAME,
+    groupTarget,
+    completedGroups,
+    itemProgress
+  };
+}
+
+/** 获取某个经典组合的组数进度；不传 comboId 时返回全部组合 */
+function getClassicComboProgress(comboId) {
+  const comboTasks = getTasks().filter(task => task.comboId && task.comboName === CLASSIC_COMBO_NAME);
+  const grouped = {};
+  comboTasks.forEach(task => {
+    if (!grouped[task.comboId]) grouped[task.comboId] = [];
+    grouped[task.comboId].push(task);
+  });
+
+  if (comboId) return buildClassicComboProgress(grouped[comboId] || []);
+
+  return Object.keys(grouped)
+    .map(id => buildClassicComboProgress(grouped[id]))
+    .filter(Boolean);
 }
 
 /** 获取连续天数（从今天往前算有记录的天数） */
@@ -486,12 +709,13 @@ function getTodayTotal() {
 }
 
 module.exports = {
-  BUILTIN,
+  BUILTIN, CLASSIC_COMBO_ID, CLASSIC_COMBO_NAME, CLASSIC_COMBO_ITEMS,
   getToday, getDateStr, prevDate,
-  getTasks, addTask, updateTask, deleteTask, removeTask: deleteTask, reorderTasks,
+  getTasks, addTask, addClassicComboTasks, updateClassicComboGroupTarget, updateTask, deleteTask, removeTask: deleteTask, archiveTask, restoreTask, getArchivedClassicCombos, reorderTasks,
   getDayRecord, getAllRecords, increment, setCount, clearCount,
   getDailyDetail, saveDailyDetail,
-  getTaskTotal, getStreakDays, getTodaySummary, getTaskRecent, getYesterdayIncomplete,
+  getTaskTotal, getClassicComboTargets, getClassicComboProgress,
+  getStreakDays, getTodaySummary, getTaskRecent, getYesterdayIncomplete,
   searchBuiltin,
   getRandomQuote, getRandomMotto, getGlobalStreakDays, getTodayTotal
 };

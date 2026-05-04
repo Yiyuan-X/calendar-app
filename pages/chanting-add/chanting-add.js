@@ -6,6 +6,9 @@ Page({
   data: {
     keyword: '',
     results: [],
+    archivedClassicCombos: [],
+    classicGroupTarget: '1',
+    classicPreview: [],
     customName: '',
     customTarget: '',
     customTotalTarget: '',
@@ -15,6 +18,8 @@ Page({
   onShow() {
     share.enableShareMenu();
     getApp().applyDisplaySettings(this);
+    this.refreshClassicPreview();
+    this.refreshArchivedClassicCombos();
     this.doSearch('');
   },
 
@@ -39,6 +44,10 @@ Page({
   /** 添加内置功课 */
   onAddBuiltin(e) {
     const item = e.currentTarget.dataset.item;
+    if (item && item.combo) {
+      this.onCreateClassicCombo();
+      return;
+    }
     const task = chant.addTask(item.name, item.unit, 0, 0, false, item.id);
     wx.showToast({ title: '已添加「' + item.name + '」', icon: 'success' });
     this.doSearch(this.data.keyword);
@@ -66,6 +75,52 @@ Page({
   onTargetInput(e) { this.setData({ customTarget: e.detail.value }); },
   onTotalTargetInput(e) { this.setData({ customTotalTarget: e.detail.value }); },
   onUnitInput(e) { this.setData({ customUnit: e.detail.value || '遍' }); },
+  onClassicGroupInput(e) {
+    this.setData({ classicGroupTarget: e.detail.value });
+    this.refreshClassicPreview(e.detail.value);
+  },
+
+  refreshClassicPreview(value) {
+    const groupTarget = value == null ? this.data.classicGroupTarget : value;
+    const preview = chant.getClassicComboTargets(parseInt(groupTarget) || 0);
+    this.setData({ classicPreview: preview });
+  },
+
+  refreshArchivedClassicCombos() {
+    const archivedClassicCombos = chant.getArchivedClassicCombos().map(combo => ({
+      ...combo,
+      dailyText: combo.dailyGroupTarget > 0 ? '每日 ' + combo.dailyGroupTarget + '组' : '未设每日目标',
+      totalText: '总目标 ' + combo.groupTarget + '组',
+      countText: '累计 ' + combo.total
+    }));
+    this.setData({ archivedClassicCombos });
+  },
+
+  onRestoreClassicCombo(e) {
+    const comboId = e.currentTarget.dataset.comboId;
+    const item = (this.data.archivedClassicCombos || []).find(combo => combo.comboId === comboId);
+    if (!item || !item.taskId) return;
+    chant.restoreTask(item.taskId);
+    wx.showToast({ title: '已恢复经典组合', icon: 'success' });
+    this.refreshArchivedClassicCombos();
+    setTimeout(() => { wx.navigateBack(); }, 700);
+  },
+
+  onCreateClassicCombo() {
+    const groupTarget = parseInt(this.data.classicGroupTarget) || 0;
+    if (groupTarget <= 0) {
+      wx.showToast({ title: '请输入目标组数', icon: 'none' });
+      return;
+    }
+
+    const tasks = chant.addClassicComboTasks(groupTarget);
+    if (!tasks.length) {
+      wx.showToast({ title: '添加失败', icon: 'none' });
+      return;
+    }
+    wx.showToast({ title: '已添加经典组合', icon: 'success' });
+    setTimeout(() => { wx.navigateBack(); }, 700);
+  },
 
   onCreateCustom() {
     const name = this.data.customName.trim();

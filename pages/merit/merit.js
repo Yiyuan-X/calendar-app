@@ -42,6 +42,7 @@ Page({
     currentGoodTotal: 0,
     currentBadTotal: 0,
     currentNetMerit: 0,
+    currentNetGongDe: 0,
 
     // 统计概览
     stats: null,
@@ -118,7 +119,7 @@ Page({
       });
 
       wx.setNavigationBarTitle({
-        title: `${parts[0]}年${parts[1]}月${parts[2]}日 · 功过格`
+        title: `${parts[0]}年${parts[1]}月${parts[2]}日 · 积善`
       });
     }
 
@@ -255,6 +256,7 @@ Page({
       currentGoodTotal: goodTotal,
       currentBadTotal: badTotal,
       currentNetMerit: goodTotal - badTotal,
+      currentNetGongDe: meritUtil.calculateGongDe(goodTotal - badTotal),
       goodDisplayList,
       badDisplayList
     });
@@ -410,6 +412,7 @@ Page({
       currentGoodTotal: goodTotal,
       currentBadTotal: badTotal,
       currentNetMerit: goodTotal - badTotal,
+      currentNetGongDe: meritUtil.calculateGongDe(goodTotal - badTotal),
       goodDisplayList,
       badDisplayList
     }, () => {
@@ -461,6 +464,7 @@ Page({
       currentGoodTotal: goodTotal,
       currentBadTotal: badTotal,
       currentNetMerit: goodTotal - badTotal,
+      currentNetGongDe: meritUtil.calculateGongDe(goodTotal - badTotal),
       goodDisplayList,
       badDisplayList
     }, () => {
@@ -573,6 +577,7 @@ Page({
       currentGoodTotal: goodTotal,
       currentBadTotal: badTotal,
       currentNetMerit: goodTotal - badTotal,
+      currentNetGongDe: meritUtil.calculateGongDe(goodTotal - badTotal),
       goodDisplayList,
       badDisplayList
     }, () => {
@@ -752,7 +757,7 @@ Page({
     }
 
     if (!score) {
-      wx.showToast({ title: '请输入大于0的分数', icon: 'none' });
+      wx.showToast({ title: '请输入大于0的善数', icon: 'none' });
       return;
     }
 
@@ -828,7 +833,7 @@ Page({
     const { dateStr, selectedItems, reflectionNote } = this.data;
 
     if (selectedItems.length === 0 && !reflectionNote.trim()) {
-      wx.showToast({ title: '请至少选择功过或填写反省', icon: 'none' });
+      wx.showToast({ title: '请至少选择积善/削善或填写反省', icon: 'none' });
       return;
     }
 
@@ -850,7 +855,7 @@ Page({
   onClear() {
     wx.showModal({
       title: '确认清除',
-      content: '确定要清除今日的功过记录吗？',
+      content: '确定要清除今日的积善记录吗？',
       confirmText: '清除',
       confirmColor: '#FF3B30',
       success: (res) => {
@@ -862,7 +867,8 @@ Page({
             hasExistingRecord: false,
             currentGoodTotal: 0,
             currentBadTotal: 0,
-            currentNetMerit: 0
+            currentNetMerit: 0,
+            currentNetGongDe: 0
           });
           this.loadCategories();
           this.loadCustomItems();
@@ -883,7 +889,7 @@ Page({
     var { displayDate, currentNetMerit } = this.data;
     var netText = currentNetMerit >= 0 ? ('+' + currentNetMerit) : String(currentNetMerit);
     return {
-      title: displayDate + ' 功过格 净德分' + netText + ' · 岁时记',
+      title: displayDate + ' 积善 净善' + netText + ' · 岁时记',
       path: '/pages/merit/merit'
     };
   },
@@ -892,7 +898,7 @@ Page({
     var { displayDate, currentNetMerit } = this.data;
     var netText = currentNetMerit >= 0 ? ('+' + currentNetMerit) : String(currentNetMerit);
     return share.timeline({
-      title: displayDate + ' 功过格 净德分' + netText + ' · 岁时记'
+      title: displayDate + ' 积善 净善' + netText + ' · 岁时记'
     });
   },
 
@@ -1001,7 +1007,7 @@ Page({
 
   buildMeritCsv(records, notes, dates) {
     const rows = [
-      ['日期', '类型', '条目', '单次分数', '次数', '小计', '今日反省', '日期备注', '功过更新时间', '备注更新时间']
+      ['日期', '类型', '条目', '单次善数', '次数', '小计善数', '今日反省', '日期备注', '积善更新时间', '备注更新时间']
     ];
 
     dates.forEach(dateStr => {
@@ -1035,7 +1041,7 @@ Page({
         const total = score * count;
         rows.push([
           dateStr,
-          item.type === 'good' ? '善行' : '过失',
+          item.type === 'good' ? '积善' : '削善',
           item.text || '',
           score,
           count,
@@ -1089,7 +1095,7 @@ Page({
     return `${y}-${m}-${d} ${hh}:${mm}`;
   },
 
-  /** 生成分享海报（功过格版） */
+  /** 生成分享海报（功过格版 — 垂直居中布局 + 金句卡片 + 自定义二维码） */
   generateShareImage(callback) {
     var that = this;
     var dd = that.data.displayDate || '';
@@ -1097,6 +1103,9 @@ Page({
     var goodTotal = that.data.currentGoodTotal || 0;
     var badTotal = that.data.currentBadTotal || 0;
     var net = that.data.currentNetMerit || 0;
+    var levelInfo = that.data.meritLevel || null;
+    var streakDays = that.data.streakDays || 0;
+    var totalDays = that.data.totalDays || 0;
 
     wx.showLoading({ title: '正在生成...' });
 
@@ -1110,12 +1119,12 @@ Page({
       var ctx = canvas.getContext('2d');
       var dpr = wx.getSystemInfoSync().pixelRatio;
 
-      var W = 500, H = 750;
+      var W = 500, H = 900;
       canvas.width = W * dpr; canvas.height = H * dpr;
       ctx.scale(dpr, dpr);
 
       try {
-        // 背景
+        // ===== 背景 =====
         var bgGrad = ctx.createLinearGradient(0, 0, W, H);
         bgGrad.addColorStop(0, '#FFF8E7'); bgGrad.addColorStop(1, '#FFF3D6');
         ctx.fillStyle = bgGrad; ctx.fillRect(0, 0, W, H);
@@ -1124,57 +1133,121 @@ Page({
         ctx.strokeStyle = '#DAA520'; ctx.lineWidth = 2;
         ctx.strokeRect(15, 15, W - 30, H - 30);
 
-        // 标题
-        ctx.fillStyle = '#8B6914'; ctx.font = 'bold 36px sans-serif';
-        ctx.textAlign = 'center'; ctx.fillText('功过格 · 岁时记', W / 2, 70);
+        // 内框装饰线
+        ctx.strokeStyle = 'rgba(218,165,32,0.2)'; ctx.lineWidth = 1;
+        ctx.strokeRect(22, 22, W - 44, H - 44);
 
-        // 日期
-        ctx.fillStyle = '#5D4037'; ctx.font = '26px sans-serif';
-        ctx.fillText(dd, W / 2, 115);
+        // ===== 标题 =====
+        ctx.fillStyle = '#8B6914'; ctx.font = 'bold 42px sans-serif';
+        ctx.textAlign = 'center'; ctx.fillText('积善 · 岁时记', W / 2, 68);
 
-        // 引文
-        if (quote) {
-          ctx.fillStyle = '#6D5A2E'; ctx.font = '20px sans-serif';
-          ctx.textAlign = 'center';
-          var shortQuote = quote.length > 20 ? quote.substring(0, 20) + '...' : quote;
-          ctx.fillText('「' + shortQuote + '」', W / 2, 155);
-        }
+        // ===== 日期 =====
+        ctx.fillStyle = '#5D4037'; ctx.font = '28px sans-serif';
+        ctx.fillText(dd, W / 2, 108);
 
-        // 分数卡片区域
-        var cardY = 200;
-        ctx.fillStyle = '#fff';
-        roundRect(ctx, 30, cardY, W - 60, 160, 16);
+        // ===== 金句卡片（带背景框，防止溢出） =====
+        var quoteH = 80;
+        if (quote && quote.length > 12) quoteH = 100;
+        var quoteY = 135;
+        ctx.fillStyle = 'rgba(255,255,255,0.65)';
+        roundRect(ctx, 35, quoteY, W - 70, quoteH, 14);
         ctx.fill();
-        ctx.strokeStyle = 'rgba(218,165,32,0.2)';
+        ctx.strokeStyle = 'rgba(218,165,32,0.15)';
         ctx.lineWidth = 1;
-        roundRect(ctx, 30, cardY, W - 60, 160, 16);
+        roundRect(ctx, 35, quoteY, W - 70, quoteH, 14);
         ctx.stroke();
 
-        // 善行
-        ctx.fillStyle = '#2E7D32'; ctx.font = 'bold 22px sans-serif';
-        ctx.textAlign = 'left'; ctx.fillText('善行', 55, cardY + 45);
-        ctx.fillStyle = '#2E7D32'; ctx.font = 'bold 48px sans-serif';
-        ctx.textAlign = 'center'; ctx.fillText('+' + goodTotal, W / 2, cardY + 85);
+        if (quote) {
+          ctx.fillStyle = '#6D5A2E'; ctx.font = 'bold 23px sans-serif';
+          ctx.textAlign = 'center';
+          // 居中绘制，限制最大宽度确保不越界
+          that._wrapTextCenter(ctx, '「' + quote + '」', W / 2, quoteY + 38, W - 90, 30);
+        }
 
-        // 过失
-        ctx.fillStyle = '#C62828'; ctx.font = 'bold 22px sans-serif';
-        ctx.textAlign = 'left'; ctx.fillText('过失', 55, cardY + 120);
-        ctx.fillStyle = '#C62828'; ctx.font = 'bold 32px sans-serif';
-        ctx.textAlign = 'center'; ctx.fillText('-' + badTotal, W / 2, cardY + 150);
+        // ===== 分数卡片 =====
+        var cardY = quoteY + quoteH + 18;
+        var cardW = W - 56;
+        var cardH = 210;
 
-        // 净德分
+        ctx.fillStyle = '#FFFFFF';
+        roundRect(ctx, 28, cardY, cardW, cardH, 20);
+        ctx.fill();
+        ctx.strokeStyle = 'rgba(218,165,32,0.18)';
+        ctx.lineWidth = 1;
+        roundRect(ctx, 28, cardY, cardW, cardH, 20);
+        ctx.stroke();
+
+        // 积善（标签与数字同一行，垂直居中对齐）
+        var row1CenterY = cardY + 70;
+        ctx.fillStyle = '#2E7D32'; ctx.font = 'bold 30px sans-serif';
+        ctx.textAlign = 'left'; ctx.fillText('积善', 52, row1CenterY);
+        ctx.fillStyle = '#2E7D32'; ctx.font = 'bold 56px sans-serif';
+        ctx.textAlign = 'center'; ctx.fillText('+' + goodTotal, W / 2 - 10, row1CenterY + 8);
+
+        // 分割线
+        var dividerY = cardY + 115;
+        ctx.strokeStyle = 'rgba(0,0,0,0.07)'; ctx.lineWidth = 1;
+        ctx.beginPath(); ctx.moveTo(50, dividerY); ctx.lineTo(W - 50, dividerY); ctx.stroke();
+
+        // 削善（标签与数字同一行，垂直居中对齐）
+        var row2CenterY = cardY + 162;
+        ctx.fillStyle = '#C62828'; ctx.font = 'bold 30px sans-serif';
+        ctx.textAlign = 'left'; ctx.fillText('削善', 52, row2CenterY);
+        ctx.fillStyle = '#C62828'; ctx.font = 'bold 46px sans-serif';
+        ctx.textAlign = 'center'; ctx.fillText('-' + badTotal, W / 2 - 10, row2CenterY + 6);
+
+        // ===== 净善 / 功德 =====
         var netColor = net >= 0 ? '#2E7D32' : '#C62828';
         var netStr = net >= 0 ? ('+' + net) : String(net);
-        ctx.fillStyle = netColor; ctx.font = 'bold 42px sans-serif';
-        ctx.textAlign = 'center'; ctx.fillText('净德分：' + netStr, W / 2, cardY + 210);
+        ctx.fillStyle = netColor; ctx.font = 'bold 46px sans-serif';
+        ctx.textAlign = 'center'; ctx.fillText('净善：' + netStr, W / 2, cardY + cardH + 45);
+        ctx.fillStyle = '#8B6914'; ctx.font = '22px sans-serif';
+        ctx.fillText('折算功德：' + meritUtil.calculateGongDe(net), W / 2, cardY + cardH + 78);
 
-        // 底部品牌
-        ctx.fillStyle = '#AEAEB2'; ctx.font = '13px sans-serif';
-        ctx.fillText('— 积善修身 · 岁时记 —', W / 2, H - 50);
-        ctx.font = '11px sans-serif';
-        ctx.fillText('长按识别小程序码查看更多', W / 2, H - 25);
+        // ===== 等级评语卡片 =====
+        var contentBottom = cardY + cardH + 78;
+        if (levelInfo) {
+          var lvlY = contentBottom + 30;
+          var lvlW = W - 56;
+          var lvlH = 88;
 
-        poster.drawPromotionCode(canvas, ctx, { x: W - 116, y: H - 150, size: 76 }, function() {
+          var lvlBg = ctx.createLinearGradient(28, lvlY, 28, lvlY + lvlH);
+          lvlBg.addColorStop(0, levelInfo.color || '#8B6914');
+          lvlBg.addColorStop(1, that._adjustColor(levelInfo.color || '#8B6914', -20));
+          ctx.fillStyle = lvlBg;
+          roundRect(ctx, 28, lvlY, lvlW, lvlH, 16);
+          ctx.fill();
+
+          ctx.fillStyle = '#FFFFFF'; ctx.font = 'bold 28px sans-serif';
+          ctx.textAlign = 'center'; ctx.fillText(levelInfo.title || '', W / 2, lvlY + 36);
+          ctx.fillStyle = 'rgba(255,255,255,0.88)'; ctx.font = '19px sans-serif';
+          ctx.fillText(levelInfo.desc || '', W / 2, lvlY + 64);
+
+          contentBottom = lvlY + lvlH;
+        }
+
+        // ===== 统计信息 =====
+        if (streakDays > 0 || totalDays > 0) {
+          contentBottom += 24;
+          ctx.fillStyle = '#B8860B'; ctx.font = '19px sans-serif';
+          ctx.textAlign = 'center';
+          var statText = '已记录 ' + totalDays + ' 天';
+          if (streakDays > 0) statText += ' · 连续 ' + streakDays + ' 天';
+          ctx.fillText(statText, W / 2, contentBottom);
+        }
+
+        // ===== 底部品牌 =====
+        ctx.fillStyle = '#AEAEB2'; ctx.font = '16px sans-serif';
+        ctx.textAlign = 'center';
+        ctx.fillText('— 积善修身 · 岁时记 —', W / 2, H - 52);
+        ctx.font = '13px sans-serif';
+        ctx.fillText('长按识别小程序码查看更多', W / 2, H - 26);
+
+        // 自定义二维码
+        poster.drawPromotionCode(canvas, ctx, {
+          x: W - 116, y: H - 150, size: 76,
+          src: '/images/PQ_merit.png'
+        }, function() {
           setTimeout(function() {
             wx.canvasToTempFilePath({
               canvas: canvas, width: W, height: H,
@@ -1194,6 +1267,65 @@ Page({
         console.error('绘制出错:', e); wx.hideLoading(); callback({ success: false });
       }
     });
+  },
+
+  /** 颜色变暗/变亮辅助（用于等级卡渐变） */
+  _adjustColor: function(hex, amount) {
+    if (!hex || hex.length < 7) return hex;
+    try {
+      var r = Math.max(0, Math.min(255, parseInt(hex.slice(1, 3), 16) + amount));
+      var g = Math.max(0, Math.min(255, parseInt(hex.slice(3, 5), 16) + amount));
+      var b = Math.max(0, Math.min(255, parseInt(hex.slice(5, 7), 16) + amount));
+      return '#' + ('0' + r.toString(16)).slice(-2) + ('0' + g.toString(16)).slice(-2) + ('0' + b.toString(16)).slice(-2);
+    } catch(e) { return hex; }
+  },
+
+  /** 文字自动换行绘制（左对齐） */
+  _wrapText: function(ctx, text, x, y, maxWidth, lineHeight) {
+    if (!text) return y;
+    var chars = text.split('');
+    var line = '';
+    var curY = y;
+    for (var i = 0; i < chars.length; i++) {
+      var testLine = line + chars[i];
+      var metrics = ctx.measureText(testLine);
+      if (metrics.width > maxWidth && line.length > 0) {
+        ctx.fillText(line, x, curY);
+        line = chars[i];
+        curY += lineHeight;
+      } else {
+        line = testLine;
+      }
+    }
+    if (line) {
+      ctx.fillText(line, x, curY);
+      curY += lineHeight;
+    }
+    return curY;
+  },
+
+  /** 文字自动换行 + 居中绘制（每行居中于 centerX） */
+  _wrapTextCenter: function(ctx, text, centerX, y, maxWidth, lineHeight) {
+    if (!text) return y;
+    var chars = text.split('');
+    var line = '';
+    var curY = y;
+    for (var i = 0; i < chars.length; i++) {
+      var testLine = line + chars[i];
+      var metrics = ctx.measureText(testLine);
+      if (metrics.width > maxWidth && line.length > 0) {
+        ctx.fillText(line, centerX, curY);
+        line = chars[i];
+        curY += lineHeight;
+      } else {
+        line = testLine;
+      }
+    }
+    if (line) {
+      ctx.fillText(line, centerX, curY);
+      curY += lineHeight;
+    }
+    return curY;
   }
 
 });

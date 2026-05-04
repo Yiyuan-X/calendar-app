@@ -13,17 +13,43 @@
     <!-- 目标设置 -->
     <view class="target-setting {{highlightTarget ? 'target-setting-highlight' : ''}}">
       <view class="ts-label"><image class="inline-icon" src="/images/icons/gen-gear.svg" mode="aspectFit"></image><text>目标设置</text></view>
-      <view class="ts-row">
-        <view class="ts-item">
+      <view class="combo-target-wrap" wx:if="{{task.comboId}}">
+        <view class="combo-target-row">
+          <text class="ts-name combo-target-name">组合总目标</text>
+          <input class="ts-input combo-target-input" type="number" placeholder="如 100" value="{{editComboGroupTarget}}" bindinput="onComboGroupTargetInput" bindconfirm="saveTargets" />
+          <text class="ts-unit">组</text>
+        </view>
+        <view class="combo-target-row combo-daily-row">
+          <text class="ts-name combo-target-name">组合每日目标</text>
+          <input class="ts-input combo-target-input" type="number" placeholder="不限" value="{{editComboDailyGroupTarget}}" bindinput="onComboDailyGroupTargetInput" bindconfirm="saveTargets" />
+          <text class="ts-unit">组</text>
+        </view>
+        <view class="combo-preview-mini">
+          <text wx:for="{{comboPreview}}" wx:key="key">{{item.name}} {{item.target}}{{item.unit}}</text>
+        </view>
+        <view class="combo-preview-mini combo-preview-daily" wx:if="{{comboDailyPreview.length > 0}}">
+          <text wx:for="{{comboDailyPreview}}" wx:key="key">每日 {{item.name}} {{item.target}}{{item.unit}}</text>
+        </view>
+      </view>
+      <view class="ts-row {{task.comboId ? 'combo-item-target-row' : ''}}">
+        <view class="ts-item" wx:if="{{!task.comboId}}">
           <text class="ts-name">每日目标</text>
           <input class="ts-input" type="number" placeholder="不限" value="{{editDailyTarget}}" bindinput="onDailyTargetInput" bindconfirm="saveDailyTarget" />
           <text class="ts-unit">{{task.unit}}</text>
         </view>
+        <view class="ts-item" wx:else>
+          <text class="ts-name">本项每日目标</text>
+          <text class="combo-total-readonly">{{editDailyTarget || '不限'}}{{editDailyTarget ? task.unit : ''}}</text>
+        </view>
         <view class="ts-divider"></view>
-        <view class="ts-item">
+        <view class="ts-item" wx:if="{{!task.comboId}}">
           <text class="ts-name">总目标</text>
           <input class="ts-input" type="number" placeholder="不限" value="{{editTotalTarget}}" bindinput="onTotalTargetInput" bindconfirm="saveTotalTarget" />
           <text class="ts-unit">{{task.unit}}</text>
+        </view>
+        <view class="ts-item" wx:else>
+          <text class="ts-name">本项总目标</text>
+          <text class="combo-total-readonly">{{editTotalTarget || 0}}{{task.unit}}</text>
         </view>
       </view>
       <view class="ts-save-row">
@@ -99,9 +125,9 @@
   <view class="tab-panel" wx:if="{{activeTab === 'count'}}">
     <view class="card">
       <view class="quick-row">
-        <view class="q-btn q-btn-1" catchtap="onQuick" data-n="21"><text>+21</text></view>
-        <view class="q-btn q-btn-10" catchtap="onQuick" data-n="49"><text>+49</text></view>
-        <view class="q-btn q-btn-100" catchtap="onQuick" data-n="108"><text>+108</text></view>
+        <view class="q-btn q-btn-1" catchtap="onQuick" data-n="{{quickButtons[0]}}"><text>+{{quickButtons[0]}}</text></view>
+        <view class="q-btn q-btn-10" catchtap="onQuick" data-n="{{quickButtons[1]}}"><text>+{{quickButtons[1]}}</text></view>
+        <view class="q-btn q-btn-100" catchtap="onQuick" data-n="{{quickButtons[2]}}"><text>+{{quickButtons[2]}}</text></view>
       </view>
       <view class="manual-row">
         <input class="m-input" type="number" placeholder="手动输入数量" value="{{manualNum}}" bindinput="onManualInput"/>
@@ -159,14 +185,28 @@
     <view class="card">
       <scroll-view scroll-y style="max-height:500rpx;">
         <view class="record-list">
-          <view class="r-item" wx:for="{{recentRecords}}" wx:key="date">
-            <text class="r-date">{{item.date}}</text>
-            <text class="r-count">{{item.count}}</text><text class="r-unit">{{task.unit}}</text>
+          <!-- 可编辑/可删除的记录项 -->
+          <view class="r-row" wx:for="{{recentRecords}}" wx:key="date">
+            <view class="r-item {{editingIndex === index ? 'r-item-editing' : ''}}" bindtap="onRecordTap" data-index="{{index}}" data-date="{{item.date}}" data-count="{{item.count}}">
+              <text class="r-date">{{item.date}}</text>
+              <!-- 点击后变为输入框 -->
+              <block wx:if="{{editingIndex === index}}">
+                <input class="r-input" type="number" value="{{editCount}}" focus="{{editingIndex === index}}" bindinput="onEditCountInput" bindconfirm="saveEditCount" bindblur="saveEditCount" data-index="{{index}}" />
+              </block>
+              <block wx:else>
+                <text class="r-count">{{item.count}}</text><text class="r-unit">{{task.unit}}</text>
+              </block>
+            </view>
+            <!-- 删除按钮（始终显示） -->
+            <view class="r-del-btn" catchtap="onDeleteRecord" data-index="{{index}}" data-date="{{item.fullDate || item.date}}">
+              <image class="r-del-icon" src="/images/icons/gen-cross.svg" mode="aspectFit"></image>
+            </view>
           </view>
           <view wx:if="{{recentRecords.length === 0}}" class="r-empty">暂无记录</view>
         </view>
       </scroll-view>
     </view>
+    <view class="r-tip" wx:if="{{recentRecords.length > 0}}"><text>点击数字可修改 · 点 ✕ 删除</text></view>
   </view>
 
   <!-- 操作按钮 -->

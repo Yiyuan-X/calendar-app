@@ -5,9 +5,18 @@
     <view class="nav-btn" bindtap="prevMonth">
       <text class="nav-arrow">‹</text>
     </view>
-    <view class="month-title" bindtap="goToToday">
-      <text class="year-text">{{currentYear}}</text>
-      <text class="month-text">{{currentMonth}}月</text>
+    <view class="month-title">
+      <picker
+        mode="date"
+        fields="year"
+        start="1900-01-01"
+        end="2100-12-31"
+        value="{{yearPickerValue}}"
+        bindchange="onYearChange"
+      >
+        <text class="year-text">{{currentYear}}</text>
+      </picker>
+      <text class="month-text" bindtap="goToToday">{{currentMonth}}月</text>
     </view>
     <view class="nav-btn" bindtap="nextMonth">
       <text class="nav-arrow">›</text>
@@ -15,7 +24,7 @@
   </view>
 
   <!-- 回到今天按钮（非当月时显示） -->
-  <view class="back-today-bar" wx:if="{{!isCurrentMonth}}" bindtap="goToToday">
+  <view class="back-today-bar" wx:if="{{!isTodaySelected}}" bindtap="goToToday">
     <text class="back-today-icon-text">◉</text>
     <text class="back-today-text">回到今天 {{todayDisplay}}</text>
   </view>

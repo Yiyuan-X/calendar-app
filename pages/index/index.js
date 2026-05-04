@@ -391,12 +391,12 @@ Page({
     this.loadUpcomingEvents();
     this.loadUpcomingFestivals();
 
-    // 加载今日功过格数据
+    // 加载今日积善数据
     this.loadTodayMerit();
   },
 
   /**
-   * 加载今日功过格净功德
+   * 加载今日净善
    */
   loadTodayMerit() {
     const todayRecord = storage.getMeritRecordByDate(this.data.todayStr);
@@ -673,12 +673,17 @@ goToMerit() {
 
   noop() {},
 
-  /** 生成分享海报（首页版） */
+  /** 生成分享海报（首页版 — 含节气卡片 + 自定义二维码） */
   generateShareImage(callback) {
     var that = this;
     var ti = this.data.todayInfo;
     var quote = this.data.dailyQuote || '';
     var festivals = this.data.todayFestivals || [];
+    // 节气数据
+    var stName = that.data.todaySolarTermName || that.data.currentSolarTermName || '';
+    var stHealth = that.data.todaySolarTermHealth || null;
+    var stPeriod = that.data.todaySolarTermPeriod || that.data.currentSolarTermPeriod || '';
+    var vegTip = that.data.dailyVegetarianTip || '';
 
     wx.showLoading({ title: '正在生成...' });
 
@@ -692,12 +697,14 @@ goToMerit() {
       var ctx = canvas.getContext('2d');
       var dpr = wx.getSystemInfoSync().pixelRatio;
 
-      var W = 500, H = 750;
+      // 根据是否有节气内容动态调整高度
+      var hasSTContent = !!(stName && (stHealth || stPeriod));
+      var W = 500, H = hasSTContent ? 780 : 650;
       canvas.width = W * dpr; canvas.height = H * dpr;
       ctx.scale(dpr, dpr);
 
       try {
-        // 背景
+        // ===== 背景 =====
         var bgGrad = ctx.createLinearGradient(0, 0, W, H);
         bgGrad.addColorStop(0, '#FFF8E7'); bgGrad.addColorStop(1, '#FFF3D6');
         ctx.fillStyle = bgGrad; ctx.fillRect(0, 0, W, H);
@@ -706,37 +713,94 @@ goToMerit() {
         ctx.strokeStyle = '#DAA520'; ctx.lineWidth = 2;
         ctx.strokeRect(15, 15, W - 30, H - 30);
 
-        // 标题
-        ctx.fillStyle = '#8B6914'; ctx.font = 'bold 36px sans-serif';
-        ctx.textAlign = 'center'; ctx.fillText('今日 · 岁时记', W / 2, 70);
+        // ===== 标题 =====
+        ctx.fillStyle = '#8B6914'; ctx.font = 'bold 40px sans-serif';
+        ctx.textAlign = 'center'; ctx.fillText('今日 · 岁时记', W / 2, 58);
 
-        // 日期
+        // ===== 日期 =====
         ctx.fillStyle = '#5D4037'; ctx.font = '28px sans-serif';
-        ctx.fillText((ti.year || '') + '年' + (ti.month || '') + '月' + (ti.day || '') + '日', W / 2, 115);
+        ctx.fillText((ti.year || '') + '年' + (ti.month || '') + '月' + (ti.day || '') + '日', W / 2, 98);
 
         // 农历
-        ctx.fillStyle = '#A08520'; ctx.font = '20px sans-serif';
-        ctx.fillText((ti.lunarMonth || '') + (ti.lunarDay || ''), W / 2, 148);
+        ctx.fillStyle = '#A08520'; ctx.font = '22px sans-serif';
+        ctx.fillText((ti.lunarMonth || '') + (ti.lunarDay || ''), W / 2, 130);
 
         // 节日标签
+        var curY = 164;
         if (festivals.length > 0) {
-          ctx.fillStyle = '#D93B3B'; ctx.font = '18px sans-serif';
+          ctx.fillStyle = '#D93B3B'; ctx.font = '19px sans-serif';
           var festNames = festivals.map(function(f) { return f.name; }).join(' · ');
-          ctx.fillText(festNames, W / 2, 180);
+          ctx.fillText(festNames, W / 2, curY);
+          curY += 28;
         }
 
-        // 金句区域
-        ctx.fillStyle = '#6D5A2E'; ctx.font = 'bold 24px sans-serif';
+        // ===== 金句区域 =====
+        ctx.fillStyle = '#6D5A2E'; ctx.font = 'bold 25px sans-serif';
         ctx.textAlign = 'center';
-        ctx.fillText('「' + quote + '」', W / 2, 250);
+        ctx.fillText('「' + quote + '」', W / 2, curY + 48);
 
-        // 底部品牌
-        ctx.fillStyle = '#AEAEB2'; ctx.font = '13px sans-serif';
-        ctx.fillText('— 岁时记 · 记录时光 —', W / 2, H - 50);
-        ctx.font = '11px sans-serif';
-        ctx.fillText('长按识别小程序码查看更多', W / 2, H - 25);
+        // ===== 节气卡片（紧凑版） =====
+        if (hasSTContent) {
+          var cardX = 30, cardW = W - 60;
+          var cardY = curY + 78;
+          var cardPadding = 18;
 
-        poster.drawPromotionCode(canvas, ctx, { x: W - 116, y: H - 150, size: 76 }, function() {
+          // 卡片背景（圆角矩形）
+          ctx.fillStyle = 'rgba(255, 252, 240, 0.9)';
+          that._drawRoundRect(ctx, cardX, cardY, cardW, 230, 14);
+          ctx.fill();
+
+          // 左侧金色竖条
+          ctx.fillStyle = '#FFB300';
+          ctx.fillRect(cardX, cardY, 4, 230);
+
+          // 节气标题行
+          var ty = cardY + 32;
+          ctx.fillStyle = '#5D4037'; ctx.font = 'bold 24px sans-serif';
+          ctx.textAlign = 'left';
+          ctx.fillText('当前节气：' + stName, cardX + cardPadding, ty);
+
+          // 时间段
+          if (stPeriod) {
+            ty += 30;
+            ctx.fillStyle = '#B8860B'; ctx.font = '20px sans-serif';
+            ctx.fillText(stPeriod, cardX + cardPadding, ty);
+          }
+
+          // 养生描述
+          if (stHealth) {
+            if (stHealth.desc) {
+              ty += 30;
+              ctx.fillStyle = '#374151'; ctx.font = '19px sans-serif';
+              that._wrapText(ctx, stHealth.desc, cardX + cardPadding, ty, cardW - cardPadding * 2, 26);
+            }
+            if (stHealth.health) {
+              ty += 30;
+              ctx.fillStyle = '#4B5563'; ctx.font = '18px sans-serif';
+              that._wrapText(ctx, stHealth.health, cardX + cardPadding, ty, cardW - cardPadding * 2, 25);
+            }
+          }
+
+          // 今日推荐（vegTip 已自带【今日推荐】前缀，不再重复绘制标题）
+          if (vegTip) {
+            ty += 34;
+            ctx.fillStyle = '#4B5563'; ctx.font = '19px sans-serif';
+            that._wrapText(ctx, vegTip, cardX + cardPadding, ty, cardW - cardPadding * 2, 29);
+          }
+        }
+
+        // ===== 底部品牌 =====
+        ctx.textAlign = 'center';
+        ctx.fillStyle = '#AEAEB2'; ctx.font = '15px sans-serif';
+        ctx.fillText('— 岁时记 · 记录时光 —', W / 2, H - 46);
+        ctx.font = '12px sans-serif';
+        ctx.fillText('长按识别小程序码查看更多', W / 2, H - 24);
+
+        // 使用自定义二维码图片
+        poster.drawPromotionCode(canvas, ctx, {
+          x: W - 110, y: H - 140, size: 72,
+          src: '/images/PQ_today.png'
+        }, function() {
           setTimeout(function() {
             wx.canvasToTempFilePath({
               canvas: canvas, width: W, height: H,
@@ -756,5 +820,45 @@ goToMerit() {
         console.error('绘制出错:', e); wx.hideLoading(); callback({ success: false });
       }
     });
+  },
+
+  /** 绘制圆角矩形路径 */
+  _drawRoundRect: function(ctx, x, y, w, h, r) {
+    r = r || 8;
+    ctx.beginPath();
+    ctx.moveTo(x + r, y);
+    ctx.lineTo(x + w - r, y);
+    ctx.arcTo(x + w, y, x + w, y + r, r);
+    ctx.lineTo(x + w, y + h - r);
+    ctx.arcTo(x + w, y + h, x + w - r, y + h, r);
+    ctx.lineTo(x + r, y + h);
+    ctx.arcTo(x, y + h, x + r, y + h - r, r);
+    ctx.lineTo(x, y + r);
+    ctx.arcTo(x, y, x + r, y, r);
+    ctx.closePath();
+  },
+
+  /** 文字自动换行绘制 */
+  _wrapText: function(ctx, text, x, y, maxWidth, lineHeight) {
+    if (!text) return y;
+    var chars = text.split('');
+    var line = '';
+    var curY = y;
+    for (var i = 0; i < chars.length; i++) {
+      var testLine = line + chars[i];
+      var metrics = ctx.measureText(testLine);
+      if (metrics.width > maxWidth && line.length > 0) {
+        ctx.fillText(line, x, curY);
+        line = chars[i];
+        curY += lineHeight;
+      } else {
+        line = testLine;
+      }
+    }
+    if (line) {
+      ctx.fillText(line, x, curY);
+      curY += lineHeight;
+    }
+    return curY;
   }
 });

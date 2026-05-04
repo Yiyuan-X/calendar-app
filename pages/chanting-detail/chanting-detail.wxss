@@ -25,6 +25,18 @@
 .ts-save-row { margin-top: 20rpx; display: flex; justify-content: center; }
 .ts-save-btn { padding: 14rpx 56rpx; background: linear-gradient(135deg, #FFB300, #FF8F00); border-radius: 30rpx; display: inline-flex; align-items: center; justify-content: center; line-height: 1; box-shadow: 0 4rpx 12rpx rgba(255, 143, 0, 0.3); }
 .ts-save-btn text { color: #fff; font-size: 28rpx; font-weight: 600; letter-spacing: 1rpx; }
+.combo-target-wrap { background: rgba(255,255,255,.6); border-radius: 14rpx; padding: 16rpx; margin-bottom: 18rpx; }
+.combo-target-row { display:flex; align-items:center; gap:10rpx; }
+.combo-daily-row { margin-top:12rpx; }
+.combo-target-name { width: 180rpx; }
+.combo-target-input { max-width: 220rpx; }
+.combo-preview-mini { display:flex; flex-wrap:wrap; gap:8rpx 14rpx; margin-top:12rpx; }
+.combo-preview-mini text { font-size:23rpx; color:#8E5AB5; background:rgba(175,82,222,.08); border-radius:8rpx; padding:4rpx 8rpx; }
+.combo-preview-daily text { color:#E68A00; background:rgba(255,149,0,.1); }
+.combo-total-readonly { flex:1; min-height:68rpx; background:#FFFFFF; border-radius:12rpx; padding:0 16rpx; font-size:28rpx; color:#E65100; font-weight:600; display:flex; align-items:center; justify-content:center; box-sizing:border-box; border:1.5rpx solid rgba(0,0,0,.06); }
+.combo-item-target-row .ts-item { flex-direction:column; align-items:stretch; gap:8rpx; }
+.combo-item-target-row .ts-name { width:auto; white-space:normal; line-height:1.25; }
+.combo-item-target-row .combo-total-readonly { width:100%; flex:none; }
 
 /* 达标标记 */
 .badge-done { background:linear-gradient(135deg,#E8F5E9,#C8E6C9); border-radius:12rpx; padding:12rpx 24rpx; margin-top:14rpx; display:flex; align-items:center; justify-content:center; gap:8rpx; }
@@ -66,7 +78,7 @@
 
 /* 补录 */
 .supplement-area { display:flex; gap:12rpx; align-items:center; }
-.s-date { flex:1; height:76rpx; background:#F5F5F7; border-radius:14rpx; padding:0 20rpx; font-size: 28rpx; color:#1D1D1F; box-sizing:border-box; }
+.s-date { flex:1; height:76rpx; background:#F5F5F7; border-radius:14rpx; padding:0 20rpx; font-size: 28rpx; color:#1D1D1F; box-sizing:border-box; display:flex; align-items:center; line-height:1; }
 .s-input { width:160rpx; height:76rpx; background:#F5F5F7; border-radius:14rpx; padding:0 16rpx; font-size: 28rpx; text-align:center; color:#1D1D1F; box-sizing:border-box; }
 .s-btn { width:120rpx; height:76rpx; border-radius:14rpx; background:#FF9500; color:#fff; font-size: 26rpx; font-weight:600; display:flex;align-items:center;justify-content:center; line-height:1; }
 .s-btn::after { border:none; }
@@ -80,10 +92,27 @@
 
 /* 最近记录 */
 .record-list { display:flex; flex-direction:column; gap:8rpx; max-height:400rpx; overflow-y:auto; }
-.r-item { display:flex; align-items:center; justify-content:space-between; padding:14rpx 16rpx; background:#FAFAFA; border-radius:12rpx; }
-.r-date { font-size: 26rpx; color:#3C3C43; font-weight:500; }
-.r-count { font-size: 30rpx; font-weight:700; color:#FF9800; }
-.r-unit { font-size: 24rpx; color:#AEAEB2; }
+
+/* 记录行（日期+数量+删除按钮） */
+.r-row { display:flex; align-items:center; gap:10rpx; background:#FAFAFA; border-radius:12rpx; padding:6rpx 12rpx 6rpx 16rpx; }
+.r-item { flex:1; display:flex; align-items:center; justify-content:space-between; padding:8rpx 0; min-height:52rpx; border-radius:8rpx; }
+.r-item-editing { background:#FFF8E1; box-shadow: 0 0 0 2rpx rgba(255,179,0,0.3); padding:8rpx 12rpx; margin: -8rpx -12rpx; }
+
+.r-date { font-size:26rpx; color:#3C3C43; font-weight:500; min-width:100rpx; }
+.r-count { font-size:30rpx; font-weight:700; color:#FF9800; }
+.r-unit { font-size:24rpx; color:#AEAEB2; }
+
+/* 编辑输入框 */
+.r-input { width:120rpx; height:48rpx; background:#fff; border-radius:10rpx; text-align:center; font-size:30rpx; font-weight:700; color:#FF9800; border: 2rpx solid #FFB300; box-sizing:border-box; }
+
+/* 删除按钮（小图标，始终显示在右侧） */
+.r-del-btn { width:56rpx; height:56rpx; display:flex; align-items:center; justify-content:center; flex-shrink:0; border-radius:10rpx; background:#FFF0F0; }
+.r-del-btn:active { background:#FFE0E0; }
+.r-del-icon { width:28rpx; height:28rpx; opacity:0.5; }
+
+/* 操作提示 */
+.r-tip { text-align:center; padding:16rpx 0 4rpx; }
+.r-tip text { font-size:23rpx; color:#C7C7CC; }
 
 /* 操作按钮 */
 .action-bar { margin:32rpx 0; display:flex; gap:16rpx; }

@@ -19,9 +19,16 @@ Page({
     todayStr: '',
     editDailyTarget: '',  // 编辑中的每日目标
     editTotalTarget: '',  // 编辑中的总目标
+    editComboGroupTarget: '', // 编辑中的经典组合目标组数
+    editComboDailyGroupTarget: '', // 编辑中的经典组合每日目标组数
+    comboPreview: [],
+    comboDailyPreview: [],
     isDailyDone: false,   // 今日是否达标
     isTotalDone: false,  // 总目标是否完成
-    activeTab: 'count'   // 当前标签页：count / supplement / wish / note / records
+    activeTab: 'count',   // 当前标签页：count / supplement / wish / note / records
+    editingIndex: -1,     // 正在编辑的记录索引（-1 表示未编辑）
+    editCount: '',        // 编辑中的计数值
+    quickButtons: [21, 49, 108]
   },
 
   onLoad(opts) {
@@ -36,6 +43,7 @@ Page({
     this.setData({
       taskId: id,
       task,
+      quickButtons: getQuickButtons(task),
       todayStr: chant.getToday(),
       highlightSupplement: opts.mode === 'supplement',
       highlightTarget: opts.mode === 'target'
@@ -51,8 +59,11 @@ Page({
   },
 
   loadDetail() {
-    const { taskId, task } = this.data;
+    const { taskId } = this.data;
     const today = chant.getToday();
+    const tasks = chant.getTasks();
+    const task = tasks.find(t => t.id === taskId);
+    if (!task) { wx.navigateBack(); return; }
 
     // 统计
     const total = chant.getTaskTotal(taskId);
@@ -68,9 +79,13 @@ Page({
       .filter(r => r.count > 0)
       .slice(-14)
       .reverse()
-      .map(r => ({ date: r.date.slice(5), count: r.count }));
+      .map(r => ({ date: r.date.slice(5), fullDate: r.date, count: r.count }));
 
-    this.setData({ total, streak, todayCount, detail, recentRecords: recent });
+    const comboGroupTarget = task.comboId ? (parseInt(task.comboGroupTarget) || 1) : 0;
+    const comboDailyGroupTarget = task.comboId ? (parseInt(task.comboDailyGroupTarget) || 0) : 0;
+    const comboPreview = task.comboId ? chant.getClassicComboTargets(comboGroupTarget) : [];
+    const comboDailyPreview = task.comboId && comboDailyGroupTarget > 0 ? chant.getClassicComboTargets(comboDailyGroupTarget) : [];
+    this.setData({ task, quickButtons: getQuickButtons(task), total, streak, todayCount, detail, recentRecords: recent });
 
     // 计算达标状态
     const isDailyDone = task.dailyTarget > 0 && todayCount >= task.dailyTarget;
@@ -79,7 +94,11 @@ Page({
       isDailyDone,
       isTotalDone,
       editDailyTarget: task.dailyTarget > 0 ? String(task.dailyTarget) : '',
-      editTotalTarget: task.totalTarget > 0 ? String(task.totalTarget) : ''
+      editTotalTarget: task.totalTarget > 0 ? String(task.totalTarget) : '',
+      editComboGroupTarget: comboGroupTarget > 0 ? String(comboGroupTarget) : '',
+      editComboDailyGroupTarget: comboDailyGroupTarget > 0 ? String(comboDailyGroupTarget) : '',
+      comboPreview,
+      comboDailyPreview
     });
 
     // 补录默认昨天
@@ -131,19 +150,54 @@ Page({
   // ===== 目标设置 =====
   onDailyTargetInput(e) { this.setData({ editDailyTarget: e.detail.value }); },
   onTotalTargetInput(e) { this.setData({ editTotalTarget: e.detail.value }); },
+  onComboGroupTargetInput(e) {
+    const value = e.detail.value;
+    const groups = parseInt(value) || 0;
+    const dailyGroups = parseInt(this.data.editComboDailyGroupTarget) || 0;
+    const itemTargets = getComboItemTargets(this.data.task, groups, dailyGroups);
+    this.setData({
+      editComboGroupTarget: value,
+      comboPreview: this.data.task.comboId ? chant.getClassicComboTargets(groups) : [],
+      editTotalTarget: itemTargets.totalTarget > 0 ? String(itemTargets.totalTarget) : '',
+      editDailyTarget: itemTargets.dailyTarget > 0 ? String(itemTargets.dailyTarget) : ''
+    });
+  },
+  onComboDailyGroupTargetInput(e) {
+    const value = e.detail.value;
+    const groups = parseInt(value) || 0;
+    const totalGroups = parseInt(this.data.editComboGroupTarget) || 0;
+    const itemTargets = getComboItemTargets(this.data.task, totalGroups, groups);
+    this.setData({
+      editComboDailyGroupTarget: value,
+      comboDailyPreview: this.data.task.comboId && groups > 0 ? chant.getClassicComboTargets(groups) : [],
+      editTotalTarget: itemTargets.totalTarget > 0 ? String(itemTargets.totalTarget) : '',
+      editDailyTarget: itemTargets.dailyTarget > 0 ? String(itemTargets.dailyTarget) : ''
+    });
+  },
   saveTargets() {
     const dailyTarget = parseInt(this.data.editDailyTarget) || 0;
     const totalTarget = parseInt(this.data.editTotalTarget) || 0;
-    chant.updateTask(this.data.taskId, { dailyTarget, totalTarget });
+    if (this.data.task.comboId) {
+      const groupTarget = parseInt(this.data.editComboGroupTarget) || 0;
+      const dailyGroupTarget = parseInt(this.data.editComboDailyGroupTarget) || 0;
+      if (groupTarget <= 0) {
+        wx.showToast({ title: '请输入目标组数', icon: 'none' });
+        return;
+      }
+      chant.updateClassicComboGroupTarget(this.data.task.comboId, groupTarget, dailyGroupTarget);
+    } else {
+      chant.updateTask(this.data.taskId, { dailyTarget, totalTarget });
+    }
     // 刷新 task 数据
     const tasks = chant.getTasks();
     const task = tasks.find(t => t.id === this.data.taskId);
     this.setData({ task });
     // 重新计算达标状态
     const isDailyDone = dailyTarget > 0 && this.data.todayCount >= dailyTarget;
-    const isTotalDone = totalTarget > 0 && this.data.total >= totalTarget;
+    const isTotalDone = task.totalTarget > 0 && this.data.total >= task.totalTarget;
     this.setData({ isDailyDone, isTotalDone });
     wx.showToast({ title: '目标已保存', icon: 'success' });
+    this.loadDetail();
   },
   saveDailyTarget() { this.saveTargets(); },
   saveTotalTarget() { this.saveTargets(); },
@@ -166,15 +220,111 @@ Page({
     wx.navigateTo({ url: '/pages/chanting-focus/chanting-focus?id=' + this.data.taskId });
   },
   onDelete() {
-    wx.showModal({
-      title: '确认删除',
-      content: '删除「' + this.data.task.name + '」？所有记录将清除',
-      confirmColor: '#FF3B30',
-      success: res => {
-        if (res.confirm) {
-          chant.deleteTask(this.data.taskId);
-          wx.showToast({ title: '已删除', icon: 'success' });
+    const task = this.data.task || {};
+    const archiveText = task.comboId ? '存档整组组合' : '存档功课';
+    wx.showActionSheet({
+      itemList: [archiveText, '彻底删除'],
+      success: sheetRes => {
+        if (sheetRes.tapIndex === 0) {
+          chant.archiveTask(this.data.taskId);
+          wx.showToast({ title: '已存档', icon: 'success' });
           setTimeout(() => { wx.navigateBack(); }, 600);
+          return;
+        }
+        wx.showModal({
+          title: '确认删除',
+          content: '删除「' + this.data.task.name + '」？所有记录将清除',
+          confirmColor: '#FF3B30',
+          success: res => {
+            if (res.confirm) {
+              chant.deleteTask(this.data.taskId);
+              wx.showToast({ title: '已删除', icon: 'success' });
+              setTimeout(() => { wx.navigateBack(); }, 600);
+            }
+          }
+        });
+      }
+    });
+  },
+
+  // ===== 记录编辑/删除 =====
+
+  /** 点击记录项 → 进入编辑模式 */
+  onRecordTap(e) {
+    const index = parseInt(e.currentTarget.dataset.index);
+    const count = parseInt(e.currentTarget.dataset.count) || 0;
+    // 如果已经在编辑这一项，不重复触发
+    if (this.data.editingIndex === index) return;
+    this.setData({
+      editingIndex: index,
+      editCount: String(count)
+    });
+  },
+
+  /** 编辑输入中 */
+  onEditCountInput(e) {
+    this.setData({ editCount: e.detail.value });
+  },
+
+  /** 保存编辑后的数量（回车或失焦时） */
+  saveEditCount(e) {
+    const index = this.data.editingIndex;
+    if (index < 0 || !this.data.recentRecords[index]) {
+      this.cancelEditing();
+      return;
+    }
+    const newCount = parseInt(this.data.editCount) || 0;
+    const record = this.data.recentRecords[index];
+    const fullDate = record.fullDate;
+
+    if (newCount <= 0) {
+      // 数量为0或空，相当于删除
+      wx.showModal({
+        title: '提示',
+        content: '数量为0将删除该日记录，确定吗？',
+        confirmText: '删除',
+        confirmColor: '#FF3B30',
+        success: (res) => {
+          if (res.confirm) {
+            chant.clearCount(this.data.taskId, fullDate);
+            wx.showToast({ title: '已删除', icon: 'success' });
+          }
+          this.cancelEditing();
+          this.loadDetail();
+        }
+      });
+      return;
+    }
+
+    // 写入新值
+    chant.setCount(this.data.taskId, fullDate, newCount);
+    wx.showToast({ title: '已更新为 ' + newCount, icon: 'success' });
+    this.cancelEditing();
+    this.loadDetail();
+  },
+
+  /** 取消编辑模式 */
+  cancelEditing() {
+    this.setData({ editingIndex: -1, editCount: '' });
+  },
+
+  /** 删除某天的记录 */
+  onDeleteRecord(e) {
+    const index = e.currentTarget.dataset.index;
+    const dateStr = e.currentTarget.dataset.date;
+    const record = this.data.recentRecords[index];
+    if (!record) return;
+
+    wx.showModal({
+      title: '删除记录',
+      content: '确定删除 ' + (record.date || dateStr) + ' 的记录？',
+      confirmColor: '#FF3B30',
+      confirmText: '删除',
+      success: (res) => {
+        if (res.confirm) {
+          chant.clearCount(this.data.taskId, record.fullDate || dateStr);
+          wx.showToast({ title: '已删除', icon: 'success' });
+          this.loadDetail();
         }
       }
     });
@@ -198,4 +348,28 @@ function prevDay(dateStr) {
   const d = new Date(dateStr.replace(/-/g,'/'));
   d.setDate(d.getDate()-1);
   return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`;
+}
+
+function getQuickButtons(task) {
+  if (task && (task.builtinId === 'b2' || task.name === '大悲咒')) {
+    return [27, 49, 108];
+  }
+  if (task && (task.builtinId === 'b46' || task.name === '往生咒')) {
+    return [49, 84, 108];
+  }
+  if (task && (task.builtinId === 'b10' || task.name === '七佛灭罪真言')) {
+    return [49, 87, 108];
+  }
+  return [21, 49, 108];
+}
+
+function getComboItemTargets(task, totalGroups, dailyGroups) {
+  const comboItem = task && task.comboItemKey
+    ? chant.CLASSIC_COMBO_ITEMS.find(item => item.key === task.comboItemKey)
+    : null;
+  const perGroup = comboItem ? comboItem.perGroup : (task && task.comboPerGroup ? parseInt(task.comboPerGroup) : 0);
+  return {
+    totalTarget: perGroup > 0 && totalGroups > 0 ? perGroup * totalGroups : 0,
+    dailyTarget: perGroup > 0 && dailyGroups > 0 ? perGroup * dailyGroups : 0
+  };
 }

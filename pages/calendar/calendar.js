@@ -10,9 +10,11 @@ Page({
   data: {
     currentYear: 0,
     currentMonth: 0,
+    yearPickerValue: '',
     todayStr: '',
     todayDisplay: '',
     isCurrentMonth: true,
+    isTodaySelected: true,
     weekDays: [
       { name: '日', isWeekend: true },
       { name: '一', isWeekend: false },
@@ -38,9 +40,11 @@ Page({
     this.setData({
       currentYear: now.getFullYear(),
       currentMonth: now.getMonth() + 1,
+      yearPickerValue: `${now.getFullYear()}-01-01`,
       todayStr: `${now.getFullYear()}-${calendarUtil.padZero(now.getMonth() + 1)}-${calendarUtil.padZero(now.getDate())}`,
       todayDisplay: `${now.getFullYear()}年${now.getMonth() + 1}月${now.getDate()}日`,
-      isCurrentMonth: true
+      isCurrentMonth: true,
+      isTodaySelected: true
     });
 
     this.generateCalendar();
@@ -269,6 +273,7 @@ Page({
     if (currentMonth < 1) { currentMonth = 12; currentYear--; }
     this.setData({
       currentYear, currentMonth,
+      yearPickerValue: `${currentYear}-01-01`,
       isCurrentMonth: (currentYear === now.getFullYear() && currentMonth === now.getMonth() + 1)
     });
     this.generateCalendar();
@@ -281,6 +286,7 @@ Page({
     if (currentMonth > 12) { currentMonth = 1; currentYear++; }
     this.setData({
       currentYear, currentMonth,
+      yearPickerValue: `${currentYear}-01-01`,
       isCurrentMonth: (currentYear === now.getFullYear() && currentMonth === now.getMonth() + 1)
     });
     this.generateCalendar();
@@ -291,10 +297,33 @@ Page({
     this.setData({
       currentYear: now.getFullYear(),
       currentMonth: now.getMonth() + 1,
-      isCurrentMonth: true
+      yearPickerValue: `${now.getFullYear()}-01-01`,
+      isCurrentMonth: true,
+      isTodaySelected: true
     });
     this.generateCalendar();
     this.selectDate(this.data.todayStr);
+  },
+
+  onYearChange(e) {
+    const rawValue = e.detail.value || '';
+    const pickedYear = parseInt(String(rawValue).slice(0, 4)) || 0;
+    if (pickedYear <= 0) return;
+
+    const now = new Date();
+    const currentMonth = this.data.currentMonth || 1;
+    const selectedDay = this.data.selectedDate ? this.data.selectedDate.day : 1;
+    const daysInMonth = new Date(pickedYear, currentMonth, 0).getDate();
+    const day = Math.min(selectedDay || 1, daysInMonth);
+    const dateStr = `${pickedYear}-${calendarUtil.padZero(currentMonth)}-${calendarUtil.padZero(day)}`;
+
+    this.setData({
+      currentYear: pickedYear,
+      yearPickerValue: `${pickedYear}-01-01`,
+      isCurrentMonth: (pickedYear === now.getFullYear() && currentMonth === now.getMonth() + 1)
+    });
+    this.generateCalendar();
+    this.selectDate(dateStr);
   },
 
   // ==================== 日期选择 ====================
@@ -387,6 +416,7 @@ Page({
 
       this.setData({
         calendarData,
+        isTodaySelected: dateStr === this.data.todayStr,
         selectedDate: {
           ...selectedInfo,
           festivals: processedFestivals,
@@ -409,7 +439,12 @@ Page({
         selectedNote: note
       });
     } else {
-      this.setData({ calendarData, selectedDate: null, selectedNote: null });
+      this.setData({
+        calendarData,
+        isTodaySelected: false,
+        selectedDate: null,
+        selectedNote: null
+      });
     }
   },
 
@@ -566,9 +601,9 @@ Page({
       var ctx = canvas.getContext('2d');
       var dpr = wx.getSystemInfoSync().pixelRatio;
 
-      // 设置画布尺寸
+      // 设置画布尺寸（加大高度以容纳大字体）
       var W = 500;  // 画布宽度
-      var H = 750;  // 画布高度
+      var H = 900;  // 画布高度（从750增加到900）
       canvas.width = W * dpr;
       canvas.height = H * dpr;
       ctx.scale(dpr, dpr);
@@ -594,115 +629,115 @@ Page({
 
         // ===== 标题区域 =====
         ctx.fillStyle = '#8B6914';
-        ctx.font = 'bold 36px sans-serif';
+        ctx.font = 'bold 44px sans-serif';
         ctx.textAlign = 'center';
-        ctx.fillText('黄历 · 岁时记', W / 2, 70);
+        ctx.fillText('黄历 · 岁时记', W / 2, 75);
 
         // 日期信息
         var dateStr = sd ? (sd.year + '年' + sd.month + '月' + sd.day + '日') : '';
         var lunarStr = sd ? (sd.lunarMonth + sd.lunarDay) : '';
 
         ctx.fillStyle = '#5D4037';
-        ctx.font = '24px sans-serif';
-        ctx.fillText(dateStr, W / 2, 110);
+        ctx.font = '30px sans-serif';
+        ctx.fillText(dateStr, W / 2, 120);
 
         ctx.fillStyle = '#A08520';
-        ctx.font = '20px sans-serif';
-        ctx.fillText(lunarStr, W / 2, 140);
+        ctx.font = '26px sans-serif';
+        ctx.fillText(lunarStr, W / 2, 155);
 
         // ===== 干支信息 =====
         if (hl) {
           // 日干支大字
           ctx.fillStyle = '#8B6914';
-          ctx.font = 'bold 48px serif';
-          ctx.fillText(hl.dayGanZhi || '', W / 2, 200);
+          ctx.font = 'bold 60px serif';
+          ctx.fillText(hl.dayGanZhi || '', W / 2, 220);
 
           // 月干支 + 建除 + 星宿
           ctx.fillStyle = '#6D5A2E';
-          ctx.font = '18px sans-serif';
+          ctx.font = '24px sans-serif';
           var subLine = (hl.monthGanZhi ? hl.monthGanZhi + '月' : '') +
                         '  ' + (hl.jianChu ? hl.jianChu + '日' : '') +
                         '  ' + (hl.xiu ? hl.xiu + '宿' : '');
-          ctx.fillText(subLine, W / 2, 230);
+          ctx.fillText(subLine, W / 2, 258);
 
           // 纳音
           if (hl.naYin) {
             ctx.fillStyle = '#E65100';
-            ctx.font = '16px sans-serif';
-            ctx.fillText(hl.naYin, W / 2, 255);
+            ctx.font = '22px sans-serif';
+            ctx.fillText(hl.naYin, W / 2, 288);
           }
 
           // ===== 佛历 =====
           if (hl.foLiText) {
             ctx.fillStyle = '#7B1FA2';
-            ctx.font = '17px sans-serif';
-            ctx.fillText('佛历 ' + hl.foLiText, W / 2, 290);
+            ctx.font = '23px sans-serif';
+            ctx.fillText('佛历 ' + hl.foLiText, W / 2, 325);
           }
 
           // ===== 宜忌区域 =====
           if (hl.yi && hl.yi.length > 0) {
             ctx.fillStyle = '#2E7D32';
-            ctx.font = 'bold 22px sans-serif';
+            ctx.font = 'bold 30px sans-serif';
             ctx.textAlign = 'left';
-            ctx.fillText('宜', 45, 340);
+            ctx.fillText('宜', 45, 380);
 
             ctx.fillStyle = '#388E3C';
-            ctx.font = '16px sans-serif';
+            ctx.font = '22px sans-serif';
             var yiText = hl.yi.join('  ');
-            ctx.fillText(yiText, 80, 342);
+            ctx.fillText(yiText, 85, 383);
           }
 
           if (hl.ji && hl.ji.length > 0) {
             ctx.fillStyle = '#C62828';
-            ctx.font = 'bold 22px sans-serif';
+            ctx.font = 'bold 30px sans-serif';
             ctx.textAlign = 'left';
-            ctx.fillText('忌', 45, 380);
+            ctx.fillText('忌', 45, 430);
 
             ctx.fillStyle = '#D32F2F';
-            ctx.font = '16px sans-serif';
+            ctx.font = '22px sans-serif';
             var jiText = hl.ji.join('  ');
-            ctx.fillText(jiText, 80, 382);
+            ctx.fillText(jiText, 85, 433);
           }
 
           // ===== 冲煞/五行/方位 =====
           ctx.textAlign = 'center';
           ctx.fillStyle = '#E65100';
-          ctx.font = '16px sans-serif';
-          if (hl.chongText) ctx.fillText('冲煞：' + hl.chongText, W / 2, 430);
+          ctx.font = '22px sans-serif';
+          if (hl.chongText) ctx.fillText('冲煞：' + hl.chongText, W / 2, 490);
 
           ctx.fillStyle = '#5D4037';
           var wuxingStr = (hl.yinYang || '') + (hl.wuXing || '');
           var fangweiStr = '财神:' + (hl.caiShen || '—') + '  喜神:' + (hl.xiShen || '—') + '  福神:' + (hl.fuShen || '—');
-          ctx.font = '14px sans-serif';
-          ctx.fillText(wuxingStr, W / 2, 460);
-          ctx.fillText(fangweiStr, W / 2, 485);
+          ctx.font = '20px sans-serif';
+          ctx.fillText(wuxingStr, W / 2, 525);
+          ctx.fillText(fangweiStr, W / 2, 555);
 
           // ===== 彭祖百忌 =====
           if (hl.pengZuGan || hl.pengZuZhi) {
             ctx.textAlign = 'left';
             ctx.fillStyle = '#8B6914';
-            ctx.font = '14px sans-serif';
-            var pzY = 520;
+            ctx.font = '20px sans-serif';
+            var pzY = 600;
             if (hl.pengZuGan) {
-              ctx.fillText(hl.dayGan + ' ' + hl.pengZuGan, 40, pzY);
-              pzY += 24;
+              ctx.fillText(hl.dayGan + ' ' + hl.pengZuGan, 45, pzY);
+              pzY += 30;
             }
             if (hl.pengZuZhi) {
-              ctx.fillText(hl.dayZhi + ' ' + hl.pengZuZhi, 40, pzY);
+              ctx.fillText(hl.dayZhi + ' ' + hl.pengZuZhi, 45, pzY);
             }
           }
 
           // ===== 底部品牌 =====
           ctx.textAlign = 'center';
           ctx.fillStyle = '#AEAEB2';
-          ctx.font = '13px sans-serif';
-          ctx.fillText('— 岁时记 · 传统历法 —', W / 2, H - 50);
-          ctx.font = '11px sans-serif';
-          ctx.fillText('长按识别小程序码查看更多', W / 2, H - 25);
+          ctx.font = '18px sans-serif';
+          ctx.fillText('— 岁时记 · 传统历法 —', W / 2, H - 55);
+          ctx.font = '15px sans-serif';
+          ctx.fillText('长按识别小程序码查看更多', W / 2, H - 28);
         }
 
         // 导出为临时文件
-        poster.drawPromotionCode(canvas, ctx, { x: W - 116, y: H - 150, size: 76 }, function() {
+        poster.drawPromotionCode(canvas, ctx, { x: W - 116, y: H - 150, size: 76, src: '/images/PQ_calendar.png' }, function() {
           setTimeout(function() {
             wx.canvasToTempFilePath({
               canvas: canvas,

@@ -48,7 +48,7 @@
     </view>
 
     <view
-      class="task-card {{item.isDragging ? 'task-card-dragging' : ''}}"
+      class="task-card {{item.warmClass}} {{item.isDragging ? 'task-card-dragging' : ''}}"
       wx:for="{{taskData}}"
       wx:key="id"
       style="{{item.isDragging ? 'position:fixed;z-index:999;transition:none;' : ''}}"
@@ -70,6 +70,7 @@
         <view class="task-header" bindtap="goDetail" data-id="{{item.id}}">
           <view class="task-info">
             <text class="task-name">{{item.name}}</text>
+            <text class="task-target task-target-combo" wx:if="{{item.comboProgressText}}">{{item.comboName}} {{item.comboProgressText}}</text>
             <text class="task-target" wx:if="{{item.dailyTarget > 0}}">每日 {{item.dailyTarget}}{{item.unit}}</text>
             <text class="task-target task-target-total" wx:if="{{item.totalTarget > 0}}">总目标 {{item.totalTarget}}{{item.unit}}</text>
           </view>
@@ -85,14 +86,6 @@
             <view class="progress-fill" style="width:{{item.progressPercent}}%"></view>
           </view>
           <text class="progress-text">{{item.todayCount}}/{{item.dailyTarget}}</text>
-        </view>
-
-        <!-- 总目标进度 -->
-        <view class="progress-wrap progress-total" wx:if="{{item.totalTarget > 0}}">
-          <view class="progress-bar progress-bar-total">
-            <view class="progress-fill progress-fill-total" style="width:{{item.totalProgressPercent}}%"></view>
-          </view>
-          <text class="progress-text progress-text-total">累计 {{item.total}}/{{item.totalTarget}}</text>
         </view>
 
         <!-- 达标标记 -->

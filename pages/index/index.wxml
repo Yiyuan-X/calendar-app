@@ -142,13 +142,13 @@
   </view>
 
 
-  <!-- 功能操作区：功过格 + 显示设置（并排醒目卡片） -->
+  <!-- 功能操作区：积善 + 显示设置（并排醒目卡片） -->
   <view class="action-row">
     <view class="action-card merit-entry" bindtap="goToMerit">
       <image class="action-icon-img action-tab-icon" src="/images/merit.png" mode="aspectFit"></image>
       <view class="action-info">
-        <text class="action-title">功过格</text>
-        <text class="action-subtitle">了凡四训 · 善恶行记录</text>
+        <text class="action-title">积善</text>
+        <text class="action-subtitle">十善一功德 · 善数记录</text>
       </view>
       <view class="action-badge {{meritTodayNet !== null ? (meritTodayNet >= 0 ? 'badge-positive' : 'badge-negative') : 'badge-empty'}}" wx:if="{{meritTodayNet !== null}}">
         <text>{{meritTodayNet >= 0 ? '+' : ''}}{{meritTodayNet}}</text>

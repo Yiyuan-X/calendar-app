@@ -40,4 +40,21 @@
 .c-btn::after { border:none; }
 .c-btn:active { opacity:.85; }
 
+.combo-card { margin-top:24rpx; }
+.archived-combo-list { background:#FFF8E7; border:1rpx solid rgba(255,149,0,.18); border-radius:14rpx; padding:16rpx; margin-bottom:18rpx; }
+.archived-combo-title { font-size:25rpx; font-weight:600; color:#8B6914; margin-bottom:10rpx; }
+.archived-combo-item { display:flex; align-items:center; justify-content:space-between; gap:14rpx; padding:12rpx 0; }
+.archived-combo-item + .archived-combo-item { border-top:1rpx solid rgba(139,105,20,.12); }
+.archived-combo-info { flex:1; min-width:0; display:flex; flex-direction:column; gap:4rpx; }
+.archived-combo-name { font-size:28rpx; font-weight:600; color:#1D1D1F; }
+.archived-combo-meta { font-size:23rpx; color:#8A7A55; line-height:1.4; }
+.archived-combo-btn { flex-shrink:0; height:54rpx; padding:0 22rpx; border-radius:27rpx; background:#FFCC00; color:#1D1D1F; font-size:25rpx; font-weight:600; display:flex; align-items:center; justify-content:center; }
+.combo-row { display:flex; align-items:center; gap:12rpx; margin-bottom:16rpx; }
+.combo-input { flex:0 0 220rpx; }
+.combo-unit { font-size:28rpx; color:#6E6E73; }
+.combo-preview { background:#F5F5F7; border-radius:14rpx; padding:14rpx 18rpx; margin-bottom:20rpx; }
+.combo-preview-item { display:flex; align-items:center; justify-content:space-between; min-height:42rpx; font-size:26rpx; color:#1D1D1F; }
+.combo-preview-item + .combo-preview-item { border-top:1rpx solid rgba(0,0,0,.05); }
+.combo-preview-item text:last-child { color:#FF9500; font-weight:600; }
+
 .empty-result { text-align:center; padding:60rpx 0; font-size: 28rpx; color:#AEAEB2; }
