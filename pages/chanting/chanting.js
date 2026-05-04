@@ -88,15 +88,7 @@ Page({
       };
     });
 
-    // 今日完成情况（基于实际达标数计算）
-    let completed = 0, total = 0;
-    (taskData || []).forEach(item => {
-      if (item.dailyTarget > 0 || item.totalTarget > 0) {
-        total++;
-        if (item.isDailyDone || (item.dailyTarget === 0 && item.isTotalDone)) completed++;
-      }
-    });
-    const summary = { completed, total, tasks: (tasks || []).length };
+    const summary = chant.getTodaySummary();
 
     // 昨日未完成提示（仅显示一次）
     let showTip = false;
@@ -139,6 +131,7 @@ Page({
   onIncrement(e) {
     const id = e.currentTarget.dataset.id;
     chant.increment(id, chant.getToday(), 1);
+    chant.promoteTaskToTop(id);
     this.loadData();
 
     // 轻触反馈

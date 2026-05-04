@@ -291,6 +291,16 @@ function reorderTasks(orderedIds) {
   saveTasks(tasks);
 }
 
+function promoteTaskToTop(id) {
+  const activeTasks = getTasks();
+  const target = activeTasks.find(t => t.id === id);
+  if (!target) return false;
+  if (activeTasks[0] && activeTasks[0].id === id) return true;
+
+  reorderTasks([id].concat(activeTasks.filter(t => t.id !== id).map(t => t.id)));
+  return true;
+}
+
 // ==================== 记数（核心） ====================
 /** 获取某日的所有记录 { taskId: count } */
 function getDayRecord(dateStr) {
@@ -414,6 +424,24 @@ function getTaskTotal(taskId) {
   return total;
 }
 
+function hasAnyDailyTargetDone(task) {
+  if (!task || task.dailyTarget <= 0) return false;
+  const records = getAllRecords();
+  return Object.keys(records || {}).some(dateStr => {
+    const day = records[dateStr] || {};
+    return (day[task.id] || 0) >= task.dailyTarget;
+  });
+}
+
+function isTaskCompletedForSummary(task) {
+  if (!task) return false;
+  if (hasAnyDailyTargetDone(task)) return true;
+  if (task.dailyTarget === 0 && task.totalTarget > 0) {
+    return getTaskTotal(task.id) >= task.totalTarget;
+  }
+  return false;
+}
+
 function buildClassicComboProgress(comboTasks) {
   if (!comboTasks || comboTasks.length === 0) return null;
   const first = comboTasks[0];
@@ -493,27 +521,31 @@ function getStreakDays(taskId) {
 /** 获取今日完成情况 */
 function getTodaySummary() {
   try {
-    const today = getToday();
     const tasks = getTasks();
-    const dayRec = getDayRecord(today);
     let completed = 0, total = 0;
     (tasks || []).forEach(t => {
       // 有每日目标或总目标的功课都参与达标统计
       if (t.dailyTarget > 0 || t.totalTarget > 0) {
         total++;
-        // 每日目标：今天计数 >= 每日目标 即为达标
-        const dailyDone = t.dailyTarget > 0 && (dayRec[t.id] || 0) >= t.dailyTarget;
-        // 总目标：累计总数 >= 总目标 也算达标（无每日目标时用总目标判断）
-        let taskTotal = 0;
-        try { taskTotal = getTaskTotal(t.id); } catch(e) {}
-        const totalDone = t.totalTarget > 0 && taskTotal >= t.totalTarget;
-        if (dailyDone || (t.dailyTarget === 0 && totalDone)) completed++;
+        if (isTaskCompletedForSummary(t)) completed++;
       }
     });
     return { completed, total, tasks: (tasks || []).length };
   } catch(e) {
     return { completed: 0, total: 0, tasks: 0 };
   }
+}
+
+/** 获取某功课全部有数量的记录（倒序） */
+function getTaskRecords(taskId) {
+  const records = getAllRecords();
+  return Object.keys(records || {})
+    .filter(dateStr => records[dateStr] && (records[dateStr][taskId] || 0) > 0)
+    .sort((a, b) => b.localeCompare(a))
+    .map(dateStr => ({
+      date: dateStr,
+      count: records[dateStr][taskId] || 0
+    }));
 }
 
 /** 获取某功课最近N天的记录（用于图表） */
@@ -722,11 +754,11 @@ function getTodayTotal() {
 module.exports = {
   BUILTIN, CLASSIC_COMBO_ID, CLASSIC_COMBO_NAME, CLASSIC_COMBO_ITEMS,
   getToday, getDateStr, prevDate,
-  getTasks, addTask, addClassicComboTasks, updateClassicComboGroupTarget, updateTask, deleteTask, removeTask: deleteTask, archiveTask, restoreTask, getArchivedClassicCombos, reorderTasks,
+  getTasks, addTask, addClassicComboTasks, updateClassicComboGroupTarget, updateTask, deleteTask, removeTask: deleteTask, archiveTask, restoreTask, getArchivedClassicCombos, reorderTasks, promoteTaskToTop,
   getDayRecord, getAllRecords, increment, setCount, clearCount,
   getDailyDetail, saveDailyDetail,
   getTaskTotal, getClassicComboTargets, getClassicComboProgress,
-  getStreakDays, getTodaySummary, getTaskRecent, getYesterdayIncomplete,
+  getStreakDays, getTodaySummary, getTaskRecords, getTaskRecent, getYesterdayIncomplete,
   searchBuiltin,
   getRandomQuote, getRandomMotto, getGlobalStreakDays, getTodayTotal
 };

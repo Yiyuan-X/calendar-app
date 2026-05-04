@@ -77,11 +77,8 @@ Page({
     // 每日详情（按 taskId 隔离）
     const detail = chant.getDailyDetail(today, taskId) || {};
 
-    // 最近记录（倒序，取最近30天有数据的）
-    const recent = chant.getTaskRecent(taskId, 30)
-      .filter(r => r.count > 0)
-      .slice(-14)
-      .reverse()
+    // 全部有数量的记录（倒序），补录的任意日期也可编辑/删除
+    const recent = chant.getTaskRecords(taskId)
       .map(r => ({ date: r.date.slice(5), fullDate: r.date, count: r.count }));
 
     const comboGroupTarget = task.comboId ? (parseInt(task.comboGroupTarget) || 1) : 0;
@@ -132,6 +129,7 @@ Page({
   onQuick(e) {
     const n = parseInt(e.currentTarget.dataset.n) || 1;
     chant.increment(this.data.taskId, chant.getToday(), n);
+    chant.promoteTaskToTop(this.data.taskId);
     wx.vibrateShort({ type: 'light' });
     this.loadDetail();
   },
@@ -140,6 +138,7 @@ Page({
     const n = parseInt(this.data.manualNum) || 0;
     if (n <= 0) return;
     chant.setCount(this.data.taskId, chant.getToday(), (this.data.todayCount || 0) + n);
+    chant.promoteTaskToTop(this.data.taskId);
     this.setData({ manualNum: '' });
     wx.showToast({ title: '已报数 +' + n, icon: 'success' });
     this.loadDetail();
@@ -158,6 +157,7 @@ Page({
     this.setData({ suppNum: '' });
     wx.showToast({ title: '已补录 ' + n, icon: 'success' });
     this.loadDetail();
+    this.setData({ activeTab: 'records' });
   },
 
   // ===== 目标设置 =====
