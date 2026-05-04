@@ -212,9 +212,10 @@ function getNoteByDate(dateStr) {
   return notes[dateStr] || null;
 }
 
-function saveNote(dateStr, content) {
+function saveNote(dateStr, content, reminder) {
   const notes = getNotes();
   notes[dateStr] = { content: content, updatedAt: Date.now() };
+  if (reminder) notes[dateStr].reminder = reminder;
   setStorage(STORAGE_KEYS.NOTES, notes);
   cloud.set(cloud.TABLES.NOTES, 'all', notes);
   return notes[dateStr];
@@ -234,12 +235,21 @@ function getReminders() {
   return getStorage(STORAGE_KEYS.REMINDERS) || {};
 }
 
-function updateReminder(eventId, enabled) {
+function updateReminder(eventId, reminder) {
   const reminders = getReminders();
-  reminders[eventId] = { enabled, updatedAt: Date.now() };
+  const updates = typeof reminder === 'object' ? reminder : { enabled: !!reminder };
+  reminders[eventId] = { ...(reminders[eventId] || {}), ...updates, updatedAt: Date.now() };
   setStorage(STORAGE_KEYS.REMINDERS, reminders);
   cloud.set(cloud.TABLES.REMINDERS, 'all', reminders);
   return reminders[eventId];
+}
+
+function deleteReminder(eventId) {
+  const reminders = getReminders();
+  delete reminders[eventId];
+  setStorage(STORAGE_KEYS.REMINDERS, reminders);
+  cloud.set(cloud.TABLES.REMINDERS, 'all', reminders);
+  return true;
 }
 
 // ==================== 设置管理 ====================
@@ -404,6 +414,7 @@ module.exports = {
   deleteNote,
   getReminders,
   updateReminder,
+  deleteReminder,
   DEFAULT_SETTINGS,
   getSettings,
   getSetting,

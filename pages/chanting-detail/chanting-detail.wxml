@@ -30,6 +30,10 @@
         <view class="combo-preview-mini combo-preview-daily" wx:if="{{comboDailyPreview.length > 0}}">
           <text wx:for="{{comboDailyPreview}}" wx:key="key">每日 {{item.name}} {{item.target}}{{item.unit}}</text>
         </view>
+        <view class="combo-progress-mini" wx:if="{{comboProgressText}}">
+          <text>{{comboProgressText}}</text>
+          <text wx:if="{{comboTodayProgressText}}">{{comboTodayProgressText}}</text>
+        </view>
       </view>
       <view class="ts-row {{task.comboId ? 'combo-item-target-row' : ''}}">
         <view class="ts-item" wx:if="{{!task.comboId}}">

@@ -47,7 +47,7 @@ const GOOD_CATEGORIES = [
       { id: 'g24', text: '向老板上司说别人的优点，推荐有能力的人', merit: 10 },
       { id: 'g25', text: '自己承担过错', merit: 2 },
       { id: 'g26', text: '把功劳推给别人', merit: 2 },
-      { id: 'g27', text: '为父母送一张小房子', merit: 5 },
+      { id: 'g27', text: '为父母送一张组合', merit: 5 },
       { id: 'g28', text: '给人方便，让老人优先', merit: 1 }
     ]
   },

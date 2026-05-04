@@ -2,6 +2,7 @@
 const calendarUtil = require('../../utils/calendar');
 const storage = require('../../utils/storage');
 const share = require('../../utils/share');
+const reminderUtil = require('../../utils/reminder');
 
 Page({
   data: {
@@ -12,7 +13,14 @@ Page({
     canSave: false,
     hasExistingNote: false,
     autoFocus: true,
-    placeholder: '今天有什么想记录的？'
+    placeholder: '今天有什么想记录的？',
+    remind: false,
+    reminder: reminderUtil.getDefaultReminder(),
+    reminderLabel: '不提醒',
+    reminderAdvanceLabel: '当天提醒',
+    reminderRepeatLabel: '仅一次',
+    reminderAdvanceOptions: ['当天提醒', '提前1天', '提前3天', '提前7天', '提前1小时', '提前3小时'],
+    reminderRepeatOptions: ['仅一次', '每年', '每月']
   },
 
   onLoad(options) {
@@ -62,9 +70,12 @@ Page({
       this.setData({
         noteContent: existingNote.content,
         canSave: !!existingNote.content.trim(),
-        hasExistingNote: true
+        hasExistingNote: true,
+        remind: !!(existingNote.reminder && existingNote.reminder.enabled),
+        reminder: { ...reminderUtil.getDefaultReminder(), ...(existingNote.reminder || {}) }
       });
     }
+    this.updateReminderLabel();
 
     // 根据日期设置不同的 placeholder
     this.setDatePlaceholder();
@@ -125,18 +136,72 @@ Page({
     });
   },
 
+  onRemindSwitch(e) {
+    const enabled = e.detail.value;
+    const updates = {
+      remind: enabled,
+      'reminder.enabled': enabled
+    };
+    if (enabled && !this.data.hasExistingNote) {
+      updates['reminder.time'] = reminderUtil.getDefaultReminder().time;
+    }
+    this.setData(updates, () => this.updateReminderLabel());
+  },
+
+  onReminderTimeChange(e) {
+    this.setData({ 'reminder.time': e.detail.value }, () => this.updateReminderLabel());
+  },
+
+  onReminderAdvanceChange(e) {
+    const index = parseInt(e.detail.value) || 0;
+    const configs = [
+      { advanceValue: 0, advanceUnit: 'days' },
+      { advanceValue: 1, advanceUnit: 'days' },
+      { advanceValue: 3, advanceUnit: 'days' },
+      { advanceValue: 7, advanceUnit: 'days' },
+      { advanceValue: 1, advanceUnit: 'hours' },
+      { advanceValue: 3, advanceUnit: 'hours' }
+    ];
+    const config = configs[index] || configs[0];
+    this.setData({
+      'reminder.advanceValue': config.advanceValue,
+      'reminder.advanceUnit': config.advanceUnit
+    }, () => this.updateReminderLabel());
+  },
+
+  onReminderRepeatChange(e) {
+    const index = parseInt(e.detail.value) || 0;
+    const repeats = ['none', 'yearly', 'monthly'];
+    this.setData({ 'reminder.repeat': repeats[index] || 'none' }, () => this.updateReminderLabel());
+  },
+
+  updateReminderLabel() {
+    const reminder = this.data.reminder || {};
+    const advanceValue = parseInt(reminder.advanceValue) || 0;
+    const advanceUnit = reminder.advanceUnit === 'hours' ? '小时' : '天';
+    const advanceLabel = advanceValue > 0 ? `提前${advanceValue}${advanceUnit}` : '当天提醒';
+    const repeatMap = { none: '仅一次', yearly: '每年', monthly: '每月' };
+    this.setData({
+      reminderLabel: reminderUtil.getReminderLabel(reminder),
+      reminderAdvanceLabel: advanceLabel,
+      reminderRepeatLabel: repeatMap[reminder.repeat] || '仅一次'
+    });
+  },
+
   /**
    * 保存备注
    */
   onSave() {
-    const { dateStr, noteContent } = this.data;
+    const { dateStr, noteContent, reminder, remind } = this.data;
 
     if (!noteContent.trim()) {
       wx.showToast({ title: '请输入内容', icon: 'none' });
       return;
     }
 
-    storage.saveNote(dateStr, noteContent.trim());
+    const noteReminder = { ...reminderUtil.getDefaultReminder(), ...(reminder || {}), enabled: !!remind };
+    storage.saveNote(dateStr, noteContent.trim(), noteReminder);
+    this.saveNoteReminder(noteContent.trim(), noteReminder);
 
     wx.showToast({
       title: this.data.hasExistingNote ? '已更新' : '已保存',
@@ -148,6 +213,35 @@ Page({
     setTimeout(() => {
       wx.navigateBack();
     }, 800);
+  },
+
+  saveNoteReminder(content, reminder) {
+    const { dateStr, displayDate } = this.data;
+    const reminderId = 'note_' + dateStr;
+    if (!reminder || !reminder.enabled) {
+      reminderUtil.deleteReminderPlan(reminderId);
+      return;
+    }
+    const nextNotifyAt = reminderUtil.computeNextNotifyAt(dateStr, reminder);
+    const plan = {
+      id: reminderId,
+      sourceType: 'note',
+      sourceId: dateStr,
+      title: displayDate + ' 备注',
+      content,
+      date: dateStr,
+      page: 'pages/notes/notes?date=' + dateStr,
+      reminder,
+      nextNotifyAt,
+      lastNotifyAt: 0,
+      enabled: !!nextNotifyAt
+    };
+    reminderUtil.saveReminderPlan(plan);
+    reminderUtil.requestSubscribe((res) => {
+      if (res && res.reason === 'missing_template_id') {
+        console.warn('订阅消息模板 ID 未配置，提醒计划已保存但不会发送微信订阅消息');
+      }
+    });
   },
 
   /**
@@ -162,10 +256,13 @@ Page({
       success: (res) => {
         if (res.confirm) {
           storage.deleteNote(this.data.dateStr);
+          reminderUtil.deleteReminderPlan('note_' + this.data.dateStr);
           this.setData({
             noteContent: '',
             canSave: false,
-            hasExistingNote: false
+            hasExistingNote: false,
+            remind: false,
+            reminder: reminderUtil.getDefaultReminder()
           });
           wx.showToast({ title: '已清除', icon: 'success' });
         }

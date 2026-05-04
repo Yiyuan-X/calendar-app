@@ -8,15 +8,17 @@
     <view class="month-title">
       <picker
         mode="date"
-        fields="year"
+        fields="day"
         start="1900-01-01"
         end="2100-12-31"
-        value="{{yearPickerValue}}"
-        bindchange="onYearChange"
+        value="{{datePickerValue}}"
+        bindchange="onDateChange"
       >
-        <text class="year-text">{{currentYear}}</text>
+        <view class="date-picker-display">
+          <text class="year-text">{{currentYear}}</text>
+          <text class="month-text">{{currentMonth}}月</text>
+        </view>
       </picker>
-      <text class="month-text" bindtap="goToToday">{{currentMonth}}月</text>
     </view>
     <view class="nav-btn" bindtap="nextMonth">
       <text class="nav-arrow">›</text>

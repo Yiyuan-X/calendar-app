@@ -1,6 +1,7 @@
 {
   "description": "岁时记 - 日历·节日·倒计时",
   "cloudbaseRoot": "cloudfunctions/",
+  "cloudfunctionRoot": "cloudfunctions/",
   "packOptions": {
     "ignore": [],
     "include": []

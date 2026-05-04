@@ -1,6 +1,7 @@
 // pages/add-event/add-event.js — 添加/编辑重要日子
 const storage = require('../../utils/storage');
 const share = require('../../utils/share');
+const reminderUtil = require('../../utils/reminder');
 
 Page({
   data: {
@@ -12,8 +13,14 @@ Page({
       category: 'birthday',
       isCountdown: true,
       remark: '',
-      remind: false
+      remind: false,
+      reminder: reminderUtil.getDefaultReminder()
     },
+    reminderLabel: '不提醒',
+    reminderAdvanceLabel: '当天提醒',
+    reminderRepeatLabel: '仅一次',
+    reminderAdvanceOptions: ['当天提醒', '提前1天', '提前3天', '提前7天', '提前1小时', '提前3小时'],
+    reminderRepeatOptions: ['仅一次', '每年', '每月'],
     categories: [
       { key: 'birthday', name: '生日', icon: 'cake' },
       { key: 'anniversary', name: '纪念日', icon: 'heart' },
@@ -71,10 +78,16 @@ Page({
           category: event.category || 'birthday',
           isCountdown: event.isCountdown !== undefined ? event.isCountdown : true,
           remark: event.remark || '',
-          remind: event.remind || false
+          remind: event.remind || false,
+          reminder: {
+            ...reminderUtil.getDefaultReminder(),
+            ...(event.reminder || {}),
+            enabled: event.reminder ? !!event.reminder.enabled : !!event.remind
+          }
         }
       });
 
+      this.updateReminderLabel();
       wx.setNavigationBarTitle({ title: '编辑重要日子' });
       this.updateCanSave();
       this.updatePreview();
@@ -115,7 +128,55 @@ Page({
 
   /** 提醒开关 */
   onRemindSwitch(e) {
-    this.setData({ 'formData.remind': e.detail.value });
+    const enabled = e.detail.value;
+    const updates = {
+      'formData.remind': enabled,
+      'formData.reminder.enabled': enabled
+    };
+    if (enabled && !this.data.isEdit) {
+      updates['formData.reminder.time'] = reminderUtil.getDefaultReminder().time;
+    }
+    this.setData(updates, () => this.updateReminderLabel());
+  },
+
+  onReminderTimeChange(e) {
+    this.setData({ 'formData.reminder.time': e.detail.value }, () => this.updateReminderLabel());
+  },
+
+  onReminderAdvanceChange(e) {
+    const index = parseInt(e.detail.value) || 0;
+    const configs = [
+      { advanceValue: 0, advanceUnit: 'days' },
+      { advanceValue: 1, advanceUnit: 'days' },
+      { advanceValue: 3, advanceUnit: 'days' },
+      { advanceValue: 7, advanceUnit: 'days' },
+      { advanceValue: 1, advanceUnit: 'hours' },
+      { advanceValue: 3, advanceUnit: 'hours' }
+    ];
+    const config = configs[index] || configs[0];
+    this.setData({
+      'formData.reminder.advanceValue': config.advanceValue,
+      'formData.reminder.advanceUnit': config.advanceUnit
+    }, () => this.updateReminderLabel());
+  },
+
+  onReminderRepeatChange(e) {
+    const index = parseInt(e.detail.value) || 0;
+    const repeats = ['none', 'yearly', 'monthly'];
+    this.setData({ 'formData.reminder.repeat': repeats[index] || 'none' }, () => this.updateReminderLabel());
+  },
+
+  updateReminderLabel() {
+    const reminder = this.data.formData.reminder || {};
+    const advanceValue = parseInt(reminder.advanceValue) || 0;
+    const advanceUnit = reminder.advanceUnit === 'hours' ? '小时' : '天';
+    const advanceLabel = advanceValue > 0 ? `提前${advanceValue}${advanceUnit}` : '当天提醒';
+    const repeatMap = { none: '仅一次', yearly: '每年', monthly: '每月' };
+    this.setData({
+      reminderLabel: reminderUtil.getReminderLabel(reminder),
+      reminderAdvanceLabel: advanceLabel,
+      reminderRepeatLabel: repeatMap[reminder.repeat] || '仅一次'
+    });
   },
 
   /** 更新保存按钮状态 */
@@ -165,18 +226,52 @@ Page({
       category: formData.category,
       isCountdown: formData.isCountdown,
       remark: formData.remark,
-      remind: formData.remind
+      remind: formData.remind,
+      reminder: { ...reminderUtil.getDefaultReminder(), ...(formData.reminder || {}), enabled: !!formData.remind }
     };
 
+    let savedEvent = null;
     if (isEdit) {
-      storage.updateEvent(editId, saveData);
+      savedEvent = storage.updateEvent(editId, saveData);
       wx.showToast({ title: '已更新', icon: 'success' });
     } else {
-      storage.addEvent(saveData);
+      savedEvent = storage.addEvent(saveData);
       wx.showToast({ title: '已创建', icon: 'success' });
     }
 
+    this.saveEventReminder(savedEvent);
+
     setTimeout(() => { wx.navigateBack(); }, 800);
+  },
+
+  saveEventReminder(event) {
+    if (!event || !event.id) return;
+    const reminder = { ...reminderUtil.getDefaultReminder(), ...(event.reminder || {}) };
+    if (!reminder.enabled) {
+      reminderUtil.deleteReminderPlan('event_' + event.id);
+      return;
+    }
+
+    const nextNotifyAt = reminderUtil.computeNextNotifyAt(event.date, reminder);
+    const plan = {
+      id: 'event_' + event.id,
+      sourceType: 'event',
+      sourceId: event.id,
+      title: event.name || event.title || '重要日子',
+      content: event.remark || '',
+      date: event.date,
+      page: 'pages/index/index',
+      reminder,
+      nextNotifyAt,
+      lastNotifyAt: 0,
+      enabled: !!nextNotifyAt
+    };
+    reminderUtil.saveReminderPlan(plan);
+    reminderUtil.requestSubscribe((res) => {
+      if (res && res.reason === 'missing_template_id') {
+        console.warn('订阅消息模板 ID 未配置，提醒计划已保存但不会发送微信订阅消息');
+      }
+    });
   },
 
   /** 删除 */
@@ -189,6 +284,7 @@ Page({
       success: (res) => {
         if (res.confirm) {
           storage.deleteEvent(this.data.editId);
+          reminderUtil.deleteReminderPlan('event_' + this.data.editId);
           wx.showToast({ title: '已删除', icon: 'success' });
           setTimeout(() => { wx.navigateBack(); }, 800);
         }

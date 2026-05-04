@@ -70,7 +70,8 @@
         <view class="task-header" bindtap="goDetail" data-id="{{item.id}}">
           <view class="task-info">
             <text class="task-name">{{item.name}}</text>
-            <text class="task-target task-target-combo" wx:if="{{item.comboProgressText}}">{{item.comboName}} {{item.comboProgressText}}</text>
+            <text class="task-target task-target-combo" wx:if="{{item.comboProgressText}}">{{item.comboProgressText}}</text>
+            <text class="task-target task-target-combo" wx:if="{{item.comboTodayProgressText}}">{{item.comboTodayProgressText}}</text>
             <text class="task-target" wx:if="{{item.dailyTarget > 0}}">每日 {{item.dailyTarget}}{{item.unit}}</text>
             <text class="task-target task-target-total" wx:if="{{item.totalTarget > 0}}">总目标 {{item.totalTarget}}{{item.unit}}</text>
           </view>

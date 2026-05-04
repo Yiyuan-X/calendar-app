@@ -65,6 +65,9 @@ Page({
   onShow() {
     share.enableShareMenu();
     getApp().applyDisplaySettings(this);
+    if (getApp().checkEventReminders) {
+      getApp().checkEventReminders();
+    }
     this.refreshData();
   },
 

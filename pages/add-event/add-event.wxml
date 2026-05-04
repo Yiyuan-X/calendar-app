@@ -96,14 +96,38 @@
     <!-- 提醒开关 -->
     <view class="form-item switch-item">
       <view class="switch-left">
-        <text class="form-label">打开时提醒</text>
-        <text class="switch-hint">每次打开小程序时提醒你</text>
+        <text class="form-label">微信提醒</text>
+        <text class="switch-hint">{{reminderLabel}}</text>
       </view>
       <switch
         checked="{{formData.remind}}"
         color="#007AFF"
         bindchange="onRemindSwitch"
       />
+    </view>
+
+    <view class="form-item reminder-options" wx:if="{{formData.remind}}">
+      <text class="form-label">提醒规则</text>
+      <view class="reminder-grid">
+        <picker mode="selector" range="{{reminderAdvanceOptions}}" bindchange="onReminderAdvanceChange">
+          <view class="reminder-picker">
+            <text>{{reminderAdvanceLabel}}</text>
+            <text class="picker-arrow">›</text>
+          </view>
+        </picker>
+        <picker mode="time" value="{{formData.reminder.time}}" bindchange="onReminderTimeChange">
+          <view class="reminder-picker">
+            <text>{{formData.reminder.time}}</text>
+            <text class="picker-arrow">›</text>
+          </view>
+        </picker>
+        <picker mode="selector" range="{{reminderRepeatOptions}}" bindchange="onReminderRepeatChange">
+          <view class="reminder-picker">
+            <text>{{reminderRepeatLabel}}</text>
+            <text class="picker-arrow">›</text>
+          </view>
+        </picker>
+      </view>
     </view>
   </view>
 

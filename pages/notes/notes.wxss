@@ -77,6 +77,66 @@
   letter-spacing: 0;
 }
 
+.reminder-section {
+  margin-top: 24rpx;
+  padding: 24rpx !important;
+  border-radius: 18rpx !important;
+  background: #FFFFFF;
+}
+
+.reminder-switch-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 20rpx;
+}
+
+.reminder-title {
+  display: block;
+  font-size: 30rpx;
+  color: #1D1D1F;
+  font-weight: 700;
+}
+
+.reminder-desc {
+  display: block;
+  margin-top: 6rpx;
+  font-size: 25rpx;
+  color: #6B7280;
+}
+
+.reminder-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 14rpx;
+  margin-top: 22rpx;
+}
+
+.reminder-picker {
+  height: 68rpx;
+  padding: 0 16rpx;
+  border-radius: 14rpx;
+  background: rgba(142, 142, 147, 0.08);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8rpx;
+  box-sizing: border-box;
+}
+
+.reminder-picker text:first-child {
+  font-size: 26rpx;
+  color: #1D1D1F;
+  font-weight: 600;
+  white-space: nowrap;
+}
+
+.picker-arrow {
+  font-size: 34rpx;
+  color: #9CA3AF;
+  line-height: 1;
+}
+
 /* ===== 保存区域 ===== */
 .save-section {
   margin-top: 44rpx;

@@ -33,6 +33,8 @@
 .combo-preview-mini { display:flex; flex-wrap:wrap; gap:8rpx 14rpx; margin-top:12rpx; }
 .combo-preview-mini text { font-size:23rpx; color:#8E5AB5; background:rgba(175,82,222,.08); border-radius:8rpx; padding:4rpx 8rpx; }
 .combo-preview-daily text { color:#E68A00; background:rgba(255,149,0,.1); }
+.combo-progress-mini { display:flex; flex-wrap:wrap; gap:8rpx 14rpx; margin-top:12rpx; }
+.combo-progress-mini text { font-size:24rpx; color:#1F8A4C; background:rgba(52,199,89,.12); border-radius:8rpx; padding:5rpx 10rpx; font-weight:600; }
 .combo-total-readonly { flex:1; min-height:68rpx; background:#FFFFFF; border-radius:12rpx; padding:0 16rpx; font-size:28rpx; color:#E65100; font-weight:600; display:flex; align-items:center; justify-content:center; box-sizing:border-box; border:1.5rpx solid rgba(0,0,0,.06); }
 .combo-item-target-row .ts-item { flex-direction:column; align-items:stretch; gap:8rpx; }
 .combo-item-target-row .ts-name { width:auto; white-space:normal; line-height:1.25; }

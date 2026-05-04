@@ -41,10 +41,16 @@
   padding: 10rpx 32rpx;
 }
 
+.date-picker-display {
+  display: flex;
+  align-items: baseline;
+  gap: 8rpx;
+}
+
 .year-text {
-  font-size: 28rpx;
-  color: #AEAEB2;
-  font-weight: 400;
+  font-size: 36rpx;
+  color: #1D1D1F;
+  font-weight: 600;
   letter-spacing: 1rpx;
 }
 
@@ -53,6 +59,11 @@
   color: #1D1D1F;
   font-weight: 700;
   letter-spacing: 3rpx;
+}
+
+/* picker 弹窗内滚轮字号 */
+picker-view-column {
+  font-size: 42px;
 }
 
 /* ==================== 回到今天按钮 ==================== */

@@ -27,6 +27,36 @@
     <text class="tips-text">给这一天留下一句话，记录此刻的心情或回忆</text>
   </view>
 
+  <view class="reminder-section card">
+    <view class="reminder-switch-row">
+      <view>
+        <text class="reminder-title">微信提醒</text>
+        <text class="reminder-desc">{{reminderLabel}}</text>
+      </view>
+      <switch checked="{{remind}}" color="#007AFF" bindchange="onRemindSwitch" />
+    </view>
+    <view class="reminder-grid" wx:if="{{remind}}">
+      <picker mode="selector" range="{{reminderAdvanceOptions}}" bindchange="onReminderAdvanceChange">
+        <view class="reminder-picker">
+          <text>{{reminderAdvanceLabel}}</text>
+          <text class="picker-arrow">›</text>
+        </view>
+      </picker>
+      <picker mode="time" value="{{reminder.time}}" bindchange="onReminderTimeChange">
+        <view class="reminder-picker">
+          <text>{{reminder.time}}</text>
+          <text class="picker-arrow">›</text>
+        </view>
+      </picker>
+      <picker mode="selector" range="{{reminderRepeatOptions}}" bindchange="onReminderRepeatChange">
+        <view class="reminder-picker">
+          <text>{{reminderRepeatLabel}}</text>
+          <text class="picker-arrow">›</text>
+        </view>
+      </picker>
+    </view>
+  </view>
+
   <!-- 保存按钮 -->
   <view class="save-section">
     <button

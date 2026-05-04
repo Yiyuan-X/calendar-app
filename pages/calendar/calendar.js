@@ -11,6 +11,7 @@ Page({
     currentYear: 0,
     currentMonth: 0,
     yearPickerValue: '',
+    datePickerValue: '',
     todayStr: '',
     todayDisplay: '',
     isCurrentMonth: true,
@@ -41,6 +42,7 @@ Page({
       currentYear: now.getFullYear(),
       currentMonth: now.getMonth() + 1,
       yearPickerValue: `${now.getFullYear()}-01-01`,
+      datePickerValue: `${now.getFullYear()}-${calendarUtil.padZero(now.getMonth() + 1)}-01`,
       todayStr: `${now.getFullYear()}-${calendarUtil.padZero(now.getMonth() + 1)}-${calendarUtil.padZero(now.getDate())}`,
       todayDisplay: `${now.getFullYear()}年${now.getMonth() + 1}月${now.getDate()}日`,
       isCurrentMonth: true,
@@ -58,6 +60,9 @@ Page({
   onShow() {
     share.enableShareMenu();
     getApp().applyDisplaySettings(this);
+    if (getApp().checkEventReminders) {
+      getApp().checkEventReminders();
+    }
     if (this._skipNextShowRefresh) {
       this._skipNextShowRefresh = false;
       return;
@@ -274,6 +279,7 @@ Page({
     this.setData({
       currentYear, currentMonth,
       yearPickerValue: `${currentYear}-01-01`,
+      datePickerValue: `${currentYear}-${calendarUtil.padZero(currentMonth)}-01`,
       isCurrentMonth: (currentYear === now.getFullYear() && currentMonth === now.getMonth() + 1)
     });
     this.generateCalendar();
@@ -287,6 +293,7 @@ Page({
     this.setData({
       currentYear, currentMonth,
       yearPickerValue: `${currentYear}-01-01`,
+      datePickerValue: `${currentYear}-${calendarUtil.padZero(currentMonth)}-01`,
       isCurrentMonth: (currentYear === now.getFullYear() && currentMonth === now.getMonth() + 1)
     });
     this.generateCalendar();
@@ -298,6 +305,7 @@ Page({
       currentYear: now.getFullYear(),
       currentMonth: now.getMonth() + 1,
       yearPickerValue: `${now.getFullYear()}-01-01`,
+      datePickerValue: `${now.getFullYear()}-${calendarUtil.padZero(now.getMonth() + 1)}-01`,
       isCurrentMonth: true,
       isTodaySelected: true
     });
@@ -306,21 +314,30 @@ Page({
   },
 
   onYearChange(e) {
-    const rawValue = e.detail.value || '';
-    const pickedYear = parseInt(String(rawValue).slice(0, 4)) || 0;
+    // 兼容旧接口，转发到 onDateChange
+    this.onDateChange(e);
+  },
+
+  onDateChange(e) {
+    const rawValue = e.detail.value || ''; // 格式: YYYY-MM 或 YYYY-MM-DD
+    const parts = rawValue.split('-');
+    const pickedYear = parseInt(parts[0]) || 0;
+    const pickedMonth = parseInt(parts[1]) || 1;
+    const pickedDay = parseInt(parts[2]) || 1;
     if (pickedYear <= 0) return;
 
     const now = new Date();
-    const currentMonth = this.data.currentMonth || 1;
-    const selectedDay = this.data.selectedDate ? this.data.selectedDate.day : 1;
-    const daysInMonth = new Date(pickedYear, currentMonth, 0).getDate();
-    const day = Math.min(selectedDay || 1, daysInMonth);
-    const dateStr = `${pickedYear}-${calendarUtil.padZero(currentMonth)}-${calendarUtil.padZero(day)}`;
+    const daysInMonth = new Date(pickedYear, pickedMonth, 0).getDate();
+    const day = Math.min(pickedDay, daysInMonth);
+    const dateStr = `${pickedYear}-${calendarUtil.padZero(pickedMonth)}-${calendarUtil.padZero(day)}`;
 
     this.setData({
       currentYear: pickedYear,
+      currentMonth: pickedMonth,
       yearPickerValue: `${pickedYear}-01-01`,
-      isCurrentMonth: (pickedYear === now.getFullYear() && currentMonth === now.getMonth() + 1)
+      datePickerValue: `${pickedYear}-${calendarUtil.padZero(pickedMonth)}-${calendarUtil.padZero(day)}`,
+      isCurrentMonth: (pickedYear === now.getFullYear() && pickedMonth === now.getMonth() + 1),
+      isTodaySelected: (dateStr === this.data.todayStr)
     });
     this.generateCalendar();
     this.selectDate(dateStr);

@@ -418,30 +418,41 @@ function buildClassicComboProgress(comboTasks) {
   if (!comboTasks || comboTasks.length === 0) return null;
   const first = comboTasks[0];
   const groupTarget = normalizeGroupCount(first.comboGroupTarget);
+  const dailyGroupTarget = normalizeGroupCount(first.comboDailyGroupTarget);
+  const today = getToday();
+  const todayRecord = getDayRecord(today);
   const taskByKey = {};
   comboTasks.forEach(task => { taskByKey[task.comboItemKey] = task; });
   const itemProgress = CLASSIC_COMBO_ITEMS.map(item => {
     const task = taskByKey[item.key];
     const perGroup = item.perGroup;
     const total = task ? getTaskTotal(task.id) : 0;
+    const todayCount = task ? (todayRecord[task.id] || 0) : 0;
     return {
       taskId: task ? task.id : '',
       name: item.name,
       unit: item.unit,
       perGroup,
       total,
+      todayCount,
       target: perGroup * groupTarget,
-      completedGroups: perGroup > 0 ? Math.floor(total / perGroup) : 0
+      completedGroups: perGroup > 0 ? Math.floor(total / perGroup) : 0,
+      todayCompletedGroups: perGroup > 0 ? Math.floor(todayCount / perGroup) : 0
     };
   });
   const completedGroups = itemProgress.length
     ? Math.min(...itemProgress.map(item => item.completedGroups))
     : 0;
+  const todayCompletedGroups = itemProgress.length
+    ? Math.min(...itemProgress.map(item => item.todayCompletedGroups))
+    : 0;
   return {
     comboId: first.comboId,
     comboName: first.comboName || CLASSIC_COMBO_NAME,
     groupTarget,
+    dailyGroupTarget,
     completedGroups,
+    todayCompletedGroups,
     itemProgress
   };
 }

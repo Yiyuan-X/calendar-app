@@ -217,6 +217,35 @@
   color: var(--text-tertiary);
 }
 
+.reminder-options {
+  padding-top: 22rpx;
+}
+
+.reminder-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 14rpx;
+}
+
+.reminder-picker {
+  height: 68rpx;
+  padding: 0 16rpx;
+  border-radius: 14rpx;
+  background: rgba(142, 142, 147, 0.06);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8rpx;
+  box-sizing: border-box;
+}
+
+.reminder-picker text:first-child {
+  font-size: 26rpx;
+  color: var(--text-primary);
+  font-weight: 600;
+  white-space: nowrap;
+}
+
 /* ===== 预览卡片 — 模拟首页效果 ===== */
 .preview-section {
   margin-top: 32rpx;

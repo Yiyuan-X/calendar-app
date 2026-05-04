@@ -23,6 +23,9 @@ Page({
     editComboDailyGroupTarget: '', // 编辑中的经典组合每日目标组数
     comboPreview: [],
     comboDailyPreview: [],
+    comboProgress: null,
+    comboProgressText: '',
+    comboTodayProgressText: '',
     isDailyDone: false,   // 今日是否达标
     isTotalDone: false,  // 总目标是否完成
     activeTab: 'count',   // 当前标签页：count / supplement / wish / note / records
@@ -85,6 +88,13 @@ Page({
     const comboDailyGroupTarget = task.comboId ? (parseInt(task.comboDailyGroupTarget) || 0) : 0;
     const comboPreview = task.comboId ? chant.getClassicComboTargets(comboGroupTarget) : [];
     const comboDailyPreview = task.comboId && comboDailyGroupTarget > 0 ? chant.getClassicComboTargets(comboDailyGroupTarget) : [];
+    const comboProgress = task.comboId ? chant.getClassicComboProgress(task.comboId) : null;
+    const comboProgressText = comboProgress
+      ? `已完成 ${comboProgress.completedGroups} 组 / 目标 ${comboProgress.groupTarget} 组`
+      : '';
+    const comboTodayProgressText = comboProgress && comboProgress.dailyGroupTarget > 0
+      ? `今日已完成 ${comboProgress.todayCompletedGroups} 组 / 每日目标 ${comboProgress.dailyGroupTarget} 组`
+      : '';
     this.setData({ task, quickButtons: getQuickButtons(task), total, streak, todayCount, detail, recentRecords: recent });
 
     // 计算达标状态
@@ -98,7 +108,10 @@ Page({
       editComboGroupTarget: comboGroupTarget > 0 ? String(comboGroupTarget) : '',
       editComboDailyGroupTarget: comboDailyGroupTarget > 0 ? String(comboDailyGroupTarget) : '',
       comboPreview,
-      comboDailyPreview
+      comboDailyPreview,
+      comboProgress,
+      comboProgressText,
+      comboTodayProgressText
     });
 
     // 补录默认昨天

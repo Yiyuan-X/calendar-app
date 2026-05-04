@@ -5,6 +5,7 @@
 const cloud = require('./utils/cloud');
 const privacy = require('./utils/privacy');
 const storage = require('./utils/storage');
+const reminderUtil = require('./utils/reminder');
 
 App({
   onLaunch() {
@@ -23,7 +24,7 @@ App({
 
   onShow() {
     // 检查事件提醒（静默，不阻塞）
-    this.checkEventReminders && this.checkEventReminders();
+    this.checkEventReminders();
   },
 
   checkStorageInit() {
@@ -75,5 +76,17 @@ App({
     if (!page.data || page.data.elderMode !== elderMode) {
       page.setData({ elderMode });
     }
+  },
+
+  checkEventReminders() {
+    try {
+      reminderUtil.showDueLocalReminder();
+    } catch (e) {
+      console.warn('检查本地提醒失败:', e);
+    }
+  },
+
+  runDueReminderCheck() {
+    reminderUtil.runDueReminderCheck();
   }
 });

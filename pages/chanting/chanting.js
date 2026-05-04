@@ -66,6 +66,12 @@ Page({
       const isDailyDone = t.dailyTarget > 0 && todayCount >= t.dailyTarget;
       const isTotalDone = t.totalTarget > 0 && total >= t.totalTarget;
       const comboProgress = t.comboId ? comboProgressMap[t.comboId] : null;
+      const comboProgressText = comboProgress
+        ? `已完成${comboProgress.completedGroups}组 / 目标${comboProgress.groupTarget}组`
+        : '';
+      const comboTodayProgressText = comboProgress && comboProgress.dailyGroupTarget > 0
+        ? `今日${comboProgress.todayCompletedGroups}/${comboProgress.dailyGroupTarget}组`
+        : '';
       return {
         ...t,
         todayCount,
@@ -74,7 +80,8 @@ Page({
         isTotalDone,
         progressPercent: t.dailyTarget > 0 ? Math.min(100, (todayCount / t.dailyTarget) * 100) : 0,
         totalProgressPercent: t.totalTarget > 0 ? Math.min(100, ((total || 0) / t.totalTarget) * 100) : 0,
-        comboProgressText: comboProgress ? `${comboProgress.completedGroups}/${comboProgress.groupTarget}组` : '',
+        comboProgressText,
+        comboTodayProgressText,
         warmClass: warmClassMap[t.id] || '',
         isDragging: false,
         isPlaceholder: false
