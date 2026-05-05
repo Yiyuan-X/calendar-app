@@ -72,7 +72,7 @@
 }
 
 .quote-btn.primary {
-  background: #1D1D1F;
+  background: linear-gradient(135deg, #DAA520, #B8860B);
   color: #FFFFFF;
 }
 

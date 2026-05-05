@@ -91,45 +91,18 @@
       </view>
     </view>
 
-    <!-- 节气信息 + 养生指南 -->
-    <view class="info-card card solar-term-card" wx:if="{{selectedDate.solarTermName && selectedDate.solarTermHealth}}">
+    <!-- 节气信息（仅显示名称和日期范围，详细养生请到"今日"页查看） -->
+    <view class="info-card card solar-term-card" wx:if="{{selectedDate.solarTermName}}">
       <view class="card-label tag tag-green">
-        <text>节气 · 养生</text>
+        <text>节气</text>
       </view>
-
-      <!-- 节气名称 + 简介 -->
       <view class="st-header">
         <text class="info-name st-name">{{selectedDate.solarTermName}}</text>
-        <text class="st-desc">{{selectedDate.solarTermHealth.desc}}</text>
+        <text class="st-period-text" wx:if="{{selectedDate.solarTermPeriod}}"> {{selectedDate.solarTermPeriod}}</text>
+        <text class="st-desc" wx:if="{{selectedDate.solarTermHealth}}">{{selectedDate.solarTermHealth.desc}}</text>
       </view>
-
-      <!-- 气候特点 -->
-      <view class="st-section">
-        <text class="st-label">气候</text>
-        <text class="st-text">{{selectedDate.solarTermHealth.climate}}</text>
-      </view>
-
-      <!-- 养生要点 -->
-      <view class="st-section">
-        <text class="st-label">养生</text>
-        <text class="st-text">{{selectedDate.solarTermHealth.health}}</text>
-      </view>
-
-      <!-- 饮食建议 -->
-      <view class="st-section">
-        <text class="st-label">食疗</text>
-        <text class="st-text">{{selectedDate.solarTermHealth.diet}}</text>
-      </view>
-
-      <!-- 起居提醒 -->
-      <view class="st-section">
-        <text class="st-label">起居</text>
-        <text class="st-text">{{selectedDate.solarTermHealth.lifestyle}}</text>
-      </view>
-
-      <!-- 养生金句 -->
-      <view class="st-tip">
-        <text class="tip-text">{{selectedDate.solarTermHealth.tip}}</text>
+      <view class="st-more-hint" bindtap="goToToday">
+        <text class="hint-text">← 前往「今日」查看完整养生指南</text>
       </view>
     </view>
 

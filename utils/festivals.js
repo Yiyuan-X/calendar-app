@@ -145,8 +145,8 @@ const fixedFestivals = {
     type: 'common',
     color: 'pink',
     category: 'commemorate',
-    description: '在这个世界上，慈悲的爱是经得起时间考验的，它能温暖干枯的心灵。',
-    quote: '善良的心就是黄金，能帮助我们拥有幸福'
+    description: '真正的幸福源于内心的宁静与大爱，让内心的亮光照透人间的迷雾，带给每一个人真实的平静与祥和。',
+    quote: '学会换位思考，多为他人着想'
   }
 };
 
@@ -359,7 +359,7 @@ const buddhistFestivals = {
     type: 'buddhist',
     color: 'purple',
     category: 'buddhist',
-    description: '作为慈悲护佑的象征，提醒我们要像保护生命一样保护内心的善良，在风雨人生中彼此扶持。',
+    description: '我们要像保护生命一样保护内心的善良，在风雨人生中彼此扶持。',
     quote: '善良的心就是黄金，能帮助我们在逆境中创造奇迹'
   },
 
@@ -537,7 +537,7 @@ const buddhistFestivals = {
     type: 'buddhist',
     color: 'purple',
     category: 'buddhist',
-    description: '这是一个敬老、登高并传播慈悲精神的日子。在这个时刻可以祈请大加持，清除内心的污垢，通过慈悲心度过人间一切苦厄。',
+    description: '这是一个敬老、登高并传播慈悲精神的日子。清除内心的污垢，通过慈悲心度过人间一切苦厄。',
     quote: '心底无私天地宽，慈悲能化解一切冤结'
   },
 
@@ -548,7 +548,7 @@ const buddhistFestivals = {
     color: 'purple',
     category: 'buddhist',
     description: '这是一个伟大的发心日，象征着舍去小我、舍去自身的人间利益，为了救度众生而提升境界的崇高时刻。',
-    quote: '放下自身的小爱，成就人间的大爱；榜样的力量是无穷的'
+    quote: '放下自身的小爱，成就人间的大爱'
   },
 
 
@@ -678,7 +678,9 @@ function getDynamicFestivals(year) {
         type: 'common',
         color: 'pink',
         category: 'commemorate',
-        isDynamic: true
+        isDynamic: true,
+        description: '母亲含辛茹苦养育子女。其爱如涓涓细流，能滋润干枯的心灵。',
+        quote: '孝能感动天地，多一点感恩心，就会多一点慈悲心'
       }
     });
   }
@@ -693,7 +695,9 @@ function getDynamicFestivals(year) {
         type: 'common',
         color: 'blue',
         category: 'commemorate',
-        isDynamic: true
+        isDynamic: true,
+        description: '父亲不仅是一个名号，更意味着一份沉甸甸的责任。为人之父应以身作则，用责任感守护家庭。',
+        quote: '父亲节是“责任节”，有责任心的人，人生更有方向'
       }
     });
   }
@@ -708,7 +712,9 @@ function getDynamicFestivals(year) {
         type: 'common',
         color: 'orange',
         category: 'commemorate',
-        isDynamic: true
+        isDynamic: true,
+        description: '学会感恩每一份善缘，在平凡中发现美好。用感恩的心去化解过去的冤结，让内心变得富有。',
+        quote: '只管耕耘，不问收获，心中常怀感恩，自得常乐'
       }
     });
   }

@@ -81,7 +81,7 @@ const solarTermHealthGuide = {
     health: '养心护阳，夏季养生重在养心。立夏之后心火渐旺。',
     diet: '立夏饭（蚕豆+竹笋+米饭）、青梅。尝三鲜（樱桃、枇杷、杏子）。绿豆汤解暑，苦瓜降心火。',
     lifestyle: '午休时间可稍延长。避免贪凉饮冷。',
-    tip: '夏三月谓蕃秀，天地气交，万物华实 -- 宜晚睡早起，接纳阳气'
+    tip: '夏三月谓蕃秀，天地气交，万物华实 -- 宜早睡早起，接纳阳气'
   },
   '小满': {
     desc: '麦粒渐满，江河水涨，作物灌浆饱满之时。',
@@ -273,10 +273,10 @@ const SOLAR_TERMS_TABLE = {
     [10,8,2,58],[10,23,6,13],[11,7,6,16],[11,21,22,3],[12,6,19,42],[12,21,13,26]
   ],
   2026: [
-    [1,5,23,55],[1,20,17,9],[2,4,7,43],[2,18,19,5],[3,5,22,7],[3,20,20,18],
-    [4,5,0,31],[4,20,8,2],[5,5,14,47],[5,21,3,37],[6,5,18,50],[6,21,15,25],
-    [7,7,9,0],[7,23,2,10],[8,7,18,30],[8,23,9,3],[9,7,23,33],[9,23,9,0],
-    [10,8,15,20],[10,23,18,28],[11,7,18,24],[11,22,16,2],[12,7,11,32],[12,22,5,20]
+    [1,5,23,55],[1,20,17,9],[2,4,4,1],[2,18,23,51],[3,5,21,59],[3,20,20,30],
+    [4,5,4,15],[4,20,9,27],[5,5,13,2],[5,21,3,52],[6,5,17,15],[6,21,22,52],
+    [7,7,22,45],[7,23,15,6],[8,7,23,25],[8,23,4,54],[9,7,7,11],[9,23,4,48],
+    [10,8,23,38],[10,23,15,52],[11,7,6,14],[11,22,16,53],[12,7,23,19],[12,22,17,34]
   ],
   2027: [
     [1,5,5,45],[1,20,0,0],[2,4,1,24],[2,18,13,34],[3,6,4,9],[3,21,2,13],
@@ -575,28 +575,43 @@ function getRandomSolarTermHealthTip(termName) {
  */
 function getNearbySolarTerms(year, month, day) {
   try {
+    // 用 getTodaySolarTerm 先按日期判断当天是否为节气（只比年月日，不含时辰）
+    // 再用 getCurrentSolarTerm 获取精确的节气区间
     const date = new Date(year, month - 1, day);
+    const todayST = getTodaySolarTerm(year, month, day);
     const currentInfo = getCurrentSolarTerm(date);
 
-    // 当前所在节气
-    const prevTerm = currentInfo ? {
-      name: currentInfo.name,
-      year: currentInfo.startDate.getFullYear(),
-      month: currentInfo.startDate.getMonth() + 1,
-      day: currentInfo.startDate.getDate()
-    } : null;
+    // 当前所在节气：优先使用当天节气（如果今天就是节气日），否则用所属区间
+    let termName, termIndex, startDate, endDate;
+    if (todayST) {
+      // 今天是节气当天，以该节气为准
+      termName = todayST.name;
+      termIndex = todayST.index;
+      startDate = getSolarTermDate(year, termIndex);
+      const nextIdx = (termIndex + 1) % 24;
+      const nYear = nextIdx === 0 ? year + 1 : year;
+      endDate = getSolarTermDate(nYear, nextIdx);
+    } else if (currentInfo && currentInfo.name !== '未知') {
+      termName = currentInfo.name;
+      termIndex = currentInfo.index;
+      startDate = currentInfo.startDate;
+      endDate = currentInfo.endDate;
+    } else {
+      return { prev: null, next: null };
+    }
 
-    // 下一个节气
-    let nextDate = currentInfo ? currentInfo.endDate : null;
-    const nextIndex = currentInfo ? (currentInfo.index + 1) % 24 : 0;
-    const nextYear = nextIndex === 0 ? year + 1 : year;
-    const nextTermDate = getSolarTermDate(nextYear === year ? year : nextYear, nextIndex === 0 ? 0 : nextIndex);
+    const prevTerm = {
+      name: termName,
+      year: startDate.getFullYear(),
+      month: startDate.getMonth() + 1,
+      day: startDate.getDate()
+    };
 
-    const nextTerm = nextTermDate ? {
-      name: solarTermNames[nextIndex],
-      year: nextTermDate.getFullYear(),
-      month: nextTermDate.getMonth() + 1,
-      day: nextTermDate.getDate()
+    const nextTerm = endDate ? {
+      name: solarTermNames[(termIndex + 1) % 24],
+      year: endDate.getFullYear(),
+      month: endDate.getMonth() + 1,
+      day: endDate.getDate()
     } : null;
 
     return { prev: prevTerm, next: nextTerm };

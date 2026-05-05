@@ -53,6 +53,13 @@ Page({
     // === 每日素食养生语录 ===
     dailyVegetarianTip: '',
 
+    // === 折叠状态 ===
+    stExpanded: false,
+    festivalsExpanded: false,
+
+    // 近期日子「更多」按钮数字（预计算，避免WXML表达式问题）
+    festivalsMoreCount: 0,
+
     // === 功过格 ===
     meritTodayNet: null,
     showPrivacyAuthorization: false,
@@ -111,7 +118,7 @@ Page({
     const noBreakWords = [
       '价值', '财物', '快乐', '安详', '平安', '吉祥', '平稳', '安静',
       '慈悲', '智慧', '烦恼', '因缘', '感恩', '珍惜', '生命', '当下',
-      '看破放下', '晴空万里', '心地安详', '世间一切'
+      '晴空万里', '心地安详', '世间一切'
     ];
     const getBreakIndex = segment => {
       let breakIndex = maxLineLength;
@@ -359,7 +366,11 @@ Page({
       const currentTerm = nearby.prev || nearby.next;
       const nextTerm = nearby.next || nearby.prev;
       if (currentTerm && nextTerm) {
-        return `${currentTerm.year || year}年${currentTerm.month}月${currentTerm.day}日 — ${nextTerm.year || year}年${nextTerm.month}月${nextTerm.day}日`;
+        const startMonth = currentTerm.month;
+        const startDay = currentTerm.day;
+        const endMonth = nextTerm.month;
+        const endDay = nextTerm.day;
+        return `${startMonth}月${startDay}日 — ${endMonth}月${endDay}日`;
       } else if (currentTerm) {
         return `${currentTerm.month}月起`;
       }
@@ -560,7 +571,10 @@ Page({
       });
     });
 
-    this.setData({ upcomingFestivals: flatList.slice(0, 10) });
+    this.setData({ 
+      upcomingFestivals: flatList.slice(0, 10),
+      festivalsMoreCount: Math.max(flatList.length - 3, 0)
+    });
   },
 
   /**
@@ -652,6 +666,17 @@ goToMerit() {
     analytics.track('daily_quote_click', {
       quote: this.data.dailyQuote
     });
+  },
+
+  /** 切节气卡片展开/收起 */
+  toggleStExpand() {
+    this.setData({ stExpanded: !this.data.stExpanded });
+    analytics.track('solar_term_toggle', { expanded: !this.data.stExpanded });
+  },
+
+  /** 切近期日子展开/收起 */
+  toggleFestivalsExpand() {
+    this.setData({ festivalsExpanded: !this.data.festivalsExpanded });
   },
 
   // ==================== 分享 ====================
@@ -865,7 +890,9 @@ goToMerit() {
 
       // 根据是否有节气内容动态调整高度
       var hasSTContent = !!(stName && (stHealth || stPeriod));
-      var W = 500, H = isDailySign ? (signExtra ? 740 : 640) : (hasSTContent ? 780 : 650);
+      // 高度：有备忘录时预留更多空间
+      var baseH = isDailySign ? 640 : (hasSTContent ? 780 : 650);
+      var H = isDailySign && signExtra ? Math.max(baseH + 120, 760) : baseH;
       canvas.width = W * dpr; canvas.height = H * dpr;
       ctx.scale(dpr, dpr);
 
@@ -880,34 +907,37 @@ goToMerit() {
         ctx.strokeRect(15, 15, W - 30, H - 30);
 
         // ===== 标题 =====
-        ctx.fillStyle = '#8B6914'; ctx.font = 'bold 40px sans-serif';
-        ctx.textAlign = 'center'; ctx.fillText(isDailySign ? '今日签 · 岁时记' : '今日 · 岁时记', W / 2, 58);
+        ctx.fillStyle = '#8B6914'; ctx.font = 'bold 38px sans-serif';
+        ctx.textAlign = 'center'; ctx.fillText(isDailySign ? '今日签 · 岁时记' : '今日 · 岁时记', W / 2, 56);
 
         // ===== 日期 =====
-        ctx.fillStyle = '#5D4037'; ctx.font = '28px sans-serif';
-        ctx.fillText((ti.year || '') + '年' + (ti.month || '') + '月' + (ti.day || '') + '日', W / 2, 98);
+        ctx.fillStyle = '#5D4037'; ctx.font = '26px sans-serif';
+        ctx.fillText((ti.year || '') + '年' + (ti.month || '') + '月' + (ti.day || '') + '日', W / 2, 94);
 
         // 农历
-        ctx.fillStyle = '#A08520'; ctx.font = '22px sans-serif';
-        ctx.fillText((ti.lunarMonth || '') + (ti.lunarDay || ''), W / 2, 130);
+        ctx.fillStyle = '#A08520'; ctx.font = '21px sans-serif';
+        ctx.fillText('农历' + (ti.lunarMonth || '') + (ti.lunarDay || ''), W / 2, 124);
 
         // 节日标签
-        var curY = 164;
+        var curY = 156;
         if (festivals.length > 0) {
-          ctx.fillStyle = '#D93B3B'; ctx.font = '19px sans-serif';
+          ctx.fillStyle = '#D93B3B'; ctx.font = '18px sans-serif';
           var festNames = festivals.map(function(f) { return f.name; }).join(' · ');
           ctx.fillText(festNames, W / 2, curY);
-          curY += 28;
+          curY += 26;
         }
 
-        // ===== 金句区域 =====
-        ctx.fillStyle = '#6D5A2E'; ctx.font = 'bold 25px sans-serif';
+        // ===== 金句区域（加大字号和行距） =====
+        ctx.fillStyle = '#6D5A2E'; ctx.font = 'bold 28px sans-serif';
         ctx.textAlign = 'center';
-        var quoteY = curY + 48;
-        that._wrapText(ctx, '「' + quote + '」', 52, quoteY, W - 104, 34, true);
+        var quoteY = curY + 44;
+        that._wrapText(ctx, '「' + quote + '」', 52, quoteY, W - 104, 38, true);
 
         if (isDailySign) {
-          var extraY = quoteY + (quote.length > 18 ? 96 : 62);
+          // 根据金句长度估算实际占用高度，动态定位备忘录
+          var quoteLines = Math.ceil(quote.length / 14); // 每行约14字
+          var quoteH = quoteLines * 38;
+          var extraY = quoteY + quoteH + 28;
           if (signExtra) {
             that._drawSignExtra(ctx, signExtra, 38, extraY, W - 76);
           } else if (mode !== 'quote') {
@@ -944,7 +974,7 @@ goToMerit() {
             ctx.fillText(stPeriod, cardX + cardPadding, ty);
           }
 
-          // 养生描述
+          // 养生描述（有 vegTip 时跳过 diet，避免与每日推荐重复）
           if (stHealth) {
             if (stHealth.desc) {
               ty += 30;
@@ -955,6 +985,17 @@ goToMerit() {
               ty += 30;
               ctx.fillStyle = '#4B5563'; ctx.font = '18px sans-serif';
               that._wrapText(ctx, stHealth.health, cardX + cardPadding, ty, cardW - cardPadding * 2, 25);
+            }
+            // 仅在无 vegTip 时才绘制 diet（饮食建议），否则与每日推荐重复
+            if (!vegTip && stHealth.diet) {
+              ty += 30;
+              ctx.fillStyle = '#4B5563'; ctx.font = '18px sans-serif';
+              that._wrapText(ctx, stHealth.diet, cardX + cardPadding, ty, cardW - cardPadding * 2, 25);
+            }
+            if (stHealth.lifestyle && !vegTip) {
+              ty += 30;
+              ctx.fillStyle = '#8B6914'; ctx.font = '17px sans-serif';
+              that._wrapText(ctx, stHealth.lifestyle, cardX + cardPadding, ty, cardW - cardPadding * 2, 24);
             }
           }
 
@@ -1019,21 +1060,38 @@ goToMerit() {
     ctx.closePath();
   },
 
-  /** 文字自动换行绘制 */
+  /** 文字自动换行绘制（优化：避免中文词语被拆开） */
   _wrapText: function(ctx, text, x, y, maxWidth, lineHeight, center) {
     if (!text) return y;
+    // 可在此处断行的字符：标点、空格、西文空格
+    var breakChars = ' ，。！？、；：""\'\'（）【】《》…—\n\t\r';
     var chars = text.split('');
     var line = '';
     var curY = y;
+    var lastBreakPos = -1; // 行内最近的可断行位置
     for (var i = 0; i < chars.length; i++) {
-      var testLine = line + chars[i];
+      var ch = chars[i];
+      var testLine = line + ch;
       var metrics = ctx.measureText(testLine);
       if (metrics.width > maxWidth && line.length > 0) {
-        ctx.fillText(line, center ? x + maxWidth / 2 : x, curY);
-        line = chars[i];
+        // 如果有可断行点，优先在断行点处截断
+        if (lastBreakPos >= 0 && lastBreakPos < line.length) {
+          var toOutput = line.substring(0, lastBreakPos + 1);
+          var remaining = line.substring(lastBreakPos + 1) + ch;
+          ctx.fillText(toOutput, center ? x + maxWidth / 2 : x, curY);
+          line = remaining;
+        } else {
+          ctx.fillText(line, center ? x + maxWidth / 2 : x, curY);
+          line = ch;
+        }
         curY += lineHeight;
+        lastBreakPos = -1;
       } else {
         line = testLine;
+        // 记录可断行位置
+        if (breakChars.indexOf(ch) >= 0) {
+          lastBreakPos = line.length - 1;
+        }
       }
     }
     if (line) {
@@ -1058,21 +1116,46 @@ goToMerit() {
     return null;
   },
 
-  _drawSignExtra: function(ctx, extra, x, y, w) {
-    this._drawRoundRect(ctx, x, y, w, 178, 14);
-    ctx.fillStyle = 'rgba(255, 252, 240, 0.9)';
-    ctx.fill();
-    ctx.strokeStyle = 'rgba(218, 165, 32, 0.24)';
-    ctx.lineWidth = 1;
-    ctx.stroke();
+_drawSignExtra: function(ctx, extra, x, y, w) {
+  // 长方形框（左边直角，右边小圆角）
+  var padX = 18;
+  var maxTextW = w - padX * 2;
+  var lineH = 29;
+  var text = extra.text.slice(0, 90);
+  // 估算行数
+  var estLines = Math.max(Math.ceil(text.length / (maxTextW / 17)), 1);
+  var r = 8; // 右侧小圆角
+  var labelH = 28;   // 标签区高度
+  var gapY = 14;     // 标签与内容的间距
+  var bottomPad = 22; // 底部留白
+  var boxH = labelH + gapY + estLines * lineH + bottomPad;
 
-    ctx.textAlign = 'left';
-    ctx.fillStyle = '#B8860B';
-    ctx.font = 'bold 20px sans-serif';
-    ctx.fillText(extra.label, x + 20, y + 34);
+  // 左边直角 + 右边圆角的矩形路径
+  ctx.beginPath();
+  ctx.moveTo(x, y);                          // 左上（直角）
+  ctx.lineTo(x + w - r, y);                  // 上边 → 右上圆角起点
+  ctx.arcTo(x + w, y, x + w, y + r, r);      // 右上圆角
+  ctx.lineTo(x + w, y + boxH - r);           // 右边 → 右下圆角起点
+  ctx.arcTo(x + w, y + boxH, x + w - r, y + boxH, r); // 右下圆角
+  ctx.lineTo(x, y + boxH);                   // 底边 → 左下（直角）
+  ctx.closePath();
 
-    ctx.fillStyle = '#4B5563';
-    ctx.font = '19px sans-serif';
-    this._wrapText(ctx, extra.text.slice(0, 90), x + 20, y + 68, w - 40, 28);
-  }
+  // 背景：微暖白 + 细金边
+  ctx.fillStyle = 'rgba(255, 255, 255, 0.9)';
+  ctx.fill();
+  ctx.strokeStyle = 'rgba(201, 144, 32, 0.3)';
+  ctx.lineWidth = 1.2;
+  ctx.stroke();
+
+  // 标签文字
+  ctx.textAlign = 'left';
+  ctx.fillStyle = '#B8860B';
+  ctx.font = 'bold 19px sans-serif';
+  ctx.fillText(extra.label, x + padX, y + labelH + 2);
+
+  // 备忘录正文
+  ctx.fillStyle = '#4B5563';
+  ctx.font = '18px sans-serif';
+  this._wrapText(ctx, text, x + padX, y + labelH + gapY + lineH, maxTextW, lineH);
+}
 });

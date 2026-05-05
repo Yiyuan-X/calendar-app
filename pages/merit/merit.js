@@ -1295,51 +1295,65 @@ Page({
     } catch(e) { return hex; }
   },
 
-  /** 文字自动换行绘制（左对齐） */
+  /** 文字自动换行绘制（左对齐，优化：避免中文词语被拆开） */
   _wrapText: function(ctx, text, x, y, maxWidth, lineHeight) {
     if (!text) return y;
+    var breakChars = ' ，。！？、；：""\'\'（）【】《》…—\n\t\r';
     var chars = text.split('');
     var line = '';
     var curY = y;
+    var lastBreakPos = -1;
     for (var i = 0; i < chars.length; i++) {
-      var testLine = line + chars[i];
+      var ch = chars[i];
+      var testLine = line + ch;
       var metrics = ctx.measureText(testLine);
       if (metrics.width > maxWidth && line.length > 0) {
-        ctx.fillText(line, x, curY);
-        line = chars[i];
+        if (lastBreakPos >= 0 && lastBreakPos < line.length) {
+          ctx.fillText(line.substring(0, lastBreakPos + 1), x, curY);
+          line = line.substring(lastBreakPos + 1) + ch;
+        } else {
+          ctx.fillText(line, x, curY);
+          line = ch;
+        }
         curY += lineHeight;
+        lastBreakPos = -1;
       } else {
         line = testLine;
+        if (breakChars.indexOf(ch) >= 0) lastBreakPos = line.length - 1;
       }
     }
-    if (line) {
-      ctx.fillText(line, x, curY);
-      curY += lineHeight;
-    }
+    if (line) { ctx.fillText(line, x, curY); curY += lineHeight; }
     return curY;
   },
 
-  /** 文字自动换行 + 居中绘制（每行居中于 centerX） */
+  /** 文字自动换行 + 居中绘制（每行居中于 centerX，优化：避免中文词语被拆开） */
   _wrapTextCenter: function(ctx, text, centerX, y, maxWidth, lineHeight) {
     if (!text) return y;
+    var breakChars = ' ，。！？、；：""\'\'（）【】《》…—\n\t\r';
     var chars = text.split('');
     var line = '';
     var curY = y;
+    var lastBreakPos = -1;
     for (var i = 0; i < chars.length; i++) {
-      var testLine = line + chars[i];
+      var ch = chars[i];
+      var testLine = line + ch;
       var metrics = ctx.measureText(testLine);
       if (metrics.width > maxWidth && line.length > 0) {
-        ctx.fillText(line, centerX, curY);
-        line = chars[i];
+        if (lastBreakPos >= 0 && lastBreakPos < line.length) {
+          ctx.fillText(line.substring(0, lastBreakPos + 1), centerX, curY);
+          line = line.substring(lastBreakPos + 1) + ch;
+        } else {
+          ctx.fillText(line, centerX, curY);
+          line = ch;
+        }
         curY += lineHeight;
+        lastBreakPos = -1;
       } else {
         line = testLine;
+        if (breakChars.indexOf(ch) >= 0) lastBreakPos = line.length - 1;
       }
     }
-    if (line) {
-      ctx.fillText(line, centerX, curY);
-      curY += lineHeight;
-    }
+    if (line) { ctx.fillText(line, centerX, curY); curY += lineHeight; }
     return curY;
   }
 

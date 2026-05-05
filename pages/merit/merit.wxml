@@ -74,6 +74,12 @@
   </view>
 
   <view class="builtin-list" wx:if="{{showBuiltinItems}}">
+    <!-- 操作提示 -->
+    <view class="builtin-tip">
+      <text class="builtin-tip-icon">💡</text>
+      <text class="builtin-tip-text">每个条目可根据实际情况多次点击，可累计加分</text>
+    </view>
+
     <!-- 善行分类（累计模式：点击 +1，长按删除） -->
     <view class="category-section" wx:for="{{goodCategories}}" wx:key="id">
       <view class="category-header good-header">

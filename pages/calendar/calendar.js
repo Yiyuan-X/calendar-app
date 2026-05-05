@@ -449,6 +449,13 @@ Page({
           ganzhiYear: ganzhiYear,
           animalYear: animalYear,
           solarTermName: selectedInfo.solarTerm ? selectedInfo.solarTerm.name : '',
+          // 节气日期范围
+          solarTermPeriod: (function() {
+            var st = selectedInfo.solarTerm;
+            if (!st || !st.startDate || !st.endDate) return '';
+            var fmt = function(d) { return d.getMonth() + 1 + '月' + d.getDate() + '日'; };
+            return fmt(st.startDate) + ' — ' + fmt(st.endDate);
+          })(),
           // 获取节气养生信息
           solarTermHealth: selectedInfo.solarTerm ? solarTerms.getSolarTermHealth(selectedInfo.solarTerm.name) : null,
           // 黄历资料

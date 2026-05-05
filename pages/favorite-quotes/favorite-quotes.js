@@ -154,17 +154,26 @@ Page({
   },
 
   wrapText(ctx, text, x, y, maxWidth, lineHeight, center) {
+    const breakChars = ' ，。！？、；：""\'\'（）【】《》…—\n\t\r';
     const chars = String(text || '').split('');
     let line = '';
     let curY = y;
+    let lastBreakPos = -1;
     chars.forEach(char => {
       const testLine = line + char;
       if (ctx.measureText(testLine).width > maxWidth && line) {
-        ctx.fillText(line, center ? x + maxWidth / 2 : x, curY);
-        line = char;
+        if (lastBreakPos >= 0 && lastBreakPos < line.length) {
+          ctx.fillText(line.substring(0, lastBreakPos + 1), center ? x + maxWidth / 2 : x, curY);
+          line = line.substring(lastBreakPos + 1) + char;
+        } else {
+          ctx.fillText(line, center ? x + maxWidth / 2 : x, curY);
+          line = char;
+        }
         curY += lineHeight;
+        lastBreakPos = -1;
       } else {
         line = testLine;
+        if (breakChars.indexOf(char) >= 0) lastBreakPos = line.length - 1;
       }
     });
     if (line) ctx.fillText(line, center ? x + maxWidth / 2 : x, curY);

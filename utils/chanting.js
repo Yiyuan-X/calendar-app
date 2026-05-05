@@ -79,7 +79,7 @@ const BUILTIN = [
   { id:'b46', name:'往生咒', cat:'咒语', unit:'遍' },
 
   // ===== 礼忏/忏悔 =====
-  { id:'b47', name:'八十八佛大忏悔文', cat:'礼忏', unit:'遍', hot:true },
+  { id:'b47', name:'八十八佛大忏悔文', cat:'礼忏', unit:'遍'},
   { id:'b48', name:'三十五佛忏悔文', cat:'礼忏', unit:'遍' },
   { id:'b49', name:'慈悲三昧水忏', cat:'礼忏', unit:'遍' },
   { id:'b50', name:'梁皇宝忏', cat:'礼忏', unit:'卷' },

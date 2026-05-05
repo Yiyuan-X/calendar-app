@@ -38,20 +38,25 @@
     </view>
   </view>
 
-  <!-- 节气养生卡片（图1简洁风格） -->
-  <view class="sth2-card" wx:if="{{todaySolarTermHealth}}">
+  <!-- 节气养生卡片（默认折叠：只显示名称+日期+简介，点击展开详情） -->
+  <view class="sth2-card {{stExpanded ? 'sth2-expanded' : ''}}" wx:if="{{todaySolarTermHealth}}" bindtap="toggleStExpand">
     <view class="sth2-title-row">
       <image class="sth2-icon" src="/images/icons/leaf.svg" mode="aspectFit"></image>
       <text class="sth2-name">{{todaySolarTermName}}</text>
+      <text class="sth2-toggle-icon">{{stExpanded ? '收起' : '展开'}}</text>
     </view>
     <text class="sth2-period" wx:if="{{todaySolarTermPeriod}}">{{todaySolarTermPeriod}}</text>
     <text class="sth2-desc">{{todaySolarTermHealth.desc}}</text>
-    <text class="sth2-text">{{todaySolarTermHealth.health}}</text>
-    <text class="sth2-text">{{todaySolarTermHealth.diet}}</text>
-    <view class="sth2-tip"><text>{{todaySolarTermHealth.tip}}</text></view>
-    <view class="daily-tip-inline" wx:if="{{dailyVegetarianTip}}">
-      <text class="daily-tip-label">今日推荐</text>
-      <text class="daily-tip-text">{{dailyVegetarianTip}}</text>
+
+    <!-- 折叠内容：点击展开后显示 -->
+    <view class="sth2-detail" wx:if="{{stExpanded}}">
+      <text class="sth2-text">{{todaySolarTermHealth.health}}</text>
+      <text class="sth2-text">{{todaySolarTermHealth.diet}}</text>
+      <view class="sth2-tip"><text>{{todaySolarTermHealth.tip}}</text></view>
+      <view class="daily-tip-inline" wx:if="{{dailyVegetarianTip}}">
+        <text class="daily-tip-label">今日推荐</text>
+        <text class="daily-tip-text">{{dailyVegetarianTip}}</text>
+      </view>
     </view>
   </view>
 
@@ -74,7 +79,7 @@
     <view class="section-header">
       <text class="section-title">重要日子</text>
       <view class="add-btn-small" bindtap="goToAddEventWithDate">
-        <text>+</text>
+        <text>添加</text>
       </view>
     </view>
 
@@ -111,16 +116,19 @@
     </view>
   </view>
 
-  <!-- 近期日子（列表式：展示节日名称 + 类型 + 描述） -->
+  <!-- 近期日子（列表式：默认显示3条，点击展开更多） -->
   <view class="section-block" wx:if="{{upcomingFestivals.length > 0}}">
     <view class="section-header">
       <text class="section-title">近期日子</text>
+      <text class="festivals-toggle-btn" wx:if="{{festivalsMoreCount > 0}}" bindtap="toggleFestivalsExpand">
+        {{festivalsExpanded ? '收起' : '更多 (' + festivalsMoreCount + ')'}}
+      </text>
     </view>
 
     <view class="festivals-list-v">
       <view
         class="festival-card {{item.chipColor}}"
-        wx:for="{{upcomingFestivals}}"
+        wx:for="{{festivalsExpanded ? upcomingFestivals : upcomingFestivals.slice(0, 3)}}"
         wx:key="index"
         data-festival="{{item}}"
         bindtap="goToFestivalDetail"
@@ -172,7 +180,7 @@
       </view>
       <view class="action-info">
         <text class="action-title">显示设置</text>
-        <text class="action-subtitle">自定义节日 · 节气等</text>
+        <text class="action-subtitle">使用说明，自定义长辈模式等</text>
       </view>
       <text class="action-arrow">›</text>
     </view>
@@ -189,15 +197,11 @@
         <image class="share-btn-icon" src="/images/icons/star.svg" mode="aspectFit"></image>
         <text class="share-btn-text">金句</text>
       </button>
-      <button class="share-btn share-asset-btn" open-type="share" data-share-type="buddhist">
-        <image class="share-btn-icon" src="/images/icons/fo.svg" mode="aspectFit"></image>
-        <text class="share-btn-text">传统日</text>
-      </button>
       <button class="share-btn share-asset-btn" open-type="share" data-share-type="event">
         <image class="share-btn-icon" src="/images/icons/clock.svg" mode="aspectFit"></image>
         <text class="share-btn-text">纪念日</text>
       </button>
-      <button class="share-btn share-asset-btn asset-wide" open-type="share" data-share-type="practice">
+      <button class="share-btn share-asset-btn" open-type="share" data-share-type="practice">
         <image class="share-btn-icon" src="/images/icons/gen-chart.svg" mode="aspectFit"></image>
         <text class="share-btn-text">本月修心</text>
       </button>
