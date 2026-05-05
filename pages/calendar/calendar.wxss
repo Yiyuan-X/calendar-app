@@ -790,6 +790,7 @@ picker-view-column {
   background: linear-gradient(135deg, #FFF8E7, #FFFBF0);
   border-radius: 10rpx;
   border-left: 3rpx solid #DAA520;
+  cursor: pointer;
 }
 
 .st-more-hint:active {

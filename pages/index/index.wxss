@@ -16,15 +16,16 @@
   display: flex;
   align-items: flex-start;
   justify-content: space-between;
-  gap: 20rpx;
+  gap: 16rpx;
 }
 
 .header-left {
   flex: 1 1 0;
   display: flex;
   flex-direction: column;
-  gap: 8rpx;
+  gap: 6rpx;
   min-width: 0;
+  align-items: flex-start;
 }
 
 .today-header {
@@ -36,24 +37,27 @@
 
 /* 日期（大标题） */
 .today-date {
-  font-size: 43rpx;
+  font-size: 44rpx;
   font-weight: 800;
   color: #1D1D1F;
-  letter-spacing: 1rpx;
+  letter-spacing: 0.5rpx;
 }
 
-/* 农历日期（标准正文） */
+/* 农历 + 干支（同一行横排） */
 .today-lunar {
-  font-size: 29rpx;
+  display: inline;
+  font-size: 30rpx;
   color: #6B7280;
   font-weight: 600;
 }
 
-/* 干支年（辅助信息） */
+/* 干支年 */
 .today-ganzhi {
-  font-size: 25rpx;
-  color: #AEAEB2;
-  font-weight: 400;
+  display: inline;
+  font-size: 28rpx;
+  color: #8B7355;
+  font-weight: 500;
+  margin-left: 16rpx;
 }
 
 /* 今日节日标签 */
@@ -80,16 +84,16 @@
 /* 右侧金句 */
 .header-quote {
   flex: 1 1 0;
-  min-height: 128rpx;
+  min-height: 100rpx;
   box-sizing: border-box;
   position: relative;
   display: flex;
   flex-direction: column;
-  align-items: flex-end;
+  align-items: center;
   justify-content: center;
   gap: 2rpx;
-  text-align: right;
-  padding: 18rpx 18rpx 18rpx 28rpx;
+  text-align: center;
+  padding: 14rpx 14rpx 14rpx 24rpx;
   background: linear-gradient(135deg, rgba(255, 252, 244, 0.92), rgba(255, 247, 224, 0.48));
   border-left: 4rpx solid rgba(201, 144, 32, 0.34);
   border-radius: 0 18rpx 18rpx 0;
@@ -108,25 +112,27 @@
   font-family: Georgia, 'Times New Roman', serif;
 }
 
-/* 金句文字（略小于标准，优雅感） */
+/* 金句文字（正体、居中显示） */
 .quote-text-inline {
   display: block;
   max-width: 100%;
-  font-size: 25rpx;
+  font-size: 27rpx;
   color: #956706;
-  font-style: italic;
-  line-height: 1.5;
-  font-weight: 700;
-  letter-spacing: 0;
-  white-space: nowrap;
+  font-style: normal;
+  line-height: 1.65;
+  font-weight: 600;
+  letter-spacing: 0.2rpx;
+  word-break: keep-all;
+  overflow-wrap: break-word;
+  text-align: center;
 }
 
 .quote-actions {
   display: flex;
   align-items: center;
-  justify-content: flex-end;
-  gap: 10rpx;
-  margin-top: 12rpx;
+  justify-content: center;
+  gap: 8rpx;
+  margin-top: 8rpx;
 }
 
 .quote-action {
@@ -309,22 +315,26 @@
 }
 
 .add-btn-small {
-  width: 48rpx;
-  height: 48rpx;
-  display: flex;
+  display: inline-flex;
   align-items: center;
   justify-content: center;
-  background: rgba(255, 179, 0, 0.14);
-  border-radius: 50%;
-  transition: background 0.15s;
+  gap: 4rpx;
+  padding: 6rpx 18rpx;
+  background: linear-gradient(135deg, #FFF8E7, #FFECB3);
+  border-radius: 999rpx;
+  border: 1.5rpx solid rgba(255, 179, 0, 0.2);
+  transition: background 0.15s, box-shadow 0.15s;
 }
 
-.add-btn-small:active { background: rgba(255, 179, 0, 0.22); }
+.add-btn-small:active {
+  background: linear-gradient(135deg, #FFECB3, #FFE082);
+  box-shadow: 0 2rpx 8rpx rgba(255, 179, 0, 0.15);
+}
 
 .add-btn-small text {
-  font-size: 34rpx;
-  color: #FF9500;
-  font-weight: 300;
+  font-size: 25rpx;
+  color: #F59E0B;
+  font-weight: 700;
   line-height: 1;
 }
 
@@ -641,9 +651,9 @@
   box-shadow: 0 2rpx 10rpx rgba(0, 0, 0, 0.06);
 }
 
-/* 功过格卡片 */
+/* 功过格/积善卡片 — 暖金色渐变，与整体风格协调 */
 .merit-entry {
-  background: linear-gradient(135deg, #5D4037 0%, #8B6914 100%);
+  background: linear-gradient(135deg, #D4A017 0%, #B8860B 50%, #CD853F 100%);
 }
 
 /* 显示设置卡片 — 更醒目的渐变背景 */
@@ -736,7 +746,7 @@
 /* 箭头 */
 .action-arrow {
   font-size: 34rpx;
-  color: rgba(255, 255, 255, 0.3);
+  color: rgba(255, 255, 255, 0.55);
   font-weight: 300;
   flex-shrink: 0;
   margin-left: 6rpx;
@@ -770,11 +780,10 @@
 .share-bar {
   display: flex;
   flex-direction: column;
-  gap: 14rpx;
-  padding: 20rpx 18rpx 18rpx;
-  margin: 10rpx auto 0;
-  width: 100%;
-  max-width: 660rpx;
+  gap: 10rpx;
+  padding: 16rpx 0 12px;
+  margin: 6rpx -24rpx 0;
+  width: calc(100% + 48rpx);
   box-sizing: border-box;
 }
 
@@ -806,9 +815,11 @@
 
 .share-asset-grid {
   display: grid;
-  grid-template-columns: 1fr 1fr 1fr;
+  grid-template-columns: repeat(2, 1fr);
   gap: 12rpx;
   width: 100%;
+  padding: 0 24rpx;
+  box-sizing: border-box;
 }
 
 .share-asset-btn {
@@ -817,21 +828,19 @@
   box-shadow: 0 2rpx 10rpx rgba(139, 105, 20, 0.05) !important;
 }
 
-.share-asset-btn.asset-wide {
-  grid-column: span 2;
-}
-
 .share-poster-actions {
   display: grid;
-  grid-template-columns: 1fr 1fr;
+  grid-template-columns: repeat(2, 1fr);
   gap: 12rpx;
   width: 100%;
+  padding: 0 24rpx;
+  box-sizing: border-box;
 }
 
 .share-btn-primary {
-  background: #1D1D1F !important;
+  background: linear-gradient(135deg, #DAA520, #B8860B) !important;
   color: #FFFFFF !important;
-  box-shadow: 0 5rpx 18rpx rgba(29, 29, 31, 0.12) !important;
+  box-shadow: 0 5rpx 18rpx rgba(218, 165, 32, 0.35) !important;
 }
 
 .share-btn-save {

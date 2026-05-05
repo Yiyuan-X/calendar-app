@@ -43,7 +43,7 @@
     <view class="sth2-title-row">
       <image class="sth2-icon" src="/images/icons/leaf.svg" mode="aspectFit"></image>
       <text class="sth2-name">{{todaySolarTermName}}</text>
-      <text class="sth2-toggle-icon">{{stExpanded ? '收起' : '展开'}}</text>
+      <text class="sth2-toggle-icon">{{stExpanded ? '收起' : '展开养生卡片'}}</text>
     </view>
     <text class="sth2-period" wx:if="{{todaySolarTermPeriod}}">{{todaySolarTermPeriod}}</text>
     <text class="sth2-desc">{{todaySolarTermHealth.desc}}</text>
@@ -116,12 +116,12 @@
     </view>
   </view>
 
-  <!-- 近期日子（列表式：默认显示3条，点击展开更多） -->
+  <!-- 近期节日（列表式：默认显示3条，点击展开更多） -->
   <view class="section-block" wx:if="{{upcomingFestivals.length > 0}}">
     <view class="section-header">
-      <text class="section-title">近期日子</text>
+      <text class="section-title">近期节日</text>
       <text class="festivals-toggle-btn" wx:if="{{festivalsMoreCount > 0}}" bindtap="toggleFestivalsExpand">
-        {{festivalsExpanded ? '收起' : '更多 (' + festivalsMoreCount + ')'}}
+        {{festivalsExpanded ? '收起' : '显示更多近期节日 (' + festivalsMoreCount + ')'}}
       </text>
     </view>
 
