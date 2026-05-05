@@ -4,9 +4,11 @@ const storage = require('../../utils/storage');
 const quotes = require('../../utils/quotes');
 const solarTerms = require('../../utils/solar-terms');
 const meritUtil = require('../../utils/merit');
+const chant = require('../../utils/chanting');
 const privacy = require('../../utils/privacy');
 const share = require('../../utils/share');
 const poster = require('../../utils/poster');
+const analytics = require('../../utils/analytics');
 
 Page({
   data: {
@@ -30,6 +32,7 @@ Page({
     todayInfo: {},
     dailyQuote: '',
     dailyQuoteLines: [],
+    dailyQuoteFavorited: false,
     todayFestivals: [],
     todayNote: null,
 
@@ -65,6 +68,7 @@ Page({
   onShow() {
     share.enableShareMenu();
     getApp().applyDisplaySettings(this);
+    analytics.track('home_open');
     if (getApp().checkEventReminders) {
       getApp().checkEventReminders();
     }
@@ -103,39 +107,68 @@ Page({
   formatQuoteLines(quote) {
     const text = String(quote || '').trim();
     if (!text) return [];
-    if (text.length <= 9) return [`「${text}」`];
-
-    const punctuationIndex = text.search(/[，。；、]/);
-    if (punctuationIndex >= 3 && punctuationIndex < text.length - 3) {
-      return [
-        `「${text.slice(0, punctuationIndex + 1)}`,
-        `${text.slice(punctuationIndex + 1)}」`
-      ];
-    }
-
-    const preferredBreaks = ['，', '。', '；', '、', '也', '把', '给', '愿', '才', '都'];
-    let breakIndex = -1;
-    preferredBreaks.some(char => {
-      const idx = text.indexOf(char, 3);
-      if (idx >= 3 && idx < text.length - 3) {
-        breakIndex = idx + 1;
-        return true;
-      }
-      return false;
-    });
-
-    if (breakIndex < 0) {
-      breakIndex = Math.ceil(text.length / 2);
-      const lastChar = text.slice(breakIndex - 1, breakIndex);
-      if ('的了吧呀哦呢'.indexOf(lastChar) >= 0 && breakIndex > 3) {
-        breakIndex -= 1;
-      }
-    }
-
-    return [
-      `「${text.slice(0, breakIndex)}`,
-      `${text.slice(breakIndex)}」`
+    const maxLineLength = 11;
+    const noBreakWords = [
+      '价值', '财物', '快乐', '安详', '平安', '吉祥', '平稳', '安静',
+      '慈悲', '智慧', '烦恼', '因缘', '感恩', '珍惜', '生命', '当下',
+      '看破放下', '晴空万里', '心地安详', '世间一切'
     ];
+    const getBreakIndex = segment => {
+      let breakIndex = maxLineLength;
+      const nextChar = segment.slice(breakIndex, breakIndex + 1);
+      const pauseIndex = segment.slice(0, breakIndex).lastIndexOf('、');
+
+      if (pauseIndex >= 4) {
+        breakIndex = pauseIndex;
+      } else if ('，。；、'.indexOf(nextChar) >= 0) {
+        breakIndex += 1;
+      }
+
+      noBreakWords.some(word => {
+        const wordStart = segment.indexOf(word);
+        const wordEnd = wordStart + word.length;
+        if (wordStart >= 0 && breakIndex > wordStart && breakIndex < wordEnd) {
+          breakIndex = wordStart >= 3 ? wordStart : wordEnd;
+          return true;
+        }
+        return false;
+      });
+
+      return breakIndex;
+    };
+    const parts = text
+      .replace(/[「」]/g, '')
+      .split(/([，。；])/)
+      .reduce((lines, part) => {
+        if (!part) return lines;
+        if (/[，。；]/.test(part) && lines.length) {
+          lines[lines.length - 1] += part;
+          return lines;
+        }
+        lines.push(part);
+        return lines;
+      }, []);
+    const mergedParts = parts.reduce((lines, part) => {
+      const lastIndex = lines.length - 1;
+      const last = lines[lastIndex] || '';
+      if (last && last.length + part.length <= maxLineLength) {
+        lines[lastIndex] = last + part;
+      } else {
+        lines.push(part);
+      }
+      return lines;
+    }, []);
+
+    return mergedParts.reduce((lines, part) => {
+      let segment = part.trim();
+      while (segment.length > maxLineLength) {
+        const breakIndex = getBreakIndex(segment);
+        lines.push(segment.slice(0, breakIndex));
+        segment = segment.slice(breakIndex).replace(/^、/, '');
+      }
+      if (segment) lines.push(segment);
+      return lines;
+    }, []);
   },
 
   processEvents(events) {
@@ -376,6 +409,7 @@ Page({
       todayInfo,
       dailyQuote,
       dailyQuoteLines: this.formatQuoteLines(dailyQuote),
+      dailyQuoteFavorited: storage.isQuoteFavorited(dailyQuote),
       todayFestivals: this.processFestivals(todayInfo.festivals),
       todayNote: storage.getNoteByDate(todayStr),
       // 节气养生数据
@@ -423,7 +457,8 @@ Page({
       const dailyQuote = quotes.getDailyQuote();
       this.setData({
         dailyQuote,
-        dailyQuoteLines: this.formatQuoteLines(dailyQuote)
+        dailyQuoteLines: this.formatQuoteLines(dailyQuote),
+        dailyQuoteFavorited: storage.isQuoteFavorited(dailyQuote)
       });
     }
 
@@ -477,7 +512,7 @@ Page({
    */
   loadUpcomingFestivals() {
     const { year, month, day } = this.data.todayInfo;
-    // 读取用户设置，控制近期节日中是否包含六斋日/初一/十五/佛教纪念日
+    // 读取用户设置，控制近期节日中是否包含六斋日/初一/十五/纪念日
     const festOpts = {
       showLiuZhai: storage.getSetting('showLiuZhai'),
       showLunarFestivals: storage.getSetting('showLunarFestivals'),
@@ -600,26 +635,128 @@ goToMerit() {
   wx.switchTab({ url: '/pages/merit/merit' });
 },
 
+  toggleDailyQuoteFavorite() {
+    const result = storage.toggleFavoriteQuote(this.data.dailyQuote);
+    analytics.track('quote_favorite', {
+      favorited: result.favorited,
+      quote: this.data.dailyQuote
+    });
+    this.setData({ dailyQuoteFavorited: result.favorited });
+    wx.showToast({
+      title: result.favorited ? '已收藏' : '已取消收藏',
+      icon: 'none'
+    });
+  },
+
+  onDailyQuoteTap() {
+    analytics.track('daily_quote_click', {
+      quote: this.data.dailyQuote
+    });
+  },
+
   // ==================== 分享 ====================
 
-  onShareAppMessage() {
-    const { todayInfo, dailyQuote } = this.data;
+  onShareAppMessage(options) {
+    const shareType = options && options.target && options.target.dataset
+      ? options.target.dataset.shareType
+      : '';
+    analytics.track('content_share', {
+      page: 'index',
+      shareType: shareType || 'default'
+    });
     return {
-      title: `${todayInfo.year}年${todayInfo.month}月${todayInfo.day}日 · ${dailyQuote}`,
+      title: this.getShareAssetTitle(shareType),
       path: '/pages/index/index'
     };
   },
 
   onShareTimeline() {
-    const { todayInfo, dailyQuote } = this.data;
     return share.timeline({
-      title: `${todayInfo.year}年${todayInfo.month}月${todayInfo.day}日 · ${dailyQuote}`
+      title: this.getShareAssetTitle('almanac')
     });
+  },
+
+  getShareAssetTitle(type) {
+    const todayInfo = this.data.todayInfo || {};
+    const month = todayInfo.month || '';
+    const day = todayInfo.day || '';
+    const quote = this.data.dailyQuote || '';
+
+    if (type === 'quote') {
+      return `今日一句：${quote}`;
+    }
+
+    if (type === 'buddhist') {
+      const item = this.getShareFestival('buddhist');
+      if (item) return this.formatCountdownShareTitle(item.displayName || item.name, item.daysAway, '静心准备');
+      return `今日一句：${quote}`;
+    }
+
+    if (type === 'event') {
+      const event = (this.data.upcomingEvents || []).find(item => item.category === 'anniversary') || (this.data.upcomingEvents || [])[0];
+      if (event) return this.formatCountdownShareTitle(event.name, event.daysAway, '记得提前准备');
+      return `${month}月${day}日 今日提醒：记得记录重要日子`;
+    }
+
+    if (type === 'practice') {
+      return this.getMonthPracticeShareTitle();
+    }
+
+    const termName = this.data.todaySolarTermName || this.data.currentSolarTermName || '';
+    const tip = this.data.currentSolarTermTip || (this.data.todaySolarTermHealth && this.data.todaySolarTermHealth.tip) || '宜静心养身';
+    if (termName) return `${month}月${day}日 ${termName}提醒：${this.trimShareText(tip, 16)}`;
+    return `${month}月${day}日 今日黄历：${todayInfo.lunarMonth || ''}${todayInfo.lunarDay || ''}`;
+  },
+
+  getShareFestival(type) {
+    const today = (this.data.todayFestivals || []).find(item => item.type === type);
+    if (today) return { ...today, displayName: today.name, daysAway: 0 };
+    return (this.data.upcomingFestivals || []).find(item => item.type === type);
+  },
+
+  formatCountdownShareTitle(name, daysAway, actionText) {
+    if (!name) return '今日提醒 · 岁时记';
+    if (daysAway === 0) return `${name}就是今天，${actionText}`;
+    if (daysAway === 1) return `明天是${name}，${actionText}`;
+    return `距离${name}还有 ${daysAway} 天，${actionText}`;
+  },
+
+  getMonthPracticeShareTitle() {
+    const now = new Date();
+    const monthPrefix = `${now.getFullYear()}-${calendarUtil.padZero(now.getMonth() + 1)}`;
+    const records = storage.getMeritRecords();
+    const chantingRecords = chant.getAllRecords();
+    let completeDays = {};
+    let monthNet = 0;
+    let chantingTotal = 0;
+
+    Object.keys(records || {}).forEach(dateStr => {
+      const record = records[dateStr] || {};
+      if (dateStr.indexOf(monthPrefix) === 0) {
+        monthNet += meritUtil.calculateNetMerit(record);
+        if ((record.items && record.items.length > 0) || record.note) completeDays[dateStr] = true;
+      }
+    });
+
+    Object.keys(chantingRecords || {}).forEach(dateStr => {
+      const dayRecord = chantingRecords[dateStr] || {};
+      const dayTotal = Object.keys(dayRecord).reduce((sum, id) => sum + (Number(dayRecord[id]) || 0), 0);
+      chantingTotal += dayTotal;
+      if (dateStr.indexOf(monthPrefix) === 0 && dayTotal > 0) completeDays[dateStr] = true;
+    });
+
+    const netText = monthNet >= 0 ? `+${monthNet}` : String(monthNet);
+    return `本月修心记录：完成 ${Object.keys(completeDays).length} 天，净善 ${netText}，念诵 ${chantingTotal} 次`;
+  },
+
+  trimShareText(text, maxLength) {
+    const value = String(text || '').replace(/[【】]/g, '').trim();
+    return value.length > maxLength ? value.slice(0, maxLength) : value;
   },
 
   /** 分享到朋友圈 */
   shareToMoments() {
-    this.generateShareImage(function(res) {
+    this.generateShareImage({}, function(res) {
       if (res.success) {
         wx.previewImage({ urls: [res.tempFilePath], current: res.tempFilePath });
       } else {
@@ -631,7 +768,7 @@ goToMerit() {
   /** 保存到相册 */
   saveImage() {
     var that = this;
-    this.generateShareImage(function(res) {
+    this.generateShareImage({}, function(res) {
       if (res.success) {
         privacy.ensurePrivacyAuthorized({
           success: function() {
@@ -640,6 +777,24 @@ goToMerit() {
         });
       } else {
         wx.showToast({ title: '生成失败', icon: 'none' });
+      }
+    });
+  },
+
+  showDailySignOptions() {
+    var that = this;
+    wx.showActionSheet({
+      itemList: ['只分享金句', '展示今日备忘录', '展示今日反省'],
+      success: function(res) {
+        var modes = ['quote', 'note', 'reflection'];
+        var mode = modes[res.tapIndex] || 'quote';
+        that.generateShareImage({ mode: mode }, function(result) {
+          if (result.success) {
+            wx.previewImage({ urls: [result.tempFilePath], current: result.tempFilePath });
+          } else {
+            wx.showToast({ title: '生成失败', icon: 'none' });
+          }
+        });
       }
     });
   },
@@ -676,12 +831,20 @@ goToMerit() {
 
   noop() {},
 
-  /** 生成分享海报（首页版 — 含节气卡片 + 自定义二维码） */
-  generateShareImage(callback) {
+  /** 生成分享海报（首页版 — 含节气卡片 / 今日签内容 + 自定义二维码） */
+  generateShareImage(options, callback) {
+    if (typeof options === 'function') {
+      callback = options;
+      options = {};
+    }
+    options = options || {};
     var that = this;
     var ti = this.data.todayInfo;
     var quote = this.data.dailyQuote || '';
     var festivals = this.data.todayFestivals || [];
+    var mode = options.mode || 'home';
+    var isDailySign = mode === 'quote' || mode === 'note' || mode === 'reflection';
+    var signExtra = this._getDailySignExtra(mode);
     // 节气数据
     var stName = that.data.todaySolarTermName || that.data.currentSolarTermName || '';
     var stHealth = that.data.todaySolarTermHealth || null;
@@ -702,7 +865,7 @@ goToMerit() {
 
       // 根据是否有节气内容动态调整高度
       var hasSTContent = !!(stName && (stHealth || stPeriod));
-      var W = 500, H = hasSTContent ? 780 : 650;
+      var W = 500, H = isDailySign ? (signExtra ? 740 : 640) : (hasSTContent ? 780 : 650);
       canvas.width = W * dpr; canvas.height = H * dpr;
       ctx.scale(dpr, dpr);
 
@@ -718,7 +881,7 @@ goToMerit() {
 
         // ===== 标题 =====
         ctx.fillStyle = '#8B6914'; ctx.font = 'bold 40px sans-serif';
-        ctx.textAlign = 'center'; ctx.fillText('今日 · 岁时记', W / 2, 58);
+        ctx.textAlign = 'center'; ctx.fillText(isDailySign ? '今日签 · 岁时记' : '今日 · 岁时记', W / 2, 58);
 
         // ===== 日期 =====
         ctx.fillStyle = '#5D4037'; ctx.font = '28px sans-serif';
@@ -740,10 +903,21 @@ goToMerit() {
         // ===== 金句区域 =====
         ctx.fillStyle = '#6D5A2E'; ctx.font = 'bold 25px sans-serif';
         ctx.textAlign = 'center';
-        ctx.fillText('「' + quote + '」', W / 2, curY + 48);
+        var quoteY = curY + 48;
+        that._wrapText(ctx, '「' + quote + '」', 52, quoteY, W - 104, 34, true);
+
+        if (isDailySign) {
+          var extraY = quoteY + (quote.length > 18 ? 96 : 62);
+          if (signExtra) {
+            that._drawSignExtra(ctx, signExtra, 38, extraY, W - 76);
+          } else if (mode !== 'quote') {
+            ctx.fillStyle = '#A08520'; ctx.font = '20px sans-serif';
+            ctx.fillText(mode === 'note' ? '今日还没有备忘录' : '今日还没有反省记录', W / 2, extraY + 42);
+          }
+        }
 
         // ===== 节气卡片（紧凑版） =====
-        if (hasSTContent) {
+        if (!isDailySign && hasSTContent) {
           var cardX = 30, cardW = W - 60;
           var cardY = curY + 78;
           var cardPadding = 18;
@@ -810,6 +984,10 @@ goToMerit() {
               destWidth: W * 2, destHeight: H * 2,
               fileType: 'jpg', quality: 0.95,
               success: function(saveRes) {
+                analytics.track('poster_generate', {
+                  page: 'index',
+                  mode: mode
+                });
                 wx.hideLoading(); callback({ success: true, tempFilePath: saveRes.tempFilePath });
               },
               fail: function(err) {
@@ -842,7 +1020,7 @@ goToMerit() {
   },
 
   /** 文字自动换行绘制 */
-  _wrapText: function(ctx, text, x, y, maxWidth, lineHeight) {
+  _wrapText: function(ctx, text, x, y, maxWidth, lineHeight, center) {
     if (!text) return y;
     var chars = text.split('');
     var line = '';
@@ -851,7 +1029,7 @@ goToMerit() {
       var testLine = line + chars[i];
       var metrics = ctx.measureText(testLine);
       if (metrics.width > maxWidth && line.length > 0) {
-        ctx.fillText(line, x, curY);
+        ctx.fillText(line, center ? x + maxWidth / 2 : x, curY);
         line = chars[i];
         curY += lineHeight;
       } else {
@@ -859,9 +1037,42 @@ goToMerit() {
       }
     }
     if (line) {
-      ctx.fillText(line, x, curY);
+      ctx.fillText(line, center ? x + maxWidth / 2 : x, curY);
       curY += lineHeight;
     }
     return curY;
+  },
+
+  _getDailySignExtra: function(mode) {
+    var dateStr = this.data.todayStr || (this.data.todayInfo && this.data.todayInfo.dateStr) || '';
+    if (mode === 'note') {
+      var note = storage.getNoteByDate(dateStr);
+      var noteText = note && note.content ? String(note.content).trim() : '';
+      return noteText ? { label: '今日备忘录', text: noteText } : null;
+    }
+    if (mode === 'reflection') {
+      var record = storage.getMeritRecordByDate(dateStr);
+      var reflection = record && record.note ? String(record.note).trim() : '';
+      return reflection ? { label: '今日反省', text: reflection } : null;
+    }
+    return null;
+  },
+
+  _drawSignExtra: function(ctx, extra, x, y, w) {
+    this._drawRoundRect(ctx, x, y, w, 178, 14);
+    ctx.fillStyle = 'rgba(255, 252, 240, 0.9)';
+    ctx.fill();
+    ctx.strokeStyle = 'rgba(218, 165, 32, 0.24)';
+    ctx.lineWidth = 1;
+    ctx.stroke();
+
+    ctx.textAlign = 'left';
+    ctx.fillStyle = '#B8860B';
+    ctx.font = 'bold 20px sans-serif';
+    ctx.fillText(extra.label, x + 20, y + 34);
+
+    ctx.fillStyle = '#4B5563';
+    ctx.font = '19px sans-serif';
+    this._wrapText(ctx, extra.text.slice(0, 90), x + 20, y + 68, w - 40, 28);
   }
 });

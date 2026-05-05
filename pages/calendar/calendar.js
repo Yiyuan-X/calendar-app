@@ -5,6 +5,7 @@ const solarTerms = require('../../utils/solar-terms');
 const privacy = require('../../utils/privacy');
 const share = require('../../utils/share');
 const poster = require('../../utils/poster');
+const analytics = require('../../utils/analytics');
 
 Page({
   data: {
@@ -765,6 +766,9 @@ Page({
               fileType: 'jpg',
               quality: 0.95,
               success: function(saveRes) {
+                analytics.track('poster_generate', {
+                  page: 'calendar'
+                });
                 wx.hideLoading();
                 callback({ success: true, tempFilePath: saveRes.tempFilePath });
               },

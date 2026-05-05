@@ -2,7 +2,7 @@
 <view class="page {{elderMode ? 'elder-mode' : ''}}">
   <view class="header">
     <text class="title">岁时记使用说明</text>
-    <text class="subtitle">记录日子、查看黄历、积善修心、做功课计数。</text>
+    <text class="subtitle">记录日子、查看历法、保存金句、做日常计数和自我记录。</text>
   </view>
 
   <view class="section">
@@ -11,10 +11,11 @@
       <text class="section-title">黄历</text>
     </view>
     <view class="card">
-      <text class="item">查看公历、农历、节气、传统节日和佛教纪念日。</text>
-      <text class="item">点选某一天，可查看当天黄历、宜忌、时辰和节气养生信息。</text>
-      <text class="item">点“给这一天写点什么”可以为指定日期保存备注。</text>
-      <text class="item">点“设置提醒”可把这一天加入重要日子。</text>
+      <text class="item">查看公历、农历、节气、传统节日、纪念日和日常宜忌。</text>
+      <text class="item">点选某一天，可查看当天详情、节气养生、时辰信息和相关提醒。</text>
+      <text class="item">点“给这一天写点什么”可以保存日期备注，也可以设置备注提醒。</text>
+      <text class="item">点“设置提醒”可把这一天加入重要日子，支持倒计时和重复提醒。</text>
+      <text class="item">黄历页支持生成分享图，适合保存或发给朋友查看当天信息。</text>
     </view>
   </view>
 
@@ -24,24 +25,26 @@
       <text class="section-title">今日</text>
     </view>
     <view class="card">
-      <text class="item">集中显示今天的节日、节气、金句、重要日子和今日积善概览。</text>
-      <text class="item">可以从这里快速进入积善、显示设置、备注和重要日子管理。</text>
-      <text class="item">添加的重要日子会在首页和日历上显示，并支持倒计时或已过去天数。</text>
+      <text class="item">集中显示今天的日期、农历、节气、节日、每日一句、重要日子和今日记录概览。</text>
+      <text class="item">每日一句可以收藏，也可以生成“今日签图”。签图可选择只展示金句、展示今日备忘录，或展示今日反省。</text>
+      <text class="item">收藏过的金句可在“设置 - 我的金句收藏”中查看、取消收藏或生成签图。</text>
+      <text class="item">底部分享已改为内容资产分享，可分别分享今日黄历、金句、传统纪念日、纪念日倒计时和本月记录。</text>
+      <text class="item">添加的重要日子会在首页和日历上显示，并自动计算还有几天或已经过去几天。</text>
     </view>
   </view>
 
   <view class="section">
     <view class="section-head">
       <image class="section-icon" src="/images/merit.svg" mode="aspectFit"></image>
-      <text class="section-title">积善</text>
+      <text class="section-title">积善记录</text>
     </view>
     <view class="card">
-      <text class="item">点击积善或削善条目会按该条目的善数累计。</text>
-      <text class="item">同一条目可多次点击，次数会叠加；减号可减少一次。</text>
-      <text class="item">十个善业折算一个功德，净善会同时显示折算功德。</text>
-      <text class="item">可以新增自定义积善或削善，并设置自己的善数。</text>
-      <text class="item">“今日反省”可单独保存到当前日期，也会随积善记录一起导出。</text>
-      <text class="item">底部“导出”会导出 CSV，包含积善明细、今日反省、日期备注和更新时间。</text>
+      <text class="item">用于记录每日好事、自我提醒、减少不良习惯等内容。</text>
+      <text class="item">点击条目会按善数累计；同一条目可多次点击，减号可减少一次。</text>
+      <text class="item">可以新增自定义条目，并设置自己的善数，适合记录个人习惯。</text>
+      <text class="item">“今日反省/学习笔记”可单独保存，也会随当天记录一起导出。</text>
+      <text class="item">统计页新增成长体系，可查看连续记录天数、本月完成天数、本月善行净值、计数累计、收藏金句数和提醒设置数。</text>
+      <text class="item">底部“导出”会导出 CSV，包含记录明细、今日反省、日期备注和更新时间。</text>
     </view>
   </view>
 
@@ -51,21 +54,24 @@
       <text class="section-title">计数器</text>
     </view>
     <view class="card">
-      <text class="item">用于记录诵经、念佛、持咒、拜忏等日常功课。</text>
-      <text class="item">可添加内置功课，也可创建自定义功课和单位。</text>
-      <text class="item">每项功课可设置每日目标和总目标，完成后会显示达标状态。</text>
-      <text class="item">详情页支持报数、补录日期、发愿、备注和最近记录。</text>
+      <text class="item">用于记录阅读、练习、打卡、习惯养成等需要累计次数的事项。</text>
+      <text class="item">可添加内置项目，也可创建自定义项目和单位。</text>
+      <text class="item">每个项目可设置每日目标和总目标，达标后会显示完成状态。</text>
+      <text class="item">详情页支持报数、补录日期、目标设置、备注和最近记录。</text>
       <text class="item">专注模式适合只保留一个大按钮进行连续计数。</text>
+      <text class="item">计数器也支持生成分享图，便于保存当天完成情况。</text>
     </view>
   </view>
 
   <view class="section">
     <view class="section-head">
       <image class="section-icon" src="/images/icons/settings.svg" mode="aspectFit"></image>
-      <text class="section-title">显示设置</text>
+      <text class="section-title">设置</text>
     </view>
     <view class="card">
-      <text class="item">可以控制日历上是否显示六斋日、农历初一/十五、佛教纪念日。</text>
+      <text class="item">可开启长辈模式，使用更大的字号，方便阅读。</text>
+      <text class="item">可控制日历上是否显示六斋日、农历初一/十五和传统纪念日。</text>
+      <text class="item">“我的金句收藏”可集中查看收藏内容，并生成单句签图。</text>
       <text class="item">固定节日和农历传统节日默认显示，不受这些开关影响。</text>
     </view>
   </view>
@@ -73,46 +79,42 @@
   <view class="section">
     <view class="section-head">
       <image class="section-icon" src="/images/icons/save.svg" mode="aspectFit"></image>
-      <text class="section-title">数据与备份</text>
+      <text class="section-title">数据与同步</text>
     </view>
     <view class="card">
-      <text class="item">已接入云开发，数据自动保存到云端，支持多设备同步。</text>
-      <text class="item">无网络时数据暂存本地，恢复网络后自动同步到云端。</text>
-      <text class="item">积善页面可导出 CSV，作为本地备份留存。</text>
+      <text class="item">已接入云开发，重要日子、备注、提醒、计数和记录会自动保存。</text>
+      <text class="item">无网络时数据暂存本地，恢复网络后会继续同步。</text>
+      <text class="item">积善记录可导出 CSV，作为本地备份留存。</text>
+      <text class="item">小程序内置轻量使用数据记录，只保存在本地，用于统计首页打开、收藏、分享图生成、提醒设置等使用情况。</text>
     </view>
   </view>
 
   <view class="section">
     <view class="section-head">
-      <image class="section-icon" src="/images/icons/gen-star.svg" mode="aspectFit"></image>
+      <image class="section-icon" src="/images/icons/star.svg" mode="aspectFit"></image>
       <text class="section-title">更新日志</text>
     </view>
     <view class="card version-card">
-
       <view class="version-item">
-        <text class="version-tag">v2.0 — 云开发版</text>
+        <text class="version-tag">当前版本</text>
         <view class="version-detail">
-          <text class="item">🌥️ 接入微信云开发，数据自动同步云端，支持多设备登录。</text>
-          <text class="item">📱 计数器新增通用计数器、备忘录功能。</text>
-          <text class="item">🔄 功课支持拖拽排序和数字排序两种方式调整顺序。</text>
-          <text class="item">📝 详情页改为标签页切换（记录/统计/详情），操作更清晰。</text>
-          <text class="item">✂️ 支持同名功课独立记录，互不干扰。</text>
-          <text class="item">📅 每日反省按日期独立保存，方便回顾。</text>
-          <text class="item">🎨 全局 UI 优化：暖色调风格、大按钮、防止标题换行。</text>
-          <text class="item">🐛 修复排序输入失效、重复标签、删除逻辑等已知问题。</text>
+          <text class="item">新增每日一句收藏和“我的金句收藏”。</text>
+          <text class="item">新增今日签图，可选择金句、备忘录或今日反省生成图片。</text>
+          <text class="item">首页分享改为具体内容资产：今日黄历、金句、纪念日倒计时和本月记录。</text>
+          <text class="item">统计页新增轻量成长体系，方便查看连续记录和本月完成情况。</text>
+          <text class="item">新增本地轻量使用数据记录，便于后续优化常用功能。</text>
         </view>
       </view>
 
       <view class="version-divider"></view>
 
       <view class="version-item">
-        <text class="version-tag">v1.x — 基础版</text>
+        <text class="version-tag">基础能力</text>
         <view class="version-detail">
-          <text class="item">黄历查看、节日倒计时、积善记录、功课计数等核心功能。</text>
-          <text class="item">数据仅存储在本地，更换设备后数据不保留。</text>
+          <text class="item">历法查看、节日倒计时、重要日子提醒、备注、计数、记录统计和分享图生成。</text>
+          <text class="item">接入云开发后，支持数据同步和离线缓存。</text>
         </view>
       </view>
-
     </view>
   </view>
 

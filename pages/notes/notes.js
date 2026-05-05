@@ -3,6 +3,7 @@ const calendarUtil = require('../../utils/calendar');
 const storage = require('../../utils/storage');
 const share = require('../../utils/share');
 const reminderUtil = require('../../utils/reminder');
+const analytics = require('../../utils/analytics');
 
 Page({
   data: {
@@ -237,6 +238,13 @@ Page({
       enabled: !!nextNotifyAt
     };
     reminderUtil.saveReminderPlan(plan);
+    analytics.track('reminder_set', {
+      sourceType: 'note',
+      sourceId: dateStr,
+      repeat: reminder.repeat || 'none',
+      advanceValue: reminder.advanceValue || 0,
+      advanceUnit: reminder.advanceUnit || 'days'
+    });
     reminderUtil.requestSubscribe((res) => {
       if (res && res.reason === 'missing_template_id') {
         console.warn('订阅消息模板 ID 未配置，提醒计划已保存但不会发送微信订阅消息');

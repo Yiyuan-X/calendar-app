@@ -358,15 +358,15 @@ picker-view-column {
 }
 .festival-pill.tag-red .pill-dot { background: #C62828; }
 
-/* 紫色（佛教纪念日） */
-.festival-pill.tag-purple {
+/* 紫色（其他） */
+.festival-pill.tag-gold {
   color: #7B1FA2;
   background: rgba(123, 31, 162, 0.08);
 }
 .festival-pill.tag-purple .pill-dot { background: #7B1FA2; }
 
-/* 金色（其他） */
-.festival-pill.tag-gold {
+/* 金色（budda纪念日） */
+.festival-pill.tag-purple  {
   color: #E65100;
   background: rgba(230, 81, 0, 0.08);
 }

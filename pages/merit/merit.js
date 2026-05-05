@@ -5,6 +5,7 @@ const meritUtil = require('../../utils/merit');
 const privacy = require('../../utils/privacy');
 const share = require('../../utils/share');
 const poster = require('../../utils/poster');
+const analytics = require('../../utils/analytics');
 
 Page({
   data: {
@@ -824,6 +825,12 @@ Page({
     const existingRecord = storage.getMeritRecordByDate(dateStr);
     const items = existingRecord ? existingRecord.items : [];
     storage.saveMeritRecord(dateStr, items, reflectionNote.trim());
+    analytics.track('merit_record_save', {
+      dateStr,
+      itemCount: items.length,
+      hasReflection: true,
+      reflectionOnly: true
+    });
     wx.showToast({ title: '反省已保存', icon: 'success' });
   },
 
@@ -838,6 +845,11 @@ Page({
     }
 
     storage.saveMeritRecord(dateStr, selectedItems, reflectionNote.trim());
+    analytics.track('merit_record_save', {
+      dateStr,
+      itemCount: selectedItems.length,
+      hasReflection: !!reflectionNote.trim()
+    });
 
     wx.showToast({
       title: this.data.hasExistingRecord ? '已更新' : '已记录',
@@ -1254,6 +1266,9 @@ Page({
               destWidth: W * 2, destHeight: H * 2,
               fileType: 'jpg', quality: 0.95,
               success: function(saveRes) {
+                analytics.track('poster_generate', {
+                  page: 'merit'
+                });
                 wx.hideLoading(); callback({ success: true, tempFilePath: saveRes.tempFilePath });
               },
               fail: function(err) {

@@ -17,6 +17,7 @@ const STORAGE_KEYS = {
   MERIT_RECORDS: 'merit_records',
   CUSTOM_MERIT_ITEMS: 'custom_merit_items',
   DELETED_BUILTIN_ITEMS: 'deleted_builtin_items',
+  FAVORITE_QUOTES: 'favorite_quotes',
   INITIALIZED: 'initialized'
 };
 
@@ -91,6 +92,9 @@ function syncLocalDataToCloud() {
 
     const deletedBuiltinItems = getDeletedBuiltinItems();
     if (deletedBuiltinItems.length > 0) cloud.set(cloud.TABLES.DELETED_BUILTIN_ITEMS, 'list', deletedBuiltinItems);
+
+    const favoriteQuotes = getFavoriteQuotes();
+    if (favoriteQuotes.length > 0) cloud.setList(cloud.TABLES.FAVORITE_QUOTES, favoriteQuotes);
 
     const chantingTasks = wx.getStorageSync('chanting_tasks') || [];
     if (chantingTasks.length > 0) cloud.setList(cloud.TABLES.TASKS, chantingTasks);
@@ -395,6 +399,43 @@ function clearAllDeletedBuiltinItems() {
   return true;
 }
 
+// ==================== 金句收藏 ====================
+
+function getFavoriteQuotes() {
+  return getStorage(STORAGE_KEYS.FAVORITE_QUOTES) || [];
+}
+
+function isQuoteFavorited(text) {
+  const quote = String(text || '').trim();
+  if (!quote) return false;
+  return getFavoriteQuotes().some(item => item.text === quote);
+}
+
+function toggleFavoriteQuote(text) {
+  const quote = String(text || '').trim();
+  if (!quote) return { favorited: false, item: null };
+
+  let list = getFavoriteQuotes();
+  const index = list.findIndex(item => item.text === quote);
+  if (index >= 0) {
+    const item = list[index];
+    list.splice(index, 1);
+    setStorage(STORAGE_KEYS.FAVORITE_QUOTES, list);
+    cloud.setList(cloud.TABLES.FAVORITE_QUOTES, list);
+    return { favorited: false, item };
+  }
+
+  const item = {
+    id: 'quote_' + Date.now() + '_' + Math.random().toString(36).substr(2, 5),
+    text: quote,
+    createdAt: Date.now()
+  };
+  list.unshift(item);
+  setStorage(STORAGE_KEYS.FAVORITE_QUOTES, list);
+  cloud.setList(cloud.TABLES.FAVORITE_QUOTES, list);
+  return { favorited: true, item };
+}
+
 module.exports = {
   STORAGE_KEYS,
   getStorage,
@@ -433,5 +474,8 @@ module.exports = {
   markBuiltinItemDeleted,
   restoreBuiltinItem,
   isBuiltinItemDeleted,
-  clearAllDeletedBuiltinItems
+  clearAllDeletedBuiltinItems,
+  getFavoriteQuotes,
+  isQuoteFavorited,
+  toggleFavoriteQuote
 };

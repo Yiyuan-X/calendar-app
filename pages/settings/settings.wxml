@@ -3,7 +3,7 @@
   <!-- 标题 -->
   <view class="page-header">
     <text class="page-title">显示设置</text>
-    <text class="page-subtitle">选择在日历上展示的佛教与传统日期</text>
+    <text class="page-subtitle">选择在日历上展示的传统日期与阅读设置</text>
   </view>
 
   <!-- 设置列表 -->
@@ -62,15 +62,15 @@
       />
     </view>
 
-    <!-- 佛教纪念日 -->
+    <!-- 传统纪念日 -->
     <view class="setting-item">
       <view class="setting-left">
         <view class="setting-icon-wrap buddhist-icon">
           <image class="setting-icon-img" src="/images/icons/fo.svg" mode="aspectFit"></image>
         </view>
         <view class="setting-info">
-          <text class="setting-name">佛教纪念日</text>
-          <text class="setting-desc">佛诞日、涅槃日、观音菩萨圣诞等</text>
+          <text class="setting-name">传统纪念日</text>
+          <text class="setting-desc">传统历法中的重要纪念日期</text>
         </view>
       </view>
       <switch
@@ -83,6 +83,18 @@
 
   <!-- 帮助入口 -->
   <view class="settings-group">
+    <view class="setting-item nav-setting" bindtap="goToFavoriteQuotes">
+      <view class="setting-left">
+        <view class="setting-icon-wrap quote-icon">
+          <image class="setting-icon-img" src="/images/icons/heart.svg" mode="aspectFit"></image>
+        </view>
+        <view class="setting-info">
+          <text class="setting-name">我的金句收藏</text>
+          <text class="setting-desc">查看收藏过的每日一句，生成金句签图</text>
+        </view>
+      </view>
+      <text class="setting-arrow">›</text>
+    </view>
     <view class="setting-item nav-setting" bindtap="goToHelp">
       <view class="setting-left">
         <view class="setting-icon-wrap help-icon">

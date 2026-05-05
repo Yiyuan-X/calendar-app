@@ -3,6 +3,7 @@
  * 支持云端同步 + 本地缓存 + 离线兜底
  */
 const cloud = require('./cloud');
+const analytics = require('./analytics');
 
 const STORAGE_KEY = 'chanting_tasks';       // 用户功课列表
 const RECORDS_KEY = 'chanting_records';     // 每日记录 { '2026-04-23': { taskId: count, ... } }
@@ -41,7 +42,7 @@ const BUILTIN = [
 
   // ===== 佛号 =====
   { id:'b1', name:'南无观世音菩萨', cat:'佛号', unit:'声', hot:true },
-  { id:'b18', name:'南无阿弥陀佛', cat:'佛号', unit:'声', hot:true },
+  { id:'b18', name:'南无阿弥陀佛', cat:'佛号', unit:'声' },
   { id:'b22', name:'南无地藏王菩萨', cat:'佛号', unit:'声' },
   { id:'b23', name:'南无文殊师利菩萨', cat:'佛号', unit:'声' },
   { id:'b24', name:'南无普贤菩萨', cat:'佛号', unit:'声' },
@@ -51,11 +52,11 @@ const BUILTIN = [
   { id:'b28', name:'南无常住十方佛法僧三宝', cat:'佛号', unit:'声' },
 
   // ===== 经典（大乘经典） =====
-  { id:'b19', name:'金刚经（金刚般若波罗蜜经）', cat:'经典', unit:'遍', hot:true },
-  { id:'b20', name:'地藏经（地藏菩萨本愿经）', cat:'经典', unit:'遍', hot:true },
-  { id:'b21', name:'药师经（药师琉璃光如来本愿经）', cat:'经典', unit:'遍', hot:true },
+  { id:'b19', name:'金刚经（金刚般若波罗蜜经）', cat:'经典', unit:'遍' },
+  { id:'b20', name:'地藏经（地藏菩萨本愿经）', cat:'经典', unit:'遍' },
+  { id:'b21', name:'药师经（药师琉璃光如来本愿经）', cat:'经典', unit:'遍'},
   { id:'b14', name:'阿弥陀经（佛说阿弥陀经）', cat:'经典', unit:'遍' },
-  { id:'b29', name:'普门品（观世音菩萨普门品）', cat:'经典', unit:'遍', hot:true },
+  { id:'b29', name:'普门品（观世音菩萨普门品）', cat:'经典', unit:'遍'},
   { id:'b30', name:'华严经·净行品', cat:'经典', unit:'遍' },
   { id:'b31', name:'楞严咒（大佛顶首楞严神咒）', cat:'经典', unit:'遍' },
   { id:'b32', name:'法华经·观世音菩萨普门品', cat:'经典', unit:'遍' },
@@ -363,9 +364,11 @@ function syncAllRecordsToCloud(records) {
 function increment(taskId, dateStr, amount=1) {
   const records = getAllRecords();
   if (!records[dateStr]) records[dateStr] = {};
-  records[dateStr][taskId] = (records[dateStr][taskId] || 0) + amount;
+  const before = records[dateStr][taskId] || 0;
+  records[dateStr][taskId] = before + amount;
   saveAllRecords(records);
   cloud.set(cloud.TABLES.RECORDS, dateStr, records[dateStr]);
+  trackChantingComplete(taskId, dateStr, before, records[dateStr][taskId], amount);
   return records[dateStr][taskId];
 }
 
@@ -373,10 +376,45 @@ function increment(taskId, dateStr, amount=1) {
 function setCount(taskId, dateStr, count) {
   const records = getAllRecords();
   if (!records[dateStr]) records[dateStr] = {};
+  const before = records[dateStr][taskId] || 0;
   records[dateStr][taskId] = Math.max(0, count | 0);
   saveAllRecords(records);
   cloud.set(cloud.TABLES.RECORDS, dateStr, records[dateStr]);
+  trackChantingComplete(taskId, dateStr, before, records[dateStr][taskId], records[dateStr][taskId] - before);
   return records[dateStr][taskId];
+}
+
+function trackChantingComplete(taskId, dateStr, before, after, amount) {
+  if (!taskId || !dateStr || amount <= 0 || after <= before) return;
+  try {
+    const task = getTasks().find(item => item.id === taskId);
+    if (!task) return;
+    if (task.dailyTarget > 0 && before < task.dailyTarget && after >= task.dailyTarget) {
+      analytics.track('chanting_complete', {
+        taskId,
+        taskName: task.name,
+        dateStr,
+        targetType: 'daily',
+        target: task.dailyTarget,
+        count: after
+      });
+      return;
+    }
+    if (task.totalTarget > 0) {
+      const totalBefore = getTaskTotal(taskId) - amount;
+      const totalAfter = totalBefore + amount;
+      if (totalBefore < task.totalTarget && totalAfter >= task.totalTarget) {
+        analytics.track('chanting_complete', {
+          taskId,
+          taskName: task.name,
+          dateStr,
+          targetType: 'total',
+          target: task.totalTarget,
+          count: totalAfter
+        });
+      }
+    }
+  } catch (e) {}
 }
 
 /** 清零某日某功课 */
@@ -583,121 +621,50 @@ function searchBuiltin(keyword) {
 
 // ==================== 每日金句（修行励志） ====================
 const DAILY_QUOTES = [
-  { text: '念念不忘，必有回响。', source: '《弘一法师语录》' },
-  { text: '一日不修，三日不安；日日精进，方得始终。', source: '修行格言' },
-  { text: '发心容易，恒心难持。今日之功，即是明日之果。', source: '修行格言' },
-  { text: '不积跬步，无以至千里；不积小流，无以成江海。', source: '《荀子·劝学》' },
-  { text: '心若菩提，步步生莲。', source: '佛教偈语' },
-  { text: '修行不在形式，而在当下的一念清净。', source: '修行格言' },
-  { text: '每日一课，功不唐捐。', source: '修行格言' },
-  { text: '千里之行，始于足下。今天的每一遍计数，都是通往彼岸的阶梯。', source: '《道德经》' },
-  { text: '愿以此功德，庄严佛净土。', source: '回向偈' },
-  { text: '所有伟大的成就，都源于每天微小的坚持。', source: '修行格言' },
-  { text: '莫以善小而不为，莫以恶小而为之。', source: '《三国志》' },
-  { text: '种瓜得瓜，种豆得豆。今日所修，他日必获。', source: '因果偈语' },
-  { text: '心安即归处，日修即道场。', source: '修行格言' },
-  { text: '水滴石穿，不是力量大，而是功夫深。', source: '修行格言' },
-  { text: '愿生西方净土中，九品莲花为父母。', source: '《往生咒》' },
-  { text: '烦恼即菩提，生死即涅槃。', source: '佛教偈语' },
-  { text: '知足常乐，随缘自在。修行从感恩开始。', source: '修行格言' },
-  { text: '一念嗔心起，百万障门开。常存善念，自有福报。', source: '《六祖坛经》' },
-  { text: '行善积德，福虽未至，祸已远离。', source: '了凡四训' },
-  { text: '每一个当下都是新的开始，每一次计数都是新的积累。', source: '修行格言' }
+  { text: '精进就是不停地烧水，火一直开着水才会开。' },
+  { text: '只管耕耘，不问收获，终有一天，收获会大大地来。' },
+  { text: '人为善，福虽未至，祸已远离；人为恶，祸虽未至，福已远离。' },
+  { text: '成功根本没有秘诀：要坚持到底，永不放弃。' },
+  { text: '把握住一个今天，胜似两个明天。' },
+  { text: '点点滴滴积累的善行，就是最好的修心。' },
+  { text: '心若改变，态度就会改变；性格一起变化，人生命运就会彻底改变。' },
+  { text: '不争就是慈悲，不辩就是智慧，原谅别人就是解脱。' },
+  { text: '种什么种子，结什么果；栽什么树苗，开什么花。' },
+  { text: '每天早晨醒来就是感恩的开始，平安就是福。' },
+  { text: '改命运就是改念头，要念念相续善良慈悲之心。' },
+  { text: '成功靠的是长久的动力和耐力，修行贵在坚持。' },
+  { text: '心如镜，明如水，我们要常怀宽容感激之心。' },
+  { text: '坚持是一件很了不起的事情，用精进力和忍辱心来完成愿力。' },
+  { text: '发现错了，马上就停止，这就是在进步。' },
+  { text: '修心就在生活的点滴细节中，心不随境转。' },
+  { text: '多一点感恩心，就会多一点慈悲心。' },
+  { text: '每一分钟让自己快乐，你就没有烦恼了。' },
+  { text: '真正富裕的人，是拥有一颗富裕的心，而不是许多钱。' },
+  { text: '每一个当下都是新的开始，要把心安住在当下。' }
 ];
-
 const PAGE_MOTTOS = [
-  '愿以一念之善，记录每日所行。',
-  '日有所修，心有所安。',
-  '一念清净，一步光明。',
-  '日日精进，功不唐捐。',
-  '把每一次计数，安放在当下。',
-  '愿今日所行，皆向善处。',
-  '心念不散，善行不息。',
-  '每一遍，都是一次归心。',
-  '以愿为灯，以行为路。',
-  '不求一日圆满，但求日日不断。',
-  '清净一念，胜过纷扰千言。',
-  '善念常在，福慧渐生。',
-  '今日修一分，心中明一分。',
-  '把小小坚持，记成长久愿力。',
-  '一声一念，皆是归途。',
-  '心若安住，处处道场。',
-  '愿每一次开始，都不负本心。',
-  '不急不缓，念念相续。',
-  '静中有光，行中有愿。',
-  '今日一遍，胜过空想千回。',
-  '把散乱收回，把善念种下。',
-  '持之以恒，自有清凉。',
-  '少一点分别，多一分慈悲。',
-  '每一次坚持，都是在照见自己。',
-  '愿心不退，愿行不止。',
-  '从一念开始，向清净处去。',
-  '心有所向，步步皆修。',
-  '以平常心，做长久功。',
-  '愿今日所念，化作明日之光。',
-  '不争一时，但守一念。',
-  '念起即觉，觉之即安。',
-  '把今天过稳，把心安住。',
-  '一日一修，久久为功。',
-  '今日一念，亦是修行。',
-  '把心安放在每一个当下。',
-  '一日一修，心自渐明。',
-  '功课虽小，贵在长久。',
-  '今日所修，皆为来日之光。',
-  '不急不躁，功课自稳。',
-  '净念相续，都摄六根。',
-  '功课不断，内心自定。',
-  '在重复中，慢慢看见自己。',
-  '今日不缺席，明日更从容。',
-  '安住当下，完成这一份功课。',
-  '功课如水，润物无声。',
-  '每一次完成，都是一次靠近。',
-  '日日一点，胜过偶尔万分。',
-  '不为完成，只为安住。',
-  '功课之外，是生活；功课之中，是自己。',
-  '一念一修，皆在路上。',
-  '今日所做，皆为积累。',
-  '不怕慢，只怕停。',
-  '把功课做轻，把坚持做长。',
-  '在安静里，完成今天。',
-  '不求多，只求真。',
-  '每一次开始，都是新的修行。',
-  '把今天做好，就是最大的精进。',
-  '一日一课，日久见心。',
-  '不必比较，只需坚持。',
-  '让功课，成为一种习惯。',
-  '做功课就是在还债、在修心。',
-  '功课不是形式，是在改变自己的命运。',
-  '每天的功课，就是在为自己积累福报。',
-  '功课做得好，人生会慢慢走顺。',
-  '功课最重要的是天天做。',
-  '一天不做功课，容易退转。',
-  '功课不能三天打鱼两天晒网。',
-  '宁可少一点，也要坚持不断。',
-  '坚持功课，就是在打基础。',
-  '做功课要用心，不是完成任务。',
-  '功课质量比数量更重要。',
-  '一边做功课一边乱想，效果会打折。',
-  '做功课时要专心、安静。',
-  '心诚，功课才有力量。',
-  '坚持做功课，气场会越来越好。',
-  '功课能消业障、增福报。',
-  '功课稳定，心就稳定。',
-  '做好功课，很多事情自然会顺。',
-  '功课是最稳的改变命运的方法。',
-  '再忙也要抽时间做功课。',
-  '功课是每天最重要的事情之一。',
-  '做功课不是负担，是保护自己。',
-  '把功课当成生活的一部分。',
-  '有功课的人，人生更有方向。',
-  '今日功课完成了吗？',
-  '别忘了，功课是给自己的。',
-  '今天再忙，也别忘了做功课。',
-  '每一次功课，都是在积福。',
-  '坚持功课，就是在改变人生。',
-  '功课不断，福报不断。',
-  '安静下来，完成今天的功课。'
-
+  '定下的功课必须要每天做到。',
+  '宁可把功课定得低一点，也要保证日日不断。',
+  '不管再忙，每天至少要保证有诵念，哪怕只有几遍。',
+  '做功课不能三天打鱼两天晒网，那是没有根基的表现。',
+  '精进就是不停地烧水，火一直开着水才会开。',
+  '专注一心，修行中不应有任何停顿和间杂。',
+  '万丈高楼平地起，修心没有任何奇迹。',
+  '好的事情今天做一点，明天做一点，就是积功累德。',
+  '坚持就是加温，修行靠的是持久的力量。',
+  '一分一秒都在念诵，就是在积累未来的能量。',
+  '点点滴滴积累的功德，就是最好的修心。',
+  '把散乱的心收回，让意念在安静中归于一处。',
+  '只要锲而不舍地努力，时间会成全你心灵的解脱。',
+  '守住身口意，就是在打好修行的基础。',
+  '诚心做事，心诚则灵，心诚才有真正的力量。',
+  '安静地坐下来，在寂静中生出真实的智慧。',
+  '把握住一个今天，就是在再造生命。',
+  '功课如水，持之以恒才能洗涤内心。',
+  '每一念都要契合纯洁的本性，这才是真修行。',
+  '不求一日圆满，但求日日精进不退。',
+  '修行就在生活的点滴细节中。',
+  '每一遍功课都是一次归心，让气场越来越好。'
 ];
 
 /** 获取随机金句 */

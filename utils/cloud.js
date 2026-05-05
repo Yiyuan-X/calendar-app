@@ -27,6 +27,7 @@ const TABLES = {
   CUSTOM_MERIT_ITEMS: 'custom_merit_items', // 自定义功过条目
   DELETED_BUILTIN_ITEMS: 'deleted_builtin_items', // 已删除内置条目
   QUICK_COUNTER: 'quick_counter', // 通用计数器
+  FAVORITE_QUOTES: 'favorite_quotes', // 收藏金句
   MEMO: 'memo' // 备忘录
 };
 

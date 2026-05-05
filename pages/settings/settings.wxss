@@ -75,6 +75,7 @@
 .lunar-icon { background: linear-gradient(135deg, #FFF9EC, #FFF3D6); }
 .buddhist-icon { background: linear-gradient(135deg, #FFF8E1, #FFECB3); }
 .elder-icon { background: linear-gradient(135deg, #FFF3D6, #FFE082); }
+.quote-icon { background: linear-gradient(135deg, #FFEDE6, #FFF3D6); }
 .help-icon { background: linear-gradient(135deg, #EEF2FF, #E0F2FE); }
 .feedback-icon { background: linear-gradient(135deg, #FFF8E1, #FFECB3); }
 

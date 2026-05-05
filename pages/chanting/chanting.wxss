@@ -10,7 +10,7 @@
 .add-btn text { color: #fff; font-size: 29rpx; font-weight: 600; line-height: 1; white-space: nowrap; letter-spacing: 2rpx; }
 
 /* 理念引导语 */
-.motto { text-align:center; font-size: 29rpx; color:#B09A68; margin-top:8rpx; letter-spacing:2rpx; }
+.motto { text-align:center; font-size: 32rpx; color:#B09A68; margin-top:8rpx; letter-spacing:2rpx; }
 
 /* 今日概览 */
 .summary-card { background:#fff; border-radius:20rpx; padding:24rpx 28rpx; margin-bottom:20rpx; box-shadow:0 2rpx 12rpx rgba(0,0,0,.03); }

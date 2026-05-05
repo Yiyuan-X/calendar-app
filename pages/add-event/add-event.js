@@ -2,6 +2,7 @@
 const storage = require('../../utils/storage');
 const share = require('../../utils/share');
 const reminderUtil = require('../../utils/reminder');
+const analytics = require('../../utils/analytics');
 
 Page({
   data: {
@@ -236,6 +237,10 @@ Page({
       wx.showToast({ title: '已更新', icon: 'success' });
     } else {
       savedEvent = storage.addEvent(saveData);
+      analytics.track('event_add', {
+        category: saveData.category,
+        remind: !!saveData.remind
+      });
       wx.showToast({ title: '已创建', icon: 'success' });
     }
 
@@ -267,6 +272,13 @@ Page({
       enabled: !!nextNotifyAt
     };
     reminderUtil.saveReminderPlan(plan);
+    analytics.track('reminder_set', {
+      sourceType: 'event',
+      sourceId: event.id,
+      repeat: reminder.repeat || 'none',
+      advanceValue: reminder.advanceValue || 0,
+      advanceUnit: reminder.advanceUnit || 'days'
+    });
     reminderUtil.requestSubscribe((res) => {
       if (res && res.reason === 'missing_template_id') {
         console.warn('订阅消息模板 ID 未配置，提醒计划已保存但不会发送微信订阅消息');

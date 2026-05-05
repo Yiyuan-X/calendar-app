@@ -20,6 +20,7 @@
 }
 
 .header-left {
+  flex: 1 1 0;
   display: flex;
   flex-direction: column;
   gap: 8rpx;
@@ -78,25 +79,87 @@
 
 /* 右侧金句 */
 .header-quote {
-  flex-shrink: 0;
-  max-width: 300rpx;
+  flex: 1 1 0;
+  min-height: 128rpx;
+  box-sizing: border-box;
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  justify-content: center;
+  gap: 2rpx;
   text-align: right;
-  padding: 6rpx 0 0 12rpx;
-  background: rgba(255,255,255,0.6);
-  border-radius: 16rpx;
-  padding: 16rpx 18rpx;
+  padding: 18rpx 18rpx 18rpx 28rpx;
+  background: linear-gradient(135deg, rgba(255, 252, 244, 0.92), rgba(255, 247, 224, 0.48));
+  border-left: 4rpx solid rgba(201, 144, 32, 0.34);
+  border-radius: 0 18rpx 18rpx 0;
+  box-shadow: inset 0 1rpx 0 rgba(255, 255, 255, 0.8);
   backdrop-filter: blur(10px);
+}
+
+.header-quote::before {
+  content: "“";
+  position: absolute;
+  left: 12rpx;
+  top: 2rpx;
+  font-size: 52rpx;
+  line-height: 1;
+  color: rgba(201, 144, 32, 0.2);
+  font-family: Georgia, 'Times New Roman', serif;
 }
 
 /* 金句文字（略小于标准，优雅感） */
 .quote-text-inline {
   display: block;
-  font-size: 26rpx;
-  color: #9A6B00;
+  max-width: 100%;
+  font-size: 25rpx;
+  color: #956706;
   font-style: italic;
-  line-height: 1.6;
-  font-weight: 500;
-  letter-spacing: 0.5rpx;
+  line-height: 1.5;
+  font-weight: 700;
+  letter-spacing: 0;
+  white-space: nowrap;
+}
+
+.quote-actions {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 10rpx;
+  margin-top: 12rpx;
+}
+
+.quote-action {
+  display: inline-flex;
+  align-items: center;
+  gap: 5rpx;
+  height: 38rpx;
+  padding: 0 10rpx;
+  border-radius: 8rpx;
+  background: rgba(255, 255, 255, 0.62);
+  color: #9A6B00;
+  font-size: 21rpx;
+  font-weight: 700;
+  line-height: 38rpx;
+}
+
+.quote-action.active {
+  color: #C2410C;
+  background: rgba(255, 237, 213, 0.82);
+}
+
+.quote-action-icon {
+  width: 22rpx;
+  height: 22rpx;
+  flex-shrink: 0;
+}
+
+.elder-mode .header-quote {
+  flex-basis: 0;
+}
+
+.elder-mode .header-quote .quote-text-inline {
+  font-size: 27rpx !important;
 }
 
 /* ==================== 节气卡片（优化：紧凑、精致） ==================== */
@@ -707,10 +770,11 @@
 .share-bar {
   display: flex;
   justify-content: center;
-  gap: 16rpx;
+  flex-wrap: wrap;
+  gap: 12rpx;
   padding: 8rpx 0 4rpx;
   margin-top: 0;
-  opacity: 0.72;
+  opacity: 0.82;
 }
 
 .share-btn {
@@ -735,13 +799,14 @@
   opacity: 0.85;
 }
 
-.share-btn-primary:nth-child(1) {
+.share-asset-btn {
   background: #FFFFFF !important;
   color: #8B6914 !important;
   box-shadow: none !important;
+  padding: 10rpx 18rpx !important;
 }
 
-.share-btn-primary:nth-child(2) {
+.share-btn-primary {
   background: #FFFFFF !important;
   color: #8B6914 !important;
   box-shadow: none !important;
@@ -754,13 +819,13 @@
 }
 
 .share-btn-icon {
-  width: 30rpx;
-  height: 30rpx;
+  width: 28rpx;
+  height: 28rpx;
 }
 
 .share-btn-text {
-  font-size: 27rpx;
-  letter-spacing: 1rpx;
+  font-size: 25rpx;
+  letter-spacing: 0;
 }
 
 /* ==================== 底部签名 ==================== */

@@ -4,6 +4,7 @@ const privacy = require('../../utils/privacy');
 const share = require('../../utils/share');
 const poster = require('../../utils/poster');
 const cloud = require('../../utils/cloud');
+const analytics = require('../../utils/analytics');
 
 Page({
   data: {
@@ -29,6 +30,7 @@ Page({
   onShow() {
     share.enableShareMenu();
     getApp().applyDisplaySettings(this);
+    analytics.track('chanting_open');
 
     try {
       this.loadData();
@@ -662,7 +664,7 @@ Page({
         var quoteLines = 1;
         if (quoteText.length > 14) quoteLines = 2;
         if (quoteText.length > 28) quoteLines = 3;
-        const quoteH = Math.max(70, 28 + quoteLines * 30);
+        const quoteH = Math.max(60, 24 + quoteLines * 31);
         ctx.fillStyle = 'rgba(255,255,255,0.75)';
         roundRect(ctx, 30, quoteY, W - 60, quoteH, 14);
         ctx.fill();
@@ -674,15 +676,10 @@ Page({
         // 金句文字（居中换行绘制，防止溢出）
         if (quoteText) {
           ctx.fillStyle = '#6D5A2E';
-          ctx.font = '21px sans-serif';
+          ctx.font = '23px sans-serif';
           ctx.textAlign = 'center';
-          that._wrapTextCenter(ctx, quoteText, W / 2, quoteY + 32, W - 90, 29);
+          that._wrapTextCenter(ctx, quoteText, W / 2, quoteY + 34, W - 90, 31);
         }
-
-        ctx.fillStyle = '#B09A68';
-        ctx.font = '15px sans-serif';
-        ctx.textAlign = 'center';
-        ctx.fillText('— ' + (quote.source || '佛教偈语'), W / 2, quoteY + quoteH - 13);
 
         // ===== 功课列表摘要 =====
         const listY = quoteY + quoteH + 16;
@@ -766,6 +763,9 @@ Page({
               fileType: 'jpg',
               quality: 0.95,
               success: function(saveRes) {
+                analytics.track('poster_generate', {
+                  page: 'chanting'
+                });
                 wx.hideLoading();
                 callback({ success: true, tempFilePath: saveRes.tempFilePath });
               },

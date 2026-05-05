@@ -1,4 +1,4 @@
-// pages/settings/settings.js — 设置页面（佛教大日子开关等）
+// pages/settings/settings.js — 设置页面（日历显示、收藏等）
 const storage = require('../../utils/storage');
 const share = require('../../utils/share');
 
@@ -61,7 +61,7 @@ Page({
     storage.updateSettings({ showBuddhistFestivals: value });
     this.setData({ showBuddhistFestivals: value });
     wx.showToast({
-      title: value ? '已显示佛教纪念日' : '已隐藏佛教纪念日',
+      title: value ? '已显示传统纪念日' : '已隐藏传统纪念日',
       icon: 'none',
       duration: 1200
     });
@@ -81,6 +81,10 @@ Page({
 
   goToHelp() {
     wx.navigateTo({ url: '/pages/help/help' });
+  },
+
+  goToFavoriteQuotes() {
+    wx.navigateTo({ url: '/pages/favorite-quotes/favorite-quotes' });
   },
 
   previewPromotionCode() {

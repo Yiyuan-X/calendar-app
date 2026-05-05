@@ -1,0 +1,27 @@
+<view class="page-container {{elderMode ? 'elder-mode' : ''}}">
+  <view class="page-header">
+    <text class="page-title">我的金句收藏</text>
+    <text class="page-subtitle">收藏 {{quotes.length}} 条</text>
+  </view>
+
+  <view class="quote-list" wx:if="{{quotes.length > 0}}">
+    <view class="quote-card" wx:for="{{quotes}}" wx:key="id">
+      <text class="quote-text">「{{item.text}}」</text>
+      <view class="quote-meta">
+        <text>{{item.dateText}}</text>
+      </view>
+      <view class="quote-actions">
+        <button class="quote-btn primary" bindtap="generateQuotePoster" data-text="{{item.text}}">生成签图</button>
+        <button class="quote-btn" bindtap="removeQuote" data-text="{{item.text}}">取消收藏</button>
+      </view>
+    </view>
+  </view>
+
+  <view class="empty-state" wx:else>
+    <image class="empty-icon" src="/images/icons/heart.svg" mode="aspectFit"></image>
+    <text class="empty-title">还没有收藏金句</text>
+    <text class="empty-desc">在首页每日一句右下角点“收藏”，这里就能查看。</text>
+  </view>
+
+  <canvas type="2d" id="quoteCanvas" style="position:fixed;left:-9999px;top:-9999px;width:500px;height:650px;"></canvas>
+</view>

@@ -27,6 +27,41 @@
     </view>
   </view>
 
+  <view class="growth-section" wx:if="{{growthStats}}">
+    <view class="growth-header">
+      <view>
+        <text class="growth-title">成长体系</text>
+        <text class="growth-subtitle">连续、完成、积累</text>
+      </view>
+    </view>
+    <view class="growth-grid">
+      <view class="growth-item primary">
+        <text class="growth-num">{{growthStats.streakDays}}</text>
+        <text class="growth-label">连续记录天数</text>
+      </view>
+      <view class="growth-item">
+        <text class="growth-num">{{growthStats.monthCompleteDays}}</text>
+        <text class="growth-label">本月完成天数</text>
+      </view>
+      <view class="growth-item">
+        <text class="growth-num {{growthStats.monthNet >= 0 ? 'good' : 'bad'}}">{{growthStats.monthNetText}}</text>
+        <text class="growth-label">本月善行净值</text>
+      </view>
+      <view class="growth-item">
+        <text class="growth-num">{{growthStats.chantingTotal}}</text>
+        <text class="growth-label">念诵累计次数</text>
+      </view>
+      <view class="growth-item">
+        <text class="growth-num">{{growthStats.favoriteQuoteCount}}</text>
+        <text class="growth-label">收藏金句数</text>
+      </view>
+      <view class="growth-item">
+        <text class="growth-num">{{growthStats.eventReminderCount}}</text>
+        <text class="growth-label">节日提醒设置数</text>
+      </view>
+    </view>
+  </view>
+
   <view class="section" wx:if="{{categoryGoodList.length > 0}}">
     <view class="section-title">积善分类</view>
     <view class="category-row" wx:for="{{categoryGoodList}}" wx:key="id">

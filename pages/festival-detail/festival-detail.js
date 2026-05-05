@@ -2,6 +2,7 @@
 const storage = require('../../utils/storage');
 const quotes = require('../../utils/quotes');
 const share = require('../../utils/share');
+const analytics = require('../../utils/analytics');
 
 Page({
   data: {
@@ -18,6 +19,11 @@ Page({
     if (options.data) {
       try {
         const festivalInfo = JSON.parse(decodeURIComponent(options.data));
+        analytics.track('festival_detail_view', {
+          name: festivalInfo.name || festivalInfo.displayName || '',
+          type: festivalInfo.type || '',
+          daysAway: festivalInfo.daysAway
+        });
         this.initPage(festivalInfo);
       } catch (e) {
         console.error('解析节日数据失败:', e);
@@ -49,7 +55,7 @@ Page({
       'holiday': '节日',
       'commemorate': '纪念日',
       'traditional': '传统节日',
-      'buddhist': '佛教纪念日',
+      'buddhist': '纪念日',
       'other': '其他'
     };
 
