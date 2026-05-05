@@ -180,34 +180,38 @@
 
   <!-- 分享操作栏 -->
   <view class="share-bar">
-    <button class="share-btn share-asset-btn" open-type="share" data-share-type="almanac">
-      <image class="share-btn-icon" src="/images/icons/share-wechat.svg" mode="aspectFit"></image>
-      <text class="share-btn-text">今日黄历</text>
-    </button>
-    <button class="share-btn share-asset-btn" open-type="share" data-share-type="quote">
-      <image class="share-btn-icon" src="/images/icons/star.svg" mode="aspectFit"></image>
-      <text class="share-btn-text">金句</text>
-    </button>
-    <button class="share-btn share-asset-btn" open-type="share" data-share-type="buddhist">
-      <image class="share-btn-icon" src="/images/icons/fo.svg" mode="aspectFit"></image>
-      <text class="share-btn-text">佛教日</text>
-    </button>
-    <button class="share-btn share-asset-btn" open-type="share" data-share-type="event">
-      <image class="share-btn-icon" src="/images/icons/clock.svg" mode="aspectFit"></image>
-      <text class="share-btn-text">纪念日</text>
-    </button>
-    <button class="share-btn share-asset-btn" open-type="share" data-share-type="practice">
-      <image class="share-btn-icon" src="/images/icons/gen-chart.svg" mode="aspectFit"></image>
-      <text class="share-btn-text">本月修心</text>
-    </button>
-    <button class="share-btn share-btn-primary" bindtap="shareToMoments">
-      <image class="share-btn-icon" src="/images/icons/share-moments.svg" mode="aspectFit"></image>
-      <text class="share-btn-text">朋友圈</text>
-    </button>
-    <button class="share-btn share-btn-save" bindtap="saveImage">
-      <image class="share-btn-icon" src="/images/icons/save.svg" mode="aspectFit"></image>
-      <text class="share-btn-text">保存</text>
-    </button>
+    <view class="share-asset-grid">
+      <button class="share-btn share-asset-btn" open-type="share" data-share-type="almanac">
+        <image class="share-btn-icon" src="/images/icons/share-wechat.svg" mode="aspectFit"></image>
+        <text class="share-btn-text">今日黄历</text>
+      </button>
+      <button class="share-btn share-asset-btn" open-type="share" data-share-type="quote">
+        <image class="share-btn-icon" src="/images/icons/star.svg" mode="aspectFit"></image>
+        <text class="share-btn-text">金句</text>
+      </button>
+      <button class="share-btn share-asset-btn" open-type="share" data-share-type="buddhist">
+        <image class="share-btn-icon" src="/images/icons/fo.svg" mode="aspectFit"></image>
+        <text class="share-btn-text">传统日</text>
+      </button>
+      <button class="share-btn share-asset-btn" open-type="share" data-share-type="event">
+        <image class="share-btn-icon" src="/images/icons/clock.svg" mode="aspectFit"></image>
+        <text class="share-btn-text">纪念日</text>
+      </button>
+      <button class="share-btn share-asset-btn asset-wide" open-type="share" data-share-type="practice">
+        <image class="share-btn-icon" src="/images/icons/gen-chart.svg" mode="aspectFit"></image>
+        <text class="share-btn-text">本月修心</text>
+      </button>
+    </view>
+    <view class="share-poster-actions">
+      <button class="share-btn share-btn-primary" bindtap="shareToMoments">
+        <image class="share-btn-icon" src="/images/icons/share-moments.svg" mode="aspectFit"></image>
+        <text class="share-btn-text">朋友圈</text>
+      </button>
+      <button class="share-btn share-btn-save" bindtap="saveImage">
+        <image class="share-btn-icon" src="/images/icons/save.svg" mode="aspectFit"></image>
+        <text class="share-btn-text">保存</text>
+      </button>
+    </view>
   </view>
 
   <!-- 底部签名 -->
