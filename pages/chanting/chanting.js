@@ -59,8 +59,6 @@ Page({
         comboProgressMap[combo.comboId] = combo;
       });
     } catch(e) { /* 忽略 */ }
-    const warmClassMap = buildDuplicateWarmClassMap(tasks || []);
-
     // 构建展示数据（含拖拽状态字段）
     const taskData = (tasks || []).map((t, index) => {
       const todayCount = (dayRec && dayRec[t.id]) || 0;
@@ -84,7 +82,7 @@ Page({
         totalProgressPercent: t.totalTarget > 0 ? Math.min(100, ((total || 0) / t.totalTarget) * 100) : 0,
         comboProgressText,
         comboTodayProgressText,
-        warmClass: warmClassMap[t.id] || '',
+        warmClass: getTaskWarmClass(index),
         isDragging: false,
         isPlaceholder: false
       };
@@ -133,7 +131,6 @@ Page({
   onIncrement(e) {
     const id = e.currentTarget.dataset.id;
     chant.increment(id, chant.getToday(), 1);
-    chant.promoteTaskToTop(id);
     this.loadData();
 
     // 轻触反馈
@@ -864,42 +861,7 @@ function roundRect(ctx, x, y, w, h, r) {
   ctx.closePath();
 }
 
-function buildDuplicateWarmClassMap(tasks) {
+function getTaskWarmClass(index) {
   const warmClasses = ['task-warm-1', 'task-warm-2', 'task-warm-3', 'task-warm-4'];
-  const result = {};
-
-  const comboIds = [];
-  const comboSeen = {};
-  tasks.forEach(task => {
-    if (!task.comboId) return;
-    if (!comboSeen[task.comboId]) {
-      comboSeen[task.comboId] = true;
-      comboIds.push(task.comboId);
-    }
-  });
-  if (comboIds.length > 1) {
-    comboIds.forEach((comboId, index) => {
-      const className = warmClasses[index % warmClasses.length];
-      tasks.forEach(task => {
-        if (task.comboId === comboId) result[task.id] = className;
-      });
-    });
-  }
-
-  const regularGroups = {};
-  tasks.forEach(task => {
-    if (task.comboId) return;
-    const key = task.builtinId || task.name;
-    if (!regularGroups[key]) regularGroups[key] = [];
-    regularGroups[key].push(task);
-  });
-  Object.keys(regularGroups).forEach(key => {
-    const group = regularGroups[key];
-    if (group.length <= 1) return;
-    group.forEach((task, index) => {
-      result[task.id] = warmClasses[index % warmClasses.length];
-    });
-  });
-
-  return result;
+  return warmClasses[index % warmClasses.length];
 }

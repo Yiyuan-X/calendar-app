@@ -68,7 +68,7 @@
       <block wx:else>
         <!-- 头部：名称 + 总数 + 删除按钮 -->
         <view class="task-header" bindtap="goDetail" data-id="{{item.id}}">
-          <view class="task-info">
+          <view class="task-info {{item.comboProgressText ? 'task-info-combo' : ''}}">
             <text class="task-name">{{item.name}}</text>
             <text class="task-target task-target-combo" wx:if="{{item.comboProgressText}}">{{item.comboProgressText}}</text>
             <text class="task-target task-target-combo" wx:if="{{item.comboTodayProgressText}}">{{item.comboTodayProgressText}}</text>

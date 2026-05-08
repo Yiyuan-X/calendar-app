@@ -34,6 +34,7 @@ const TABLES = {
 // ===== 本地缓存 Key 前缀 =====
 const CACHE_PREFIX = 'cloud_cache_';
 const PENDING_PREFIX = 'pending_sync_';
+const LAST_SYNC_PREFIX = 'cloud_last_sync_';
 
 /**
  * 初始化云开发
@@ -150,11 +151,17 @@ async function getAll(table) {
  */
 async function set(table, key, data) {
   const cacheKey = CACHE_PREFIX + table + '_' + key;
+  const syncKey = LAST_SYNC_PREFIX + table + '_' + key;
+  const signature = getDataSignature(data);
 
   // 先写本地缓存（即时响应）
   setLocalCache(cacheKey, data);
 
   if (_isOnline && _cloudInitialized) {
+    if (getLocalCache(syncKey) === signature) {
+      return true;
+    }
+
     try {
       const db = wx.cloud.database();
 
@@ -181,6 +188,7 @@ async function set(table, key, data) {
         });
         console.log(`[Cloud] ✅ ${table}.${key} 新增成功`);
       }
+      setLocalCache(syncKey, signature);
       return true;
     } catch (e) {
       console.warn(`[Cloud] ❌ ${table}.${key} 写入失败:`, e);
@@ -201,9 +209,11 @@ async function set(table, key, data) {
  */
 async function remove(table, key) {
   const cacheKey = CACHE_PREFIX + table + '_' + key;
+  const syncKey = LAST_SYNC_PREFIX + table + '_' + key;
 
   // 先删本地
   removeLocalCache(cacheKey);
+  removeLocalCache(syncKey);
 
   if (_isOnline && _cloudInitialized) {
     try {
@@ -229,47 +239,73 @@ async function remove(table, key) {
 // ==================== 批量操作（用于列表型数据）====================
 
 /**
- * 保存整个列表（覆盖式）
+ * 保存整个列表（差异同步）
  * @param {string} table - 表名
  * @param {Array} list - 数据数组
  * @returns {Promise<boolean>}
  */
 async function setList(table, list) {
   const cacheKey = CACHE_PREFIX + table;
-  setLocalCache(cacheKey, list);
+  const syncKey = LAST_SYNC_PREFIX + table + '_list';
+  const safeList = Array.isArray(list) ? list : [];
+  const signature = getDataSignature(safeList);
+  setLocalCache(cacheKey, safeList);
 
   if (_isOnline && _cloudInitialized) {
+    if (getLocalCache(syncKey) === signature) {
+      return true;
+    }
+
     try {
       const db = wx.cloud.database();
 
-      // 删除旧数据（不手动指定 _openid）
+      // 按 key 做差异化 upsert，避免整表删除重写。
       const oldData = await db.collection(table)
         .where({})
         .get();
+      const remoteList = oldData.data || [];
+      const remoteByKey = {};
+      remoteList.forEach(item => {
+        if (item && item.key) remoteByKey[item.key] = item;
+      });
+      const nextKeys = {};
 
-      if (oldData.data && oldData.data.length > 0) {
-        for (const item of oldData.data) {
+      if (safeList.length > 0) {
+        for (const item of safeList) {
+          const itemKey = getListItemKey(item);
+          nextKeys[itemKey] = true;
+          const existing = remoteByKey[itemKey];
+          if (existing) {
+            if (getDataSignature(existing.data) !== getDataSignature(item)) {
+              await db.collection(table).doc(existing._id).update({
+                data: { data: item, updatedAt: Date.now() }
+              });
+            }
+          } else {
+            await db.collection(table).add({
+              data: {
+                key: itemKey,
+                data: item,
+                createdAt: item.createdAt || Date.now(),
+                updatedAt: Date.now()
+              }
+            });
+          }
+        }
+      }
+
+      for (const item of remoteList) {
+        if (item && item.key && !nextKeys[item.key]) {
           await db.collection(table).doc(item._id).remove();
         }
       }
 
-      // 批量插入新数据（不写 _openid，让系统自动注入）
-      if (list.length > 0) {
-        for (const item of list) {
-          await db.collection(table).add({
-            data: {
-              key: item.id || item._id || String(Date.now()) + Math.random().toString(36).substr(2, 5),
-              data: item,
-              createdAt: item.createdAt || Date.now(),
-              updatedAt: Date.now()
-            }
-          });
-        }
-      }
-      console.log(`[Cloud] ✅ ${table} 批量写入成功，共 ${list.length} 条`);
+      setLocalCache(syncKey, signature);
+      console.log(`[Cloud] ✅ ${table} 差异同步成功，共 ${safeList.length} 条`);
       return true;
     } catch (e) {
       console.warn(`[Cloud] ❌ ${table} 批量写入失败:`, e);
+      addPendingListSync(table, safeList);
       return false;
     }
   }
@@ -310,6 +346,23 @@ function removeLocalCache(key) {
   } catch (e) {}
 }
 
+function getListItemKey(item) {
+  if (item && (item.id || item._id)) return String(item.id || item._id);
+  return 'item_' + getDataSignature(item).slice(0, 24);
+}
+
+function getDataSignature(data) {
+  return stableStringify(data);
+}
+
+function stableStringify(value) {
+  if (value === null || value === undefined) return String(value);
+  if (typeof value !== 'object') return JSON.stringify(value);
+  if (Array.isArray(value)) return '[' + value.map(stableStringify).join(',') + ']';
+  const keys = Object.keys(value).sort();
+  return '{' + keys.map(key => JSON.stringify(key) + ':' + stableStringify(value[key])).join(',') + '}';
+}
+
 // ==================== 待同步队列（离线支持）====================
 
 function addPendingSync(table, key, data) {
@@ -317,6 +370,15 @@ function addPendingSync(table, key, data) {
   let pending = getLocalCache(pendingKey) || [];
   pending.push({ table, key, data, time: Date.now() });
   // 最多保留100条待同步记录
+  if (pending.length > 100) pending = pending.slice(-100);
+  setLocalCache(pendingKey, pending);
+}
+
+function addPendingListSync(table, list) {
+  const pendingKey = PENDING_PREFIX + table;
+  let pending = getLocalCache(pendingKey) || [];
+  pending = pending.filter(item => item.key !== '__list__');
+  pending.push({ table, key: '__list__', data: list, time: Date.now() });
   if (pending.length > 100) pending = pending.slice(-100);
   setLocalCache(pendingKey, pending);
 }
@@ -333,18 +395,30 @@ async function syncPending() {
   for (const table of tables) {
     const pendingKey = PENDING_PREFIX + table;
     const pending = getLocalCache(pendingKey) || [];
+    const failed = [];
 
     for (const item of pending) {
       try {
-        await set(item.table, item.key, item.data);
+        let ok = false;
+        if (item.key === '__list__') {
+          ok = await setList(item.table, item.data || []);
+        } else {
+          ok = await set(item.table, item.key, item.data);
+        }
+        if (!ok) {
+          failed.push(item);
+          continue;
+        }
         syncedCount++;
       } catch (e) {
         console.warn(`[Cloud] 同步失败 ${item.table}.${item.key}:`, e);
+        failed.push(item);
       }
     }
 
-    // 清空该表的待同步队列
-    if (pending.length > 0) {
+    if (failed.length > 0) {
+      setLocalCache(pendingKey, failed.slice(-100));
+    } else if (pending.length > 0) {
       removeLocalCache(pendingKey);
     }
   }

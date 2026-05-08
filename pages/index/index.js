@@ -49,9 +49,15 @@ Page({
     currentSolarTermName: '',
     currentSolarTermTip: '',
     currentSolarTermPeriod: '',
+    currentSolarTermHealth: null,
+    showDailyRecommendCard: false,
+    dailyRecommendText: '',
+    dailyRecommendTermName: '',
+    dailyRecommendTermPeriod: '',
 
     // === 每日素食养生语录 ===
     dailyVegetarianTip: '',
+    dailyVegetarianTipText: '',
 
     // === 折叠状态 ===
     stExpanded: false,
@@ -111,9 +117,31 @@ Page({
     return festivals.map(f => ({ ...f, tagClass: this.getTagClass(f.color) }));
   },
 
+  formatDailyVegetarianTip(text) {
+    return String(text || '')
+      .replace(/^【今日推荐】\s*/, '')
+      .replace(/^今日推荐[：:]\s*/, '')
+      .trim();
+  },
+
+  buildDailyRecommendData(options) {
+    const data = options || {};
+    const tipText = this.formatDailyVegetarianTip(data.dailyVegetarianTip);
+    const healthDesc = data.todaySolarTermHealth && data.todaySolarTermHealth.desc ? data.todaySolarTermHealth.desc : '';
+    const text = tipText || healthDesc || data.currentSolarTermTip || '';
+    const termName = data.todaySolarTermName || data.currentSolarTermName || '';
+    const termPeriod = data.todaySolarTermPeriod || data.currentSolarTermPeriod || '';
+    return {
+      showDailyRecommendCard: !!text,
+      dailyRecommendText: text,
+      dailyRecommendTermName: termName,
+      dailyRecommendTermPeriod: termPeriod
+    };
+  },
+
   formatQuoteLines(quote) {
     const text = String(quote || '').trim();
-    if (!text) return [];
+    if (!text) return ['停下来安看风云，', '坐下来静赏花开。'];
     const maxLineLength = 11;
     const noBreakWords = [
       '价值', '财物', '快乐', '安详', '平安', '吉祥', '平稳', '安静',
@@ -378,6 +406,23 @@ Page({
     return '';
   },
 
+  _getCurrentSolarTermFallback(date) {
+    try {
+      const info = solarTerms.getTodaySolarTermInfo(date || new Date());
+      if (!info || !info.name || info.name === '未知') return null;
+      const start = info.startDate ? `${info.startDate.getMonth() + 1}月${info.startDate.getDate()}日` : '';
+      const end = info.endDate ? `${info.endDate.getMonth() + 1}月${info.endDate.getDate()}日` : '';
+      return {
+        name: info.name,
+        period: start && end ? `${start} — ${end}` : '',
+        health: solarTerms.getSolarTermHealth(info.name, { randomTip: true }) || info.guide || null,
+        tip: solarTerms.getRandomSolarTermHealthTip(info.name) || '顺应天时，调和身心'
+      };
+    } catch (e) {
+      return null;
+    }
+  },
+
   initPage() {
     const now = new Date();
     const todayStr = `${now.getFullYear()}-${calendarUtil.padZero(now.getMonth() + 1)}-${calendarUtil.padZero(now.getDate())}`;
@@ -402,6 +447,7 @@ Page({
     let currentSolarTermName = '';
     let currentSolarTermTip = '';
     let currentSolarTermPeriod = '';
+    let currentSolarTermHealth = null;
     if (!todayST) {
       const nearby = solarTerms.getNearbySolarTerms(year, month, day);
       const currentTerm = nearby.prev || nearby.next;
@@ -409,8 +455,29 @@ Page({
         currentSolarTermName = currentTerm.name;
         currentSolarTermTip = solarTerms.getRandomSolarTermHealthTip(currentTerm.name) || '顺应天时，调和身心';
         currentSolarTermPeriod = this._getSolarTermPeriod(year, month, day);
+        currentSolarTermHealth = solarTerms.getSolarTermHealth(currentTerm.name, { randomTip: true });
       }
     }
+    if (!todaySolarTermName && !currentSolarTermName) {
+      const fallbackTerm = this._getCurrentSolarTermFallback(now);
+      if (fallbackTerm) {
+        currentSolarTermName = fallbackTerm.name;
+        currentSolarTermTip = fallbackTerm.tip;
+        currentSolarTermPeriod = fallbackTerm.period;
+        currentSolarTermHealth = fallbackTerm.health;
+      }
+    }
+
+    const dailyVegetarianTip = solarTerms.getDailyVegetarianTip();
+    const recommendData = this.buildDailyRecommendData({
+      dailyVegetarianTip,
+      todaySolarTermName,
+      todaySolarTermHealth,
+      todaySolarTermPeriod,
+      currentSolarTermName,
+      currentSolarTermTip,
+      currentSolarTermPeriod
+    });
 
     this.setData({
       currentYear: now.getFullYear(),
@@ -430,9 +497,12 @@ Page({
       currentSolarTermName,
       currentSolarTermTip,
       currentSolarTermPeriod,
+      currentSolarTermHealth,
 
       // 每日素食养生语录
-      dailyVegetarianTip: solarTerms.getDailyVegetarianTip()
+      dailyVegetarianTip,
+      dailyVegetarianTipText: this.formatDailyVegetarianTip(dailyVegetarianTip),
+      ...recommendData
     });
 
     this.generateCalendar();
@@ -475,7 +545,21 @@ Page({
 
     // 刷新每日素食养生语录
     try {
-      this.setData({ dailyVegetarianTip: solarTerms.getDailyVegetarianTip() });
+      const dailyVegetarianTip = solarTerms.getDailyVegetarianTip();
+      const recommendData = this.buildDailyRecommendData({
+        dailyVegetarianTip,
+        todaySolarTermName: this.data.todaySolarTermName,
+        todaySolarTermHealth: this.data.todaySolarTermHealth,
+        todaySolarTermPeriod: this.data.todaySolarTermPeriod,
+        currentSolarTermName: this.data.currentSolarTermName,
+        currentSolarTermTip: this.data.currentSolarTermTip,
+        currentSolarTermPeriod: this.data.currentSolarTermPeriod
+      });
+      this.setData({
+        dailyVegetarianTip,
+        dailyVegetarianTipText: this.formatDailyVegetarianTip(dailyVegetarianTip),
+        ...recommendData
+      });
     } catch(e) {
       console.error('刷新每日素食语录失败:', e);
     }
@@ -643,6 +727,10 @@ Page({
 
   goToSettings() {
     wx.navigateTo({ url: '/pages/settings/settings' });
+  },
+
+  goToCardTool() {
+    wx.navigateTo({ url: '/packageCard/templates/templates' });
   },
 
 goToMerit() {
@@ -874,7 +962,7 @@ goToMerit() {
     var stName = that.data.todaySolarTermName || that.data.currentSolarTermName || '';
     var stHealth = that.data.todaySolarTermHealth || null;
     var stPeriod = that.data.todaySolarTermPeriod || that.data.currentSolarTermPeriod || '';
-    var vegTip = that.data.dailyVegetarianTip || '';
+    var vegTip = that.data.dailyVegetarianTipText || that.formatDailyVegetarianTip(that.data.dailyVegetarianTip || '');
 
     wx.showLoading({ title: '正在生成...' });
 

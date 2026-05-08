@@ -1,0 +1,22 @@
+<view class="export-page">
+  <view class="preview-shell">
+    <image wx:if="{{imagePath}}" class="preview" src="{{imagePath}}" mode="widthFix"></image>
+    <view wx:else class="generating">
+      <text class="loader"></text>
+      <text>正在生成高清图片</text>
+    </view>
+  </view>
+
+  <view class="meta">
+    <text class="title">高清分享图</text>
+    <text class="sub">按模板 JSON 和富文本样式渲染，适配高 DPR 导出</text>
+  </view>
+
+  <view class="actions safe-area-bottom">
+    <button class="btn ghost" bindtap="regenerate">重新生成</button>
+    <button class="btn ghost" bindtap="previewImage">预览</button>
+    <button class="btn primary" bindtap="saveToAlbum">保存相册</button>
+  </view>
+
+  <canvas type="2d" id="exportCanvas" class="hidden-canvas"></canvas>
+</view>

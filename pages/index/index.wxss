@@ -116,7 +116,7 @@
 .quote-text-inline {
   display: block;
   max-width: 100%;
-  font-size: 27rpx;
+  font-size: 29rpx;
   color: #956706;
   font-style: normal;
   line-height: 1.65;
@@ -165,42 +165,99 @@
 }
 
 .elder-mode .header-quote .quote-text-inline {
-  font-size: 27rpx !important;
+  font-size: 34rpx !important;
 }
 
 /* ==================== 节气卡片（优化：紧凑、精致） ==================== */
 .sth2-card {
   margin: 20rpx 0 16rpx;
-  padding: 26rpx 26rpx 22rpx;
+  padding: 18rpx 22rpx;
   background: linear-gradient(135deg, #FFF8E7 0%, #FFF1C7 56%, #F3FAE9 100%);
   border-radius: 24rpx;
   border-left: 6rpx solid #FFB300;
   box-shadow: 0 4rpx 20rpx rgba(255, 179, 0, 0.12);
 }
 
-/* 节气标题行：图标 + 名称 */
-.sth2-title-row {
+.sth2-recommend-row,
+.sth2-meta-row {
   display: flex;
   align-items: center;
   gap: 12rpx;
-  margin-bottom: 12rpx;
+}
+
+.sth2-recommend-row {
+  min-height: 40rpx;
+}
+
+.sth2-meta-row {
+  margin-top: 10rpx;
+  padding-top: 10rpx;
+  border-top: 1rpx solid rgba(139, 105, 20, 0.1);
+}
+
+.sth2-meta-collapsed {
+  margin-top: 12rpx;
+  padding-top: 10rpx;
+}
+
+.sth2-recommend-label {
+  flex-shrink: 0;
+  color: #B8860B;
+  font-size: 27rpx;
+  font-weight: 900;
+}
+
+.sth2-recommend-summary {
+  display: -webkit-box;
+  color: #5F5145;
+  font-size: 27rpx;
+  font-weight: 650;
+  line-height: 1.55;
+  overflow: hidden;
+  -webkit-line-clamp: 4;
+  -webkit-box-orient: vertical;
 }
 
 /* 叶子图标 — 缩小为精致的装饰性图标 */
 .sth2-icon {
-  width: 44rpx;
-  height: 44rpx;
+  width: 36rpx;
+  height: 36rpx;
   opacity: 0.75;
   flex-shrink: 0;
 }
 
 /* 节气名称（大标题） */
 .sth2-name {
-  font-size: 39rpx;
+  font-size: 28rpx;
   font-weight: 900;
   color: #5D4037;
-  letter-spacing: 5rpx;
+  letter-spacing: 1rpx;
   font-family: -apple-system, 'PingFang SC', 'SF Pro Display', serif;
+}
+
+.sth2-period-inline {
+  flex: 1;
+  min-width: 0;
+  color: #9A6B00;
+  font-size: 24rpx;
+  font-weight: 600;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.sth2-toggle-icon {
+  margin-left: auto;
+  color: #B8860B;
+  font-size: 24rpx;
+  font-weight: 800;
+  flex-shrink: 0;
+}
+
+.sth2-detail {
+  margin-top: 14rpx;
+  padding-top: 14rpx;
+  border-top: 1rpx solid rgba(139, 105, 20, 0.12);
 }
 
 /* 节气日期范围 */
@@ -252,7 +309,7 @@
 
 /* 迷你节气卡片（非当天显示的简短版） */
 .sth2-mini {
-  padding: 22rpx 24rpx;
+  padding: 18rpx 22rpx;
 }
 
 .sth2-mini .sth2-icon {
@@ -261,36 +318,14 @@
 }
 
 .sth2-mini .sth2-name {
-  font-size: 32rpx;
-  letter-spacing: 2rpx;
+  font-size: 28rpx;
+  letter-spacing: 1rpx;
 }
 
 .sth2-mini .sth2-period {
   font-size: 24rpx;
   padding-left: 48rpx;
   margin-bottom: 6rpx;
-}
-
-.daily-tip-inline {
-  display: flex;
-  flex-direction: column;
-  gap: 8rpx;
-  margin-top: 16rpx;
-  padding-top: 16rpx;
-  border-top: 1rpx solid rgba(139, 105, 20, 0.12);
-}
-
-.daily-tip-label {
-  font-size: 25rpx;
-  color: #B8860B;
-  font-weight: 800;
-}
-
-.daily-tip-text {
-  font-size: 27rpx;
-  color: #4B5563;
-  line-height: 1.68;
-  font-weight: 500;
 }
 
 /* ==================== 重要日子区块 ==================== */
@@ -640,7 +675,7 @@
   align-items: center;
   padding: 22rpx 20rpx;
   border-radius: 22rpx;
-  box-shadow: 0 4rpx 18rpx rgba(0, 0, 0, 0.07);
+  box-shadow: 0 4rpx 18rpx rgba(109, 79, 48, 0.07);
   transition: transform 0.15s, box-shadow 0.15s;
   position: relative;
   overflow: hidden;
@@ -654,6 +689,35 @@
 /* 功过格/积善卡片 — 暖金色渐变，与整体风格协调 */
 .merit-entry {
   background: linear-gradient(135deg, #D4A017 0%, #B8860B 50%, #CD853F 100%);
+}
+
+.card-tool-action-entry {
+  background:
+    radial-gradient(circle at 18% 20%, rgba(255, 255, 255, 0.68) 0, rgba(255, 255, 255, 0) 34%),
+    linear-gradient(135deg, #FFF5E3 0%, #F4DFC4 56%, #E8D0B2 100%);
+  border: 1.5rpx solid rgba(184, 134, 74, 0.22);
+  box-shadow: 0 5rpx 18rpx rgba(151, 105, 62, 0.12);
+}
+
+.card-tool-action-entry::before {
+  content: '';
+  position: absolute;
+  right: -18rpx;
+  bottom: -28rpx;
+  width: 130rpx;
+  height: 130rpx;
+  border-radius: 50%;
+  background: rgba(167, 126, 80, 0.08);
+}
+
+.card-tool-action-entry::after {
+  content: '';
+  position: absolute;
+  left: 20rpx;
+  top: 16rpx;
+  width: 72rpx;
+  height: 2rpx;
+  background: rgba(167, 126, 80, 0.22);
 }
 
 /* 显示设置卡片 — 更醒目的渐变背景 */
@@ -691,6 +755,10 @@
   color: #FFFFFF;
 }
 
+.card-tool-action-entry .action-title {
+  color: #6B4F39;
+}
+
 .settings-entry-prominent .action-title {
   color: #5D4037;
 }
@@ -703,6 +771,10 @@
 
 .merit-entry .action-subtitle {
   color: rgba(255, 255, 255, 0.5);
+}
+
+.card-tool-action-entry .action-subtitle {
+  color: #A06F3F;
 }
 
 .settings-entry-prominent .action-subtitle {
@@ -754,6 +826,15 @@
 
 .settings-entry-prominent .action-arrow {
   color: #D4A017;
+}
+
+.card-tool-action-entry .action-arrow {
+  color: #B88655;
+}
+
+.card-tool-action-entry .action-tab-icon {
+  opacity: 0.82;
+  filter: sepia(0.35) saturate(0.9) hue-rotate(350deg);
 }
 
 /* 设置图标圆形背景 */

@@ -32,17 +32,21 @@
 
 /* 功课列表 */
 .task-list { display:flex; flex-direction:column; gap:16rpx; padding-bottom:20rpx; }
-.task-card { background:#fff; border-radius:18rpx; padding:22rpx 24rpx; box-shadow:0 2rpx 10rpx rgba(0,0,0,.03); position:relative; }
-.task-warm-1 { background:#FFF8E8; border:1.5rpx solid rgba(255,179,0,.24); }
-.task-warm-2 { background:#FFF1E8; border:1.5rpx solid rgba(255,126,51,.22); }
-.task-warm-3 { background:#FFF6DE; border:1.5rpx solid rgba(218,165,32,.24); }
-.task-warm-4 { background:#FFF0F0; border:1.5rpx solid rgba(255,99,71,.18); }
+.task-card { background:#fff; border-radius:18rpx; padding:22rpx 24rpx; box-shadow:0 4rpx 14rpx rgba(120,72,20,.05); position:relative; border:1.5rpx solid rgba(255,179,0,.16); }
+.task-warm-1 { background:linear-gradient(135deg,#FFF8E6 0%,#FFFDF7 100%); border-color:rgba(255,179,0,.28); }
+.task-warm-2 { background:linear-gradient(135deg,#FFF0E6 0%,#FFFCF8 100%); border-color:rgba(255,126,51,.24); }
+.task-warm-3 { background:linear-gradient(135deg,#FFF5D8 0%,#FFFDF4 100%); border-color:rgba(218,165,32,.26); }
+.task-warm-4 { background:linear-gradient(135deg,#FFF0EE 0%,#FFFCFA 100%); border-color:rgba(255,112,67,.22); }
 .task-card-dragging { opacity: .95; box-shadow:0 8rpx 30rpx rgba(0,0,0,.15); z-index:100; transform:scale(1.02); transition:transform .15s ease; }
 .task-card-placeholder { opacity: 0; pointer-events:none; }
 .task-header { display:flex; align-items:center; justify-content:space-between; margin-bottom:14rpx; padding-bottom: 8rpx; gap:6rpx; flex-wrap:nowrap; }
 .task-info { display:flex; align-items:center; gap:10rpx; flex:1; min-width:0; overflow:hidden; }
 .task-name { font-size: 30rpx; font-weight:600; color:#1D1D1F; overflow:hidden;text-overflow:ellipsis;white-space:nowrap; flex-shrink:1; }
 .task-target { font-size: 24rpx; color:#AEAEB2; white-space:nowrap; flex-shrink:0; }
+.task-info-combo { flex-wrap:wrap; overflow:visible; row-gap:8rpx; }
+.task-info-combo .task-name { order:1; flex:0 0 100%; max-width:100%; }
+.task-info-combo .task-target-combo { order:2; }
+.task-info-combo .task-target:not(.task-target-combo) { order:3; }
 .task-total { font-size: 24rpx; color:#FFB300; font-weight:600; white-space:nowrap; flex-shrink:0; }
 .task-arrow { font-size: 28rpx; color:#C7C7CC; }
 

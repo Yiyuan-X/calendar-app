@@ -1,1 +1,72 @@
-{"pages": ["pages/calendar/calendar", "pages/index/index", "pages/chanting/chanting", "pages/chanting-add/chanting-add", "pages/chanting-focus/chanting-focus", "pages/chanting-detail/chanting-detail", "pages/add-event/add-event", "pages/festival-detail/festival-detail", "pages/notes/notes", "pages/settings/settings", "pages/favorite-quotes/favorite-quotes", "pages/help/help", "pages/merit/merit", "pages/merit-stats/merit-stats"], "window": {"backgroundTextStyle": "light", "navigationBarBackgroundColor": "#ffffff", "navigationBarTitleText": "岁时记", "navigationBarTextStyle": "black", "backgroundColor": "#FAFAFA"}, "cloud": true, "tabBar": {"color": "#999999", "selectedColor": "#FF9500", "backgroundColor": "#ffffff", "borderStyle": "white", "list": [{"pagePath": "pages/calendar/calendar", "text": "黄历", "iconPath": "images/calendar.png", "selectedIconPath": "images/calendar-active.png"}, {"pagePath": "pages/index/index", "text": "今日", "iconPath": "images/today.png", "selectedIconPath": "images/today-active.png"}, {"pagePath": "pages/merit/merit", "text": "积善", "iconPath": "images/merit.png", "selectedIconPath": "images/merit-active.png"}, {"pagePath": "pages/chanting/chanting", "text": "计数器", "iconPath": "images/chanting.png", "selectedIconPath": "images/chanting-active.png"}]}, "style": "v2", "lazyCodeLoading": "requiredComponents", "sitemapLocation": "sitemap.json"}
+{
+  "pages": [
+    "pages/calendar/calendar",
+    "pages/index/index",
+    "pages/chanting/chanting",
+    "pages/chanting-add/chanting-add",
+    "pages/chanting-focus/chanting-focus",
+    "pages/chanting-detail/chanting-detail",
+    "pages/add-event/add-event",
+    "pages/festival-detail/festival-detail",
+    "pages/notes/notes",
+    "pages/settings/settings",
+    "pages/favorite-quotes/favorite-quotes",
+    "pages/help/help",
+    "pages/merit/merit",
+    "pages/merit-stats/merit-stats"
+  ],
+  "subpackages": [
+    {
+      "root": "packageCard",
+      "name": "cardTool",
+      "pages": [
+        "templates/templates",
+        "editor/editor",
+        "export/export"
+      ]
+    }
+  ],
+  "window": {
+    "backgroundTextStyle": "light",
+    "navigationBarBackgroundColor": "#ffffff",
+    "navigationBarTitleText": "岁时记",
+    "navigationBarTextStyle": "black",
+    "backgroundColor": "#FAFAFA"
+  },
+  "cloud": true,
+  "tabBar": {
+    "color": "#999999",
+    "selectedColor": "#FF9500",
+    "backgroundColor": "#ffffff",
+    "borderStyle": "white",
+    "list": [
+      {
+        "pagePath": "pages/calendar/calendar",
+        "text": "黄历",
+        "iconPath": "images/calendar.png",
+        "selectedIconPath": "images/calendar-active.png"
+      },
+      {
+        "pagePath": "pages/index/index",
+        "text": "今日",
+        "iconPath": "images/today.png",
+        "selectedIconPath": "images/today-active.png"
+      },
+      {
+        "pagePath": "pages/merit/merit",
+        "text": "积善",
+        "iconPath": "images/merit.png",
+        "selectedIconPath": "images/merit-active.png"
+      },
+      {
+        "pagePath": "pages/chanting/chanting",
+        "text": "计数器",
+        "iconPath": "images/chanting.png",
+        "selectedIconPath": "images/chanting-active.png"
+      }
+    ]
+  },
+  "style": "v2",
+  "lazyCodeLoading": "requiredComponents",
+  "sitemapLocation": "sitemap.json"
+}

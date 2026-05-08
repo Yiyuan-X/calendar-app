@@ -38,39 +38,26 @@
     </view>
   </view>
 
-  <!-- 节气养生卡片（默认折叠：只显示名称+日期+简介，点击展开详情） -->
-  <view class="sth2-card {{stExpanded ? 'sth2-expanded' : ''}}" wx:if="{{todaySolarTermHealth}}" bindtap="toggleStExpand">
-    <view class="sth2-title-row">
-      <image class="sth2-icon" src="/images/icons/leaf.svg" mode="aspectFit"></image>
-      <text class="sth2-name">{{todaySolarTermName}}</text>
-      <text class="sth2-toggle-icon">{{stExpanded ? '收起' : '展开养生卡片'}}</text>
+  <!-- 节气养生卡片（默认折叠：只显示推荐摘要两行） -->
+  <view class="sth2-card {{stExpanded ? 'sth2-expanded' : ''}}" wx:if="{{showDailyRecommendCard}}" bindtap="toggleStExpand">
+    <view class="sth2-recommend-row">
+      <text class="sth2-recommend-label">今日推荐</text>
+      <text class="sth2-toggle-icon">{{stExpanded ? '收起' : '展开'}}</text>
     </view>
-    <text class="sth2-period" wx:if="{{todaySolarTermPeriod}}">{{todaySolarTermPeriod}}</text>
-    <text class="sth2-desc">{{todaySolarTermHealth.desc}}</text>
+    <text class="sth2-recommend-summary">{{dailyRecommendText}}</text>
+    <view class="sth2-meta-row sth2-meta-collapsed" wx:if="{{dailyRecommendTermName || dailyRecommendTermPeriod}}">
+      <image class="sth2-icon" src="/images/icons/leaf.svg" mode="aspectFit"></image>
+      <text class="sth2-name">{{dailyRecommendTermName}}</text>
+      <text class="sth2-period-inline" wx:if="{{dailyRecommendTermPeriod}}">{{dailyRecommendTermPeriod}}</text>
+    </view>
 
     <!-- 折叠内容：点击展开后显示 -->
     <view class="sth2-detail" wx:if="{{stExpanded}}">
-      <text class="sth2-text">{{todaySolarTermHealth.health}}</text>
-      <text class="sth2-text">{{todaySolarTermHealth.diet}}</text>
-      <view class="sth2-tip"><text>{{todaySolarTermHealth.tip}}</text></view>
-      <view class="daily-tip-inline" wx:if="{{dailyVegetarianTip}}">
-        <text class="daily-tip-label">今日推荐</text>
-        <text class="daily-tip-text">{{dailyVegetarianTip}}</text>
-      </view>
-    </view>
-  </view>
-
-  <!-- 当前节气（非当天）的简短提示 -->
-  <view class="sth2-card sth2-mini" wx:elif="{{currentSolarTermName}}">
-    <view class="sth2-title-row">
-      <image class="sth2-icon" src="/images/icons/leaf.svg" mode="aspectFit"></image>
-      <text class="sth2-name">当前节气：{{currentSolarTermName}}</text>
-    </view>
-    <text class="sth2-period" wx:if="{{currentSolarTermPeriod}}">{{currentSolarTermPeriod}}</text>
-    <view class="sth2-tip" wx:if="{{currentSolarTermTip}}"><text>{{currentSolarTermTip}}</text></view>
-    <view class="daily-tip-inline" wx:if="{{dailyVegetarianTip}}">
-      <text class="daily-tip-label">今日推荐</text>
-      <text class="daily-tip-text">{{dailyVegetarianTip}}</text>
+      <text class="sth2-desc" wx:if="{{todaySolarTermHealth && todaySolarTermHealth.desc}}">{{todaySolarTermHealth.desc}}</text>
+      <text class="sth2-text" wx:if="{{todaySolarTermHealth && todaySolarTermHealth.health}}">{{todaySolarTermHealth.health}}</text>
+      <text class="sth2-text" wx:if="{{todaySolarTermHealth && todaySolarTermHealth.diet}}">{{todaySolarTermHealth.diet}}</text>
+      <view class="sth2-tip" wx:if="{{todaySolarTermHealth && todaySolarTermHealth.tip}}"><text>{{todaySolarTermHealth.tip}}</text></view>
+      <view class="sth2-tip" wx:if="{{currentSolarTermTip}}"><text>{{currentSolarTermTip}}</text></view>
     </view>
   </view>
 
@@ -162,14 +149,11 @@
 
   <!-- 功能操作区：积善 + 显示设置（并排醒目卡片） -->
   <view class="action-row">
-    <view class="action-card merit-entry" bindtap="goToMerit">
-      <image class="action-icon-img action-tab-icon" src="/images/merit.png" mode="aspectFit"></image>
+    <view class="action-card card-tool-action-entry" bindtap="goToCardTool">
+      <image class="action-icon-img action-tab-icon" src="/images/icons/gen-camera.svg" mode="aspectFit"></image>
       <view class="action-info">
-        <text class="action-title">积善</text>
-        <text class="action-subtitle">十善一功德 · 善数记录</text>
-      </view>
-      <view class="action-badge {{meritTodayNet !== null ? (meritTodayNet >= 0 ? 'badge-positive' : 'badge-negative') : 'badge-empty'}}" wx:if="{{meritTodayNet !== null}}">
-        <text>{{meritTodayNet >= 0 ? '+' : ''}}{{meritTodayNet}}</text>
+        <text class="action-title">禅意做图</text>
+        <text class="action-subtitle">日签 · 节气 · 分享卡片</text>
       </view>
       <text class="action-arrow">›</text>
     </view>

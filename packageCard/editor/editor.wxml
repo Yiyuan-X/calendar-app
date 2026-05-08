@@ -1,0 +1,136 @@
+<view class="editor-page">
+  <view class="stage-wrap">
+    <view class="poster-stage" style="background: {{previewBackground}};">
+      <image wx:if="{{previewBackgroundImage}}" class="stage-bg-image" src="{{previewBackgroundImage}}" mode="aspectFill"></image>
+      <view class="stage-mask {{design.background.blur ? 'blur' : ''}}"></view>
+      <movable-area class="movable-area">
+        <movable-view
+          wx:for="{{design.blocks}}"
+          wx:key="id"
+          class="text-block {{activeBlockId === item.id ? 'active' : ''}}"
+          x="{{item.previewX}}"
+          y="{{item.previewY}}"
+          direction="all"
+          data-id="{{item.id}}"
+          bindtap="selectBlock"
+          bindchange="onBlockMove"
+          style="width: {{item.previewWidth}}rpx; text-align: {{item.align}}; line-height: {{item.lineHeight}};"
+        >
+          <rich-text nodes="{{item.previewNodes}}"></rich-text>
+        </movable-view>
+      </movable-area>
+      <image wx:if="{{design.qrcode.visible && design.qrcode.src}}" class="qr-preview" src="{{design.qrcode.src}}" mode="aspectFill"></image>
+    </view>
+  </view>
+
+  <scroll-view class="editor-card" scroll-y="true" enhanced="true" show-scrollbar="false">
+    <view class="auto-panel">
+      <view class="auto-head">
+        <view>
+          <text class="auto-title">自动美学排版</text>
+          <text class="auto-sub">输入一句话，系统自动断句、留白和高亮</text>
+        </view>
+        <button class="auto-btn" bindtap="beautifyCurrentText">优化</button>
+      </view>
+      <textarea class="sentence-input" value="{{inputText}}" maxlength="80" auto-height="true" bindinput="onInputText" placeholder="输入一句静心语，例如：人生最重要的是内心平静"></textarea>
+      <view class="style-row">
+        <button
+          wx:for="{{stylePresets}}"
+          wx:key="id"
+          class="style-pill {{currentStyleId === item.id ? 'active' : ''}}"
+          data-id="{{item.id}}"
+          bindtap="switchAutoStyle"
+        >{{item.name}}</button>
+      </view>
+    </view>
+
+    <editor
+      id="richEditor"
+      class="rich-editor"
+      placeholder="自动排版后，可在这里继续选中文字微调样式"
+      show-img-size="{{false}}"
+      show-img-toolbar="{{false}}"
+      show-img-resize="{{false}}"
+      bindready="onEditorReady"
+      bindinput="onEditorInput"
+      bindstatuschange="onStatusChange"
+    ></editor>
+
+    <view class="panel-section">
+      <view class="section-head">
+        <text>文字样式</text>
+      </view>
+      <view class="toolbar">
+        <button class="tool {{formats.bold ? 'on' : ''}}" data-name="bold" bindtap="format">B</button>
+        <button class="tool" data-name="fontSize" data-value="{{fontSize}}px" bindtap="format">{{fontSize}}</button>
+        <button class="tool" data-name="backgroundColor" data-value="{{activeBackground}}" bindtap="format">底</button>
+        <button class="tool {{activeBlock.stroke ? 'on' : ''}}" bindtap="toggleStroke">描</button>
+        <button class="tool {{activeBlock.shadow ? 'on' : ''}}" bindtap="toggleShadow">影</button>
+        <button class="tool" data-align="left" bindtap="setAlign">左</button>
+        <button class="tool" data-align="center" bindtap="setAlign">中</button>
+        <button class="tool" data-align="right" bindtap="setAlign">右</button>
+      </view>
+    </view>
+
+    <view class="panel-section compact">
+      <view class="section-head">
+        <text>颜色与字体</text>
+      </view>
+      <view class="swatches">
+        <view class="swatch" wx:for="{{colors}}" wx:key="*this" style="background: {{item}};" data-name="color" data-value="{{item}}" bindtap="format"></view>
+      </view>
+
+      <view class="font-row">
+        <button class="font-btn" wx:for="{{fonts}}" wx:key="family" data-family="{{item.family}}" bindtap="setFontFamily">{{item.name}}</button>
+      </view>
+    </view>
+
+    <view class="panel-section">
+      <view class="section-head">
+        <text>排版</text>
+      </view>
+      <view class="control-row">
+        <text class="label">字号</text>
+        <slider class="slider" min="18" max="72" step="1" value="{{fontSize}}" bindchange="changeFontSize" activeColor="#A77E50" backgroundColor="#E8DDD0"></slider>
+        <text class="value">{{fontSize}}</text>
+      </view>
+
+      <view class="control-row">
+        <text class="label">行距</text>
+        <slider class="slider" min="1.1" max="2.4" step="0.1" value="{{activeBlock.lineHeight}}" bindchange="changeLineHeight" activeColor="#A77E50" backgroundColor="#E8DDD0"></slider>
+        <text class="value">{{activeBlock.lineHeight}}</text>
+      </view>
+
+      <view class="control-row">
+        <text class="label">字距</text>
+        <slider class="slider" min="0" max="8" step="1" value="{{activeBlock.letterSpacing}}" bindchange="changeLetterSpacing" activeColor="#A77E50" backgroundColor="#E8DDD0"></slider>
+        <text class="value">{{activeBlock.letterSpacing}}</text>
+      </view>
+    </view>
+
+    <view class="panel-section">
+      <view class="section-head">
+        <text>素材</text>
+      </view>
+      <view class="seg-row">
+        <button class="seg" bindtap="addTextBlock">多段文字</button>
+        <button class="seg" bindtap="chooseBackground">换背景图</button>
+        <button class="seg" bindtap="chooseAvatar">头像/图片</button>
+        <button class="seg" bindtap="chooseQrCode">二维码</button>
+      </view>
+
+      <view class="background-row">
+        <button class="bg-btn" data-type="solid" bindtap="setBackgroundType">纯色</button>
+        <button class="bg-btn" data-type="gradient" bindtap="setBackgroundType">渐变</button>
+        <button class="bg-btn" bindtap="toggleBlur">毛玻璃</button>
+      </view>
+    </view>
+  </scroll-view>
+
+  <view class="bottom-actions safe-area-bottom">
+    <button class="action ghost" bindtap="saveDraft">存草稿</button>
+    <button class="action primary" bindtap="goExport">导出分享图</button>
+  </view>
+
+  <canvas type="2d" id="exportCanvas" class="hidden-canvas"></canvas>
+</view>

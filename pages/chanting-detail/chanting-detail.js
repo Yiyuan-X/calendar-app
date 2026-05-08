@@ -129,7 +129,6 @@ Page({
   onQuick(e) {
     const n = parseInt(e.currentTarget.dataset.n) || 1;
     chant.increment(this.data.taskId, chant.getToday(), n);
-    chant.promoteTaskToTop(this.data.taskId);
     wx.vibrateShort({ type: 'light' });
     this.loadDetail();
   },
@@ -138,7 +137,6 @@ Page({
     const n = parseInt(this.data.manualNum) || 0;
     if (n <= 0) return;
     chant.setCount(this.data.taskId, chant.getToday(), (this.data.todayCount || 0) + n);
-    chant.promoteTaskToTop(this.data.taskId);
     this.setData({ manualNum: '' });
     wx.showToast({ title: '已报数 +' + n, icon: 'success' });
     this.loadDetail();

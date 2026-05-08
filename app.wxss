@@ -218,16 +218,16 @@ button {
   height: 0;
 }
 
-/* 长辈模式：更大字号，保持原布局比例 */
+/* 长辈模式：显著放大字号，优先保证可读性 */
 .elder-mode {
-  font-size: 34rpx;
+  font-size: 38rpx;
 }
 
 .elder-mode .page-title,
 .elder-mode .title,
 .elder-mode .header-title,
 .elder-mode .date-main {
-  font-size: 42rpx !important;
+  font-size: 48rpx !important;
 }
 
 .elder-mode .section-title,
@@ -248,7 +248,7 @@ button {
 .elder-mode .item-text,
 .elder-mode .custom-item-text,
 .elder-mode .p-name {
-  font-size: 34rpx !important;
+  font-size: 38rpx !important;
 }
 
 .elder-mode .today-lunar,
@@ -270,7 +270,7 @@ button {
 .elder-mode .promo-desc,
 .elder-mode .empty-text,
 .elder-mode .empty-hint {
-  font-size: 31rpx !important;
+  font-size: 35rpx !important;
 }
 
 .elder-mode .page-subtitle,
@@ -294,7 +294,7 @@ button {
 .elder-mode .p-meta,
 .elder-mode .qc-subtitle,
 .elder-mode .nav-text {
-  font-size: 29rpx !important;
+  font-size: 33rpx !important;
 }
 
 .elder-mode input,
@@ -310,7 +310,7 @@ button {
 .elder-mode .s-input,
 .elder-mode .t-editor,
 .elder-mode .score-number-input {
-  font-size: 32rpx !important;
+  font-size: 36rpx !important;
 }
 
 .elder-mode button,
@@ -327,13 +327,13 @@ button {
 .elder-mode .modal-confirm-btn,
 .elder-mode .quick-btn,
 .elder-mode .setting-action {
-  font-size: 32rpx !important;
+  font-size: 36rpx !important;
 }
 
 /* 老年模式：功过格保存按钮防止文字换行 */
 .elder-mode .save-btn {
-  font-size: 30rpx !important;
-  letter-spacing: 2rpx !important;
+  font-size: 34rpx !important;
+  letter-spacing: 1rpx !important;
   white-space: nowrap !important;
 }
 
@@ -347,7 +347,7 @@ button {
 .elder-mode .tag-text,
 .elder-mode .tag-value,
 .elder-mode .selected-count {
-  font-size: 27rpx !important;
+  font-size: 31rpx !important;
 }
 
 /* 隐私授权弹窗 */

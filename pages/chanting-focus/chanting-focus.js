@@ -26,7 +26,6 @@ Page({
   onTap() {
     const id = this.data.task.id;
     const newCount = chant.increment(id, chant.getToday(), 1);
-    chant.promoteTaskToTop(id);
     this.setData({ count: newCount });
     wx.vibrateShort({ type: 'light' });
   },
