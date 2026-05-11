@@ -47,19 +47,37 @@
             placeholder="{{item.placeholder || '输入文字...'}}"
             focus="{{textInputFocus}}"
             cursor="{{selectionEnd}}"
+            selection-start="{{selectionStart}}"
+            selection-end="{{selectionEnd}}"
             maxlength="-1"
             auto-height="{{false}}"
             adjust-position="{{false}}"
             cursor-spacing="24"
-            catchtouchstart="stopPropagation"
-            catchtouchmove="stopPropagation"
-            catchtouchend="stopPropagation"
+            bindtap="onStageEditorTap"
+            bindtouchend="onStageEditorTouchEnd"
             bindinput="onActiveTextInput"
             bindselect="onTextSelection"
             bindblur="finishInlineEditing"
           ></textarea>
-          <view wx:elif="{{!item.plainText}}" class="placeholder-text">{{item.placeholder || '输入文字...'}}</view>
-          <rich-text wx:else class="block-rich-text" node="{{nodeVersion}}" nodes="{{item.previewNodes}}"></rich-text>
+          <view
+            wx:if="{{inlineEditing && activeBlockId === item.id && showPasteTip}}"
+            class="paste-tip"
+            catchtouchstart="keepInlineEditing"
+          >
+            <view class="paste-menu-btn" catchtouchend="pasteClipboardToActiveText" catchtap="pasteClipboardToActiveText">粘贴</view>
+            <view class="paste-menu-btn danger" catchtouchend="deleteSelectedText" catchtap="deleteSelectedText">删除</view>
+            <view class="paste-menu-btn" catchtouchend="selectAllActiveText" catchtap="selectAllActiveText">全选</view>
+            <view class="paste-menu-btn" catchtouchend="selectTextBeforeCursor" catchtap="selectTextBeforeCursor">前选</view>
+            <view class="paste-menu-btn" catchtouchend="selectTextAfterCursor" catchtap="selectTextAfterCursor">后选</view>
+            <view class="paste-menu-btn strong {{formats.bold ? 'on' : ''}}" catchtouchend="toggleSelectedBold" catchtap="toggleSelectedBold">B</view>
+            <view class="paste-menu-btn strong" catchtouchend="increaseSelectedFontSize" catchtap="increaseSelectedFontSize">A+</view>
+            <view class="paste-menu-btn" catchtouchend="showFontPanelForSelection" catchtap="showFontPanelForSelection">字体</view>
+            <view class="paste-menu-btn" catchtouchend="showColorPanelForSelection" catchtap="showColorPanelForSelection">颜色</view>
+            <view class="paste-menu-btn done" catchtouchend="finishInlineEditingFromMenu" catchtap="finishInlineEditingFromMenu">完成</view>
+            <view wx:if="{{selectionHint}}" class="paste-menu-hint">{{selectionHint}}</view>
+          </view>
+          <view wx:if="{{!inlineEditing && !item.plainText}}" class="placeholder-text">{{item.placeholder || '输入文字...'}}</view>
+          <rich-text wx:if="{{!inlineEditing && item.plainText}}" class="block-rich-text" node="{{nodeVersion}}" nodes="{{item.previewNodes}}"></rich-text>
         </view>
         </view>
 
@@ -119,9 +137,9 @@
     <view class="panel-body">
       <view wx:if="{{activePanel === 'background'}}">
         <view class="seg-row asset-mini-row">
-          <button class="seg" bindtap="addTextBlock">＋增加文字</button>
-          <button class="seg" bindtap="chooseBackground">＋增加背景</button>
-          <button class="seg" bindtap="chooseQrCode">二维码</button>
+          <button class="seg" bindtap="addTextBlock">增加文字</button>
+          <button class="seg" bindtap="chooseBackground">替换背景</button>
+          <button class="seg" bindtap="chooseQrCode">插入二维码</button>
         </view>
         <view class="background-row">
           <button class="bg-btn" data-type="solid" bindtap="setBackgroundType">纯色</button>
@@ -165,19 +183,17 @@
 
         <!-- 文字：颜色 + 透明度 -->
         <view wx:if="{{activeStyleTool === 'text'}}">
-          <view class="tool-strip">
-            <button class="circle-tool">↗</button>
+          <view class="style-control-row">
+            <text class="style-control-label">默认颜色</text>
             <view class="color-wheel" catchtap="pickTextColor"></view>
-            <view class="thin-line"></view>
             <view class="current-color" style="background: {{activeTextColor}};" catchtap="pickTextColor"></view>
           </view>
-          <text class="panel-label">默认颜色</text>
+          <view class="style-control-row opacity-row">
+            <text class="style-control-label">透明度</text>
+            <slider class="slider neon" min="0.2" max="1" step="0.05" value="{{textOpacity}}" bindchanging="changeOpacity" bindchange="changeOpacity" activeColor="#DAA520" backgroundColor="#E8DCCB"></slider>
+          </view>
           <view class="swatches color-scroll">
             <view class="swatch {{activeTextColor === item ? 'active' : ''}}" wx:for="{{colors}}" wx:key="*this" style="background: {{item}};" data-name="color" data-value="{{item}}" bindtap="format"></view>
-          </view>
-          <view class="control-stack">
-            <text class="panel-label">透明度</text>
-            <slider class="slider neon" min="0.2" max="1" step="0.05" value="{{textOpacity}}" bindchanging="changeOpacity" bindchange="changeOpacity" activeColor="#DAA520" backgroundColor="#E8DCCB"></slider>
           </view>
         </view>
 

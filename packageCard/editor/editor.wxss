@@ -55,17 +55,19 @@
 }
 
 .poster-stage.bg-editing .bg-image-container {
-  z-index: 5;
+  z-index: 3;
 }
 
-/* 背景编辑模式下：文字框仍然可见且可操作 */
+/* 背景编辑模式下：文字框可见，但触摸优先给背景图拖动 */
 .poster-stage.bg-editing .movable-area {
   display: block;
+  pointer-events: none;
+  z-index: 10;
 }
 
 .poster-stage.bg-editing .stage-mask,
 .poster-stage.bg-editing .cross-guide {
-  z-index: 11;
+  z-index: 4;
 }
 
 .bg-image-container .stage-bg-image {
@@ -400,15 +402,133 @@
   padding: 14rpx 24rpx;
   margin: 0;
   color: #4B4038;
-  background: rgba(255, 250, 241, 0.9);
+  background: transparent;
   font-size: 30rpx;
   line-height: inherit;
   text-align: inherit;
-  border: 2rpx solid rgba(218, 165, 32, 0.5);
+  border: 2rpx dashed rgba(218, 165, 32, 0.58);
   border-radius: 8rpx;
   box-sizing: border-box;
   z-index: 5;
   outline: none;
+}
+
+.paste-tip {
+  position: absolute;
+  left: 0;
+  top: -64rpx;
+  z-index: 20;
+  display: flex;
+  align-items: center;
+  gap: 0;
+  max-width: 650rpx;
+  height: 54rpx;
+  padding: 0 10rpx;
+  color: #FFFFFF;
+  background: rgba(55, 43, 34, 0.94);
+  border-radius: 16rpx;
+  box-shadow: 0 6rpx 18rpx rgba(55, 43, 34, 0.24);
+  box-sizing: border-box;
+  overflow-x: auto;
+  white-space: nowrap;
+}
+
+.paste-tip::after {
+  content: '';
+  position: absolute;
+  left: 34rpx;
+  bottom: -10rpx;
+  width: 0;
+  height: 0;
+  border-left: 10rpx solid transparent;
+  border-right: 10rpx solid transparent;
+  border-top: 10rpx solid rgba(55, 43, 34, 0.94);
+}
+
+.paste-menu-btn {
+  flex: 0 0 auto;
+  min-width: 64rpx;
+  height: 44rpx;
+  padding: 0 12rpx;
+  color: #FFFFFF;
+  border-radius: 10rpx;
+  font-size: 24rpx;
+  font-weight: 800;
+  line-height: 44rpx;
+  text-align: center;
+  box-sizing: border-box;
+}
+
+.paste-menu-btn + .paste-menu-btn {
+  border-left: 1rpx solid rgba(255, 255, 255, 0.22);
+}
+
+.paste-menu-btn.danger {
+  color: #FF7777;
+}
+
+.paste-menu-btn.strong {
+  font-size: 27rpx;
+}
+
+.paste-menu-btn.on {
+  color: #FFD34E;
+  background: rgba(255, 255, 255, 0.12);
+}
+
+.paste-menu-btn.done {
+  color: #FFD34E;
+}
+
+.paste-menu-hint {
+  flex: 0 0 auto;
+  height: 44rpx;
+  padding: 0 12rpx;
+  color: #FFD34E;
+  font-size: 22rpx;
+  font-weight: 800;
+  line-height: 44rpx;
+}
+
+/* 保留类名兼容旧结构，当前格式菜单已合并进浮层 */
+.editor-format-bar {
+  position: fixed;
+  left: -9999rpx;
+  bottom: -9999rpx;
+  display: flex;
+}
+
+.editor-format-btn {
+  flex: 0 0 auto;
+  min-width: 66rpx;
+  height: 44rpx;
+  padding: 0 14rpx;
+  color: #4B4038;
+  background: transparent;
+  border-radius: 999rpx;
+  font-size: 23rpx;
+  font-weight: 800;
+  line-height: 44rpx;
+  text-align: center;
+  box-sizing: border-box;
+}
+
+.editor-format-btn.icon {
+  min-width: 46rpx;
+  font-size: 28rpx;
+}
+
+.editor-format-btn.on {
+  color: #8B6914;
+  background: #FFF3D6;
+}
+
+.editor-format-btn.danger {
+  color: #C62828;
+}
+
+.editor-format-btn::after {
+  border: 0;
 }
 
 /* 编辑模式下的文本框：锁定尺寸，隐藏控制按钮 */
@@ -823,13 +943,13 @@
 
 .style-subtabs {
   display: flex;
-  gap: 42rpx;
-  margin-bottom: 22rpx;
+  gap: 34rpx;
+  margin-bottom: 14rpx;
 }
 
 .style-subtab {
   color: #9A7A5B;
-  font-size: 30rpx;
+  font-size: 28rpx;
   font-weight: 800;
 }
 
@@ -841,13 +961,37 @@
   display: flex;
   align-items: center;
   gap: 22rpx;
-  margin-bottom: 22rpx;
+  margin-bottom: 16rpx;
+}
+
+.style-control-row {
+  display: flex;
+  align-items: center;
+  gap: 18rpx;
+  min-height: 58rpx;
+  margin-bottom: 12rpx;
+}
+
+.style-control-label {
+  flex: 0 0 112rpx;
+  color: #5D4037;
+  font-size: 27rpx;
+  font-weight: 800;
+}
+
+.opacity-row {
+  margin-bottom: 14rpx;
+}
+
+.opacity-row .slider {
+  flex: 1;
+  min-width: 0;
 }
 
 .circle-tool,
 .current-color {
-  width: 62rpx;
-  height: 62rpx;
+  width: 56rpx;
+  height: 56rpx;
   padding: 0;
   margin: 0;
   border-radius: 50%;
@@ -857,7 +1001,7 @@
   color: #5D4037;
   background: #F4ECE2;
   font-size: 30rpx;
-  line-height: 62rpx;
+  line-height: 56rpx;
   display: flex;
   align-items: center;
   justify-content: center;
@@ -878,15 +1022,15 @@
 }
 
 .color-wheel {
-  width: 64rpx;
-  height: 64rpx;
+  width: 56rpx;
+  height: 56rpx;
   border-radius: 50%;
   background: linear-gradient(135deg, #FF2F67 0%, #FFD447 32%, #36D46A 50%, #37A7FF 72%, #9F5BFF 100%);
 }
 
 .thin-line {
   width: 2rpx;
-  height: 62rpx;
+  height: 56rpx;
   background: rgba(125, 92, 61, 0.14);
 }
 
@@ -900,14 +1044,15 @@
   color: #5D4037;
   font-size: 29rpx;
   font-weight: 800;
-  margin: 18rpx 0 14rpx;
+  margin: 14rpx 0 10rpx;
 }
 
 .color-scroll {
-  gap: 20rpx;
+  gap: 16rpx;
   overflow-x: auto;
   flex-wrap: nowrap;
   -webkit-overflow-scrolling: touch;
+  padding: 4rpx 0 12rpx;
 }
 
 .control-stack {

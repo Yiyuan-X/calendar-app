@@ -250,6 +250,23 @@ function getBackgroundImageLayout(bg) {
   };
 }
 
+function getBackgroundOffsetBounds(layout) {
+  const width = Number((layout && layout.width) || PREVIEW_STAGE_RPX);
+  const height = Number((layout && layout.height) || PREVIEW_STAGE_HEIGHT_RPX);
+  return {
+    x: Math.max(PREVIEW_STAGE_RPX, Math.round((PREVIEW_STAGE_RPX + width) / 2)),
+    y: Math.max(PREVIEW_STAGE_HEIGHT_RPX, Math.round((PREVIEW_STAGE_HEIGHT_RPX + height) / 2))
+  };
+}
+
+function clampBackgroundOffset(x, y, layout) {
+  const bounds = getBackgroundOffsetBounds(layout);
+  return {
+    x: Math.max(-bounds.x, Math.min(bounds.x, Math.round(Number(x || 0)))),
+    y: Math.max(-bounds.y, Math.min(bounds.y, Math.round(Number(y || 0))))
+  };
+}
+
 function getImageInfo(src) {
   return new Promise(resolve => {
     if (!src) {
@@ -567,6 +584,8 @@ Page({
     bgDisplayWidth: PREVIEW_STAGE_RPX,
     bgDisplayHeight: PREVIEW_STAGE_HEIGHT_RPX,
     showColorPicker: false,
+    showPasteTip: false,
+    selectionHint: '',
     colorPickerTarget: '',
     colorPickerTitle: '选取颜色',
     colorPickerPreview: '#4B4038',
@@ -583,11 +602,14 @@ Page({
   _historyIndex: -1,
   _maxHistory: 30,
 
-  /** 保存当前状态到历史栈（在每次 setDesign 之前调用） */
-  _saveHistory() {
-    const design = this.data.design;
+  /** 保存设计快照到历史栈 */
+  _saveHistory(design) {
+    design = design || this.data.design;
     if (!design || !design.blocks) return;
     const snapshot = clone(design);
+    const key = JSON.stringify(snapshot);
+    const current = this._history[this._historyIndex];
+    if (current && JSON.stringify(current) === key) return;
     // 如果当前不在历史末尾，截断后面的记录
     if (this._historyIndex < this._history.length - 1) {
       this._history = this._history.slice(0, this._historyIndex + 1);
@@ -601,6 +623,30 @@ Page({
     this._updateUndoRedoState();
   },
 
+  _applyHistorySnapshot(snapshot, activeId) {
+    const hydrated = hydrateDesign(snapshot);
+    const activeBlock = hydrated.blocks.find(item => item.id === activeId) || hydrated.blocks[0] || {};
+    this.setData({
+      design: hydrated,
+      activeBlockId: activeBlock.id || '',
+      activeBlock,
+      activePlainText: deltaToText(activeBlock.delta),
+      inlineEditing: false,
+      selectionStart: 0,
+      selectionEnd: 0,
+      textInputFocus: false,
+      showPasteTip: false,
+      ...getTextPanelState(activeBlock, this.data),
+      previewBackground: this.getPreviewBackground(hydrated.background),
+      previewBackgroundImage: this.getPreviewBackgroundImage(hydrated.background) || this.data.previewBackgroundImage,
+      previewBlurStyle: this.getPreviewBlurStyle(hydrated.background),
+      bgOffsetX: (hydrated.background && hydrated.background.offsetX) || 0,
+      bgOffsetY: (hydrated.background && hydrated.background.offsetY) || 0,
+      bgDisplayWidth: getBackgroundImageLayout(hydrated.background).width,
+      bgDisplayHeight: getBackgroundImageLayout(hydrated.background).height
+    });
+  },
+
   /** 撤销：恢复到上一个状态 */
   undo() {
     if (this._historyIndex <= 0) {
@@ -610,16 +656,12 @@ Page({
     this._historyIndex--;
     const prevDesign = this._history[this._historyIndex];
     if (prevDesign) {
-      const activeId = prevDesign.blocks && prevDesign.blocks[0] ? prevDesign.blocks[0].id : '';
-      this.setData({
-        design: hydrateDesign(prevDesign),
-        activeBlockId: activeId,
-        activeBlock: prevDesign.blocks[0] || {},
-        inlineEditing: false,
-        textInputFocus: false
-      }, () => {
-        wx.showToast({ title: '已撤销', icon: 'none' });
-      });
+      const currentActiveId = this.data.activeBlockId;
+      const activeId = (prevDesign.blocks || []).some(item => item.id === currentActiveId)
+        ? currentActiveId
+        : (prevDesign.blocks && prevDesign.blocks[0] ? prevDesign.blocks[0].id : '');
+      this._applyHistorySnapshot(prevDesign, activeId);
+      wx.showToast({ title: '已撤销', icon: 'none' });
     }
     this._updateUndoRedoState();
   },
@@ -633,16 +675,12 @@ Page({
     this._historyIndex++;
     const nextDesign = this._history[this._historyIndex];
     if (nextDesign) {
-      const activeId = nextDesign.blocks && nextDesign.blocks[0] ? nextDesign.blocks[0].id : '';
-      this.setData({
-        design: hydrateDesign(nextDesign),
-        activeBlockId: activeId,
-        activeBlock: nextDesign.blocks[0] || {},
-        inlineEditing: false,
-        textInputFocus: false
-      }, () => {
-        wx.showToast({ title: '已重做', icon: 'none' });
-      });
+      const currentActiveId = this.data.activeBlockId;
+      const activeId = (nextDesign.blocks || []).some(item => item.id === currentActiveId)
+        ? currentActiveId
+        : (nextDesign.blocks && nextDesign.blocks[0] ? nextDesign.blocks[0].id : '');
+      this._applyHistorySnapshot(nextDesign, activeId);
+      wx.showToast({ title: '已重做', icon: 'none' });
     }
     this._updateUndoRedoState();
   },
@@ -669,12 +707,9 @@ Page({
       design.id = '';
     }
     this.setDesign(design, (design.blocks && design.blocks[0] && design.blocks[0].id) || '');
-// 初始状态也加入历史栈，使撤销可以从这里开始
-this._saveHistory();
   },
 
   setDesign(design, activeId) {
-    this._saveHistory();
     const hydrated = hydrateDesign(design);
     const activeBlock = hydrated.blocks.find(item => item.id === activeId) || hydrated.blocks[0] || {};
     const attrs = getFirstTextAttrs(activeBlock);
@@ -701,6 +736,7 @@ this._saveHistory();
       bgDisplayWidth: getBackgroundImageLayout(hydrated.background).width,
       bgDisplayHeight: getBackgroundImageLayout(hydrated.background).height
     });
+    this._saveHistory(hydrated);
   },
 
 getPreviewBackground(bg) {
@@ -741,12 +777,13 @@ getPreviewBackground(bg) {
   },
 
   onActiveTextInput(e) {
+    this._typingHistoryStarted = true;
     const text = e.detail.value || '';
     const block = this.data.activeBlock || {};
     const firstAttrs = block.delta && block.delta.ops && block.delta.ops[0] ? (block.delta.ops[0].attributes || {}) : {};
     const delta = { ops: [{ insert: text, attributes: firstAttrs }] };
     const cursor = typeof e.detail.cursor === 'number' ? e.detail.cursor : text.length;
-    this.setData({ activePlainText: text, inputText: text, selectionStart: cursor, selectionEnd: cursor });
+    this.setData({ activePlainText: text, inputText: text, selectionStart: cursor, selectionEnd: cursor, showPasteTip: false });
     this.updateActiveBlock({ delta }, { silentEditor: true });
   },
 
@@ -757,8 +794,209 @@ getPreviewBackground(bg) {
     if (typeof start !== 'number') return;
     this.setData({
       selectionStart: start,
-      selectionEnd: typeof end === 'number' ? end : start
+      selectionEnd: typeof end === 'number' ? end : start,
+      selectionHint: hasTextSelection(start, typeof end === 'number' ? end : start) ? '已选中文字' : ''
     });
+  },
+
+  onStageEditorTap() {
+    if (this._skipNextEditorTap) {
+      this._skipNextEditorTap = false;
+      return;
+    }
+    this.handleStageEditorDoubleTap();
+  },
+
+  onStageEditorTouchEnd() {
+    this._skipNextEditorTap = true;
+    this.handleStageEditorDoubleTap();
+  },
+
+  showPasteTip() {
+    this._lastStageEditorTap = 0;
+    this._skipNextEditorTap = true;
+    this.openFormatMenu();
+  },
+
+  handleStageEditorDoubleTap() {
+    const now = Date.now();
+    const lastTap = Number(this._lastStageEditorTap || 0);
+    this._lastStageEditorTap = now;
+    if (now - lastTap > 360) {
+      if (this.data.showPasteTip) this.setData({ showPasteTip: false });
+      return;
+    }
+    this._lastStageEditorTap = 0;
+    this.openFormatMenu();
+  },
+
+  openFormatMenu() {
+    clearTimeout(this._emptyFormatMenuTimer);
+    this.setData({ showPasteTip: true, textInputFocus: true });
+    if (!(this.data.activePlainText || '').trim()) {
+      this._emptyFormatMenuTimer = setTimeout(() => {
+        if (this.data.inlineEditing && !(this.data.activePlainText || '').trim()) {
+          this.setData({ showPasteTip: false, selectionHint: '', textInputFocus: true });
+        }
+      }, 900);
+    }
+  },
+
+  pasteClipboardToActiveText() {
+    if (this.shouldSkipFormatAction('paste')) return;
+    this._ignoreNextEditorBlur = true;
+    this.setData({ textInputFocus: true });
+    wx.getClipboardData({
+      success: res => {
+        const insertText = String((res && res.data) || '');
+        if (!insertText) {
+          wx.showToast({ title: '剪贴板为空', icon: 'none' });
+          return;
+        }
+        this.replaceActiveTextSelection(insertText);
+        this._saveHistory(this.data.design);
+      },
+      fail: () => wx.showToast({ title: '读取剪贴板失败，请用系统粘贴', icon: 'none' }),
+      complete: () => {
+        setTimeout(() => this.setData({ textInputFocus: true }), 30);
+      }
+    });
+  },
+
+  shouldSkipFormatAction(name) {
+    const now = Date.now();
+    const key = `_lastFormatAction_${name}`;
+    if (now - Number(this[key] || 0) < 250) return true;
+    this[key] = now;
+    this._ignoreNextEditorBlur = true;
+    return false;
+  },
+
+  replaceActiveTextSelection(insertText) {
+    const current = this.data.activePlainText || '';
+    const rawStart = typeof this.data.selectionStart === 'number' ? this.data.selectionStart : current.length;
+    const rawEnd = typeof this.data.selectionEnd === 'number' ? this.data.selectionEnd : rawStart;
+    const start = Math.max(0, Math.min(rawStart, rawEnd, current.length));
+    const end = Math.max(start, Math.min(Math.max(rawStart, rawEnd), current.length));
+    const text = current.slice(0, start) + String(insertText || '') + current.slice(end);
+    const attrs = getAttrsAtOffset(this.data.activeBlock && this.data.activeBlock.delta, start) || getFirstTextAttrs(this.data.activeBlock || {});
+    const cursor = start + String(insertText || '').length;
+    this.setData({
+      activePlainText: text,
+      inputText: text,
+      textInputFocus: true,
+      selectionStart: cursor,
+      selectionEnd: cursor,
+      showPasteTip: true,
+      selectionHint: ''
+    });
+    this.updateActiveBlock({ delta: { ops: [{ insert: text, attributes: attrs }] } }, { silentEditor: true });
+    setTimeout(() => {
+      this.setData({
+        activePlainText: text,
+        textInputFocus: true,
+        selectionStart: cursor,
+        selectionEnd: cursor
+      });
+    }, 30);
+  },
+
+  selectAllActiveText() {
+    if (this.shouldSkipFormatAction('selectAll')) return;
+    const text = this.data.activePlainText || '';
+    this.setData({
+      textInputFocus: true,
+      selectionStart: 0,
+      selectionEnd: text.length,
+      showPasteTip: true,
+      selectionHint: text ? '已全选' : ''
+    });
+    setTimeout(() => {
+      this.setData({
+        textInputFocus: true,
+        selectionStart: 0,
+        selectionEnd: text.length,
+        showPasteTip: true
+      });
+    }, 30);
+  },
+
+  selectTextBeforeCursor() {
+    if (this.shouldSkipFormatAction('selectBefore')) return;
+    const text = this.data.activePlainText || '';
+    const cursor = Math.max(0, Math.min(Number(this.data.selectionEnd || this.data.selectionStart || text.length), text.length));
+    this.setData({
+      textInputFocus: true,
+      selectionStart: 0,
+      selectionEnd: cursor,
+      showPasteTip: true,
+      selectionHint: cursor ? '已选前半段' : ''
+    });
+  },
+
+  selectTextAfterCursor() {
+    if (this.shouldSkipFormatAction('selectAfter')) return;
+    const text = this.data.activePlainText || '';
+    const cursor = Math.max(0, Math.min(Number(this.data.selectionEnd || this.data.selectionStart || 0), text.length));
+    this.setData({
+      textInputFocus: true,
+      selectionStart: cursor,
+      selectionEnd: text.length,
+      showPasteTip: true,
+      selectionHint: cursor < text.length ? '已选后半段' : ''
+    });
+  },
+
+  deleteSelectedText() {
+    if (this.shouldSkipFormatAction('delete')) return;
+    const current = this.data.activePlainText || '';
+    const rawStart = typeof this.data.selectionStart === 'number' ? this.data.selectionStart : current.length;
+    const rawEnd = typeof this.data.selectionEnd === 'number' ? this.data.selectionEnd : rawStart;
+    let start = Math.max(0, Math.min(rawStart, rawEnd, current.length));
+    let end = Math.max(start, Math.min(Math.max(rawStart, rawEnd), current.length));
+    if (start === end && start > 0) start -= 1;
+    const text = current.slice(0, start) + current.slice(end);
+    const attrs = getAttrsAtOffset(this.data.activeBlock && this.data.activeBlock.delta, start) || getFirstTextAttrs(this.data.activeBlock || {});
+    this.setData({
+      activePlainText: text,
+      inputText: text,
+      textInputFocus: true,
+      selectionStart: start,
+      selectionEnd: start,
+      showPasteTip: true,
+      selectionHint: ''
+    });
+    this.updateActiveBlock({ delta: { ops: [{ insert: text, attributes: attrs }] } }, { silentEditor: true });
+    this._saveHistory(this.data.design);
+  },
+
+  toggleSelectedBold() {
+    if (this.shouldSkipFormatAction('bold')) return;
+    const attrs = getAttrsAtOffset(this.data.activeBlock && this.data.activeBlock.delta, this.data.selectionStart || 0);
+    const bold = !attrs.bold;
+    this.applyFormatToSelection({ bold });
+    this.setData({ formats: { ...(this.data.formats || {}), bold }, textInputFocus: true, showPasteTip: true });
+    this._saveHistory(this.data.design);
+  },
+
+  increaseSelectedFontSize() {
+    if (this.shouldSkipFormatAction('fontSize')) return;
+    const attrs = getAttrsAtOffset(this.data.activeBlock && this.data.activeBlock.delta, this.data.selectionStart || 0);
+    const fontSize = clampFontSize((parseInt(attrs.size || attrs.fontSize || this.data.fontSize || 32, 10) || 32) + 4);
+    this.setData({ fontSize, textInputFocus: true, showPasteTip: true });
+    this.applyFormatToSelection({ size: fontSize });
+    this._saveHistory(this.data.design);
+  },
+
+  showFontPanelForSelection() {
+    if (this.shouldSkipFormatAction('fontPanel')) return;
+    this.setData({ activePanel: 'font', textInputFocus: true, showPasteTip: true });
+    setTimeout(() => this.preloadVisibleFonts(), 80);
+  },
+
+  showColorPanelForSelection() {
+    if (this.shouldSkipFormatAction('colorPanel')) return;
+    this.setData({ activePanel: 'style', activeStyleTool: 'text', textInputFocus: true, showPasteTip: true });
   },
 
   onEditorReady() {
@@ -826,8 +1064,39 @@ getPreviewBackground(bg) {
   },
 
   finishInlineEditing() {
+    clearTimeout(this._emptyFormatMenuTimer);
+    if (this._ignoreNextEditorBlur) {
+      this._ignoreNextEditorBlur = false;
+      return;
+    }
     this.editorCtx = null;
-    this.setData({ inlineEditing: false, textInputFocus: false });
+    this.setData({ inlineEditing: false, textInputFocus: false, showPasteTip: false });
+    if (this._typingHistoryStarted) {
+      this._typingHistoryStarted = false;
+      this._saveHistory(this.data.design);
+    }
+  },
+
+  keepInlineEditing() {
+    this._ignoreNextEditorBlur = true;
+    this.setData({ textInputFocus: true });
+  },
+
+  finishInlineEditingFromMenu() {
+    clearTimeout(this._emptyFormatMenuTimer);
+    if (this.shouldSkipFormatAction('done')) return;
+    this._ignoreNextEditorBlur = false;
+    this.editorCtx = null;
+    this.setData({
+      inlineEditing: false,
+      textInputFocus: false,
+      showPasteTip: false,
+      selectionHint: ''
+    });
+    if (this._typingHistoryStarted) {
+      this._typingHistoryStarted = false;
+      this._saveHistory(this.data.design);
+    }
   },
 
   selectBlock(e) {
@@ -856,6 +1125,7 @@ getPreviewBackground(bg) {
       selectionEnd: end,
       ...getTextPanelState(block, this.data)
     });
+    this.openFormatMenu();
   },
 
   editBlockText(e) {
@@ -888,6 +1158,7 @@ getPreviewBackground(bg) {
   },
 
   onBlockTouchStart(e) {
+    if (this.data.inlineEditing) return;
     const id = e.currentTarget.dataset.id || '';
     const block = (this.data.design.blocks || []).find(item => item.id === id);
     this._dragBlockId = id;
@@ -928,6 +1199,7 @@ getPreviewBackground(bg) {
   },
 
   onBlockTouchEnd(e) {
+    if (this.data.inlineEditing) return;
     const id = this._dragBlockId || (e.currentTarget.dataset.id || '');
     const moved = !!this._dragMoved;
     this._dragBlockId = '';
@@ -1063,6 +1335,9 @@ getPreviewBackground(bg) {
   },
 
   onResizeEnd() {
+    if (this.resizeState) {
+      this._saveHistory(this.data.design);
+    }
     this.resizeState = null;
   },
 
@@ -1157,7 +1432,7 @@ getPreviewBackground(bg) {
     const delta = applyAttrsToDeltaRange(
       clone(block.delta),
       hasSelection ? this.data.selectionStart : 0,
-      hasSelection ? this.data.selectionEnd : 0,
+      hasSelection ? this.data.selectionEnd : getDeltaLength(block.delta),
       attrs
     );
     if (this.editorCtx && this.data.inlineEditing) {
@@ -1208,13 +1483,22 @@ getPreviewBackground(bg) {
     const block = this.data.activeBlock || {};
     if (!block.delta || !block.delta.ops) return;
 
+    const fontAttrs = {
+      fontId: font.id,
+      fontFamily: font.family,
+      fontUrl: font.fontUrl || ''
+    };
+    if (this.data.inlineEditing || hasTextSelection(this.data.selectionStart, this.data.selectionEnd)) {
+      this.applyFormatToSelection(fontAttrs, fontAttrs);
+      this._saveHistory(this.data.design);
+      return;
+    }
+
     const newOps = (block.delta.ops || []).map(op => ({
       ...op,
       attributes: {
         ...(op.attributes || {}),
-        fontId: font.id,
-        fontFamily: font.family,
-        fontUrl: font.fontUrl || ''
+        ...fontAttrs
       }
     }));
     const newDelta = { ops: newOps };
@@ -1609,6 +1893,7 @@ getPreviewBackground(bg) {
   },
 
   addTextBlock() {
+    this._ignoreNextEditorBlur = true;
     const design = clone(this.data.design);
     const textBlockCount = (design.blocks || []).filter(item => item.type === 'text').length;
     const baseY = DEFAULT_TEXT_BOX_Y;
@@ -1632,7 +1917,19 @@ getPreviewBackground(bg) {
     };
     design.blocks.push(block);
     this.setDesign(design, block.id);
-    setTimeout(() => this.setData({ textInputFocus: true, inlineEditing: true, selectionStart: 0, selectionEnd: 0 }), 80);
+    setTimeout(() => {
+      this.setData({
+        activeBlockId: block.id,
+        activeBlock: block,
+        activePlainText: '',
+        inputText: '',
+        textInputFocus: true,
+        inlineEditing: true,
+        selectionStart: 0,
+        selectionEnd: 0,
+        ...getTextPanelState(block, this.data)
+      });
+    }, 80);
   },
 
   chooseBackground() {
@@ -1697,6 +1994,10 @@ getPreviewBackground(bg) {
   onBgTouchMove(e) {
     const touch = e.touches && e.touches[0];
     if (!touch || this._bgDragStartX == null) return;
+    const layout = {
+      width: this.data.bgDisplayWidth || PREVIEW_STAGE_RPX,
+      height: this.data.bgDisplayHeight || PREVIEW_STAGE_HEIGHT_RPX
+    };
     let rpxPerPx = 1;
     try {
       const info = wx.getSystemInfoSync();
@@ -1704,9 +2005,10 @@ getPreviewBackground(bg) {
     } catch (err) {}
     const dx = (touch.clientX - this._bgDragStartX) * rpxPerPx;
     const dy = (touch.clientY - this._bgDragStartY) * rpxPerPx;
+    const offset = clampBackgroundOffset(this._bgOffsetStartX + dx, this._bgOffsetStartY + dy, layout);
     this.setData({
-      bgOffsetX: Math.round(this._bgOffsetStartX + dx),
-      bgOffsetY: Math.round(this._bgOffsetStartY + dy)
+      bgOffsetX: offset.x,
+      bgOffsetY: offset.y
     });
   },
 
@@ -1718,6 +2020,7 @@ getPreviewBackground(bg) {
       design.background.offsetY = this.data.bgOffsetY || 0;
     }
     this.setData({ 'design.background': design.background });
+    this._saveHistory(design);
     this._bgDragStartX = null;
     this._bgDragStartY = null;
   },
@@ -1855,7 +2158,7 @@ getPreviewBackground(bg) {
     cardStorage.setCurrentExportDesign(exportDesign);
     wx.showLoading({ title: '导出中...' });
     try {
-      const imagePath = await renderer.exportPoster(this, '#exportCanvas', exportDesign, { scale: 3 });
+      const imagePath = await renderer.exportPoster(this, '#exportCanvas', exportDesign, { scale: 3, cropToBackgroundImage: true });
       wx.hideLoading();
       this.saveImageToAlbum(imagePath);
     } catch (e) {

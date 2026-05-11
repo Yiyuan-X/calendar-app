@@ -402,6 +402,31 @@ function loadCanvasImage(canvas, src) {
   });
 }
 
+function getBackgroundImageRect(bg, width, height) {
+  const sourceWidth = Number(bg.bgWidth || width);
+  const sourceHeight = Number(bg.bgHeight || height);
+  if (!sourceWidth || !sourceHeight) {
+    return { x: 0, y: 0, width, height };
+  }
+  const scale = Math.min(width / sourceWidth, height / sourceHeight);
+  const drawWidth = sourceWidth * scale;
+  const drawHeight = sourceHeight * scale;
+  const offsetX = Number(bg.offsetX || 0) * width / PREVIEW_STAGE_RPX;
+  const offsetY = Number(bg.offsetY || 0) * height / PREVIEW_STAGE_HEIGHT_RPX;
+  const x = (width - drawWidth) / 2 + offsetX;
+  const y = (height - drawHeight) / 2 + offsetY;
+  const cropX = Math.max(0, x);
+  const cropY = Math.max(0, y);
+  const cropRight = Math.min(width, x + drawWidth);
+  const cropBottom = Math.min(height, y + drawHeight);
+  return {
+    x: Math.round(cropX),
+    y: Math.round(cropY),
+    width: Math.max(1, Math.round(cropRight - cropX)),
+    height: Math.max(1, Math.round(cropBottom - cropY))
+  };
+}
+
 async function drawBackground(canvas, ctx, design, width, height) {
   const bg = design.background || {};
   ctx.fillStyle = bg.color || '#F7F1EA';
@@ -533,8 +558,13 @@ async function preloadFont(design) {
 
 async function exportPoster(page, selector, sourceDesign, options) {
   const design = copy(sourceDesign);
-  const width = Number((design.size && design.size.width) || 750);
-  const height = Number((design.size && design.size.height) || 1000);
+  const fullWidth = Number((design.size && design.size.width) || 750);
+  const fullHeight = Number((design.size && design.size.height) || 1000);
+  const viewport = options && options.cropToBackgroundImage && design.background && design.background.type === 'image' && design.background.src
+    ? getBackgroundImageRect(design.background, fullWidth, fullHeight)
+    : { x: 0, y: 0, width: fullWidth, height: fullHeight };
+  const width = viewport.width;
+  const height = viewport.height;
   const scale = Number((options && options.scale) || 2);
   const dpr = getDpr(scale);
 
@@ -550,8 +580,10 @@ async function exportPoster(page, selector, sourceDesign, options) {
   node.height = height * dpr;
   ctx.scale(dpr, dpr);
   ctx.clearRect(0, 0, width, height);
+  ctx.save();
+  ctx.translate(-viewport.x, -viewport.y);
 
-  await drawBackground(node, ctx, design, width, height);
+  await drawBackground(node, ctx, design, fullWidth, fullHeight);
   drawDecorations(ctx, design.decorations);
   await drawImageLayer(node, ctx, design.avatar);
   await drawImageLayer(node, ctx, design.overlayImage);
@@ -559,6 +591,7 @@ async function exportPoster(page, selector, sourceDesign, options) {
     if (block.type === 'text') drawTextBlock(ctx, block, design);
   });
   await drawImageLayer(node, ctx, design.qrcode);
+  ctx.restore();
 
   return new Promise((resolve, reject) => {
     wx.canvasToTempFilePath({
