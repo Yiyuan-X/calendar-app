@@ -2,6 +2,10 @@ function copy(value) {
   return JSON.parse(JSON.stringify(value || {}));
 }
 
+const VERTICAL_WIDTH_THRESHOLD = 160;
+const PREVIEW_STAGE_RPX = 680;
+const PREVIEW_STAGE_HEIGHT_RPX = 920;
+
 function getDpr(exportScale) {
   const info = wx.getSystemInfoSync();
   return Math.max(info.pixelRatio || 2, exportScale || 2);
@@ -11,7 +15,9 @@ function pickFont(style, design) {
   const family = style.fontFamily || design.fontFamily || 'PingFang SC';
   const weight = style.bold ? 'bold' : (style.fontWeight || 'normal');
   const size = parseInt(style.size || style.fontSize || 30, 10) || 30;
-  return `${weight} ${size}px "${family}", sans-serif`;
+  const italic = style.italic ? 'italic ' : '';
+  const fontFamily = family.indexOf(',') >= 0 ? family : `"${family}", sans-serif`;
+  return `${italic}${weight} ${size}px ${fontFamily}`;
 }
 
 function normalizeOps(delta) {
@@ -34,6 +40,14 @@ function splitRuns(ops) {
   return runs;
 }
 
+function deltaText(delta) {
+  return normalizeOps(delta).map(op => op.insert || '').join('');
+}
+
+function isVerticalTextBlock(block) {
+  return Number((block && block.width) || 500) <= VERTICAL_WIDTH_THRESHOLD && !!deltaText(block && block.delta).trim();
+}
+
 function drawRoundRect(ctx, x, y, w, h, r) {
   const radius = Math.min(r || 8, w / 2, h / 2);
   ctx.beginPath();
@@ -47,6 +61,113 @@ function drawRoundRect(ctx, x, y, w, h, r) {
   ctx.lineTo(x, y + radius);
   ctx.arcTo(x, y, x + radius, y, radius);
   ctx.closePath();
+}
+
+function drawVerticalGlyph(ctx, glyph, style, block, design, x, y, columnWidth) {
+  const fontSize = parseInt(style.size || style.fontSize || 30, 10) || 30;
+  const opacity = Number(style.opacity || 1);
+  ctx.font = pickFont(style, design);
+  ctx.textBaseline = 'top';
+  const textWidth = ctx.measureText(glyph).width;
+  const drawX = x + (columnWidth - textWidth) / 2;
+  ctx.save();
+  ctx.globalAlpha = Math.max(0.05, Math.min(opacity, 1));
+
+  if (style.shadow || block.shadow) {
+    ctx.shadowColor = style.shadowColor || block.shadowColor || 'rgba(80,54,30,0.25)';
+    ctx.shadowBlur = Number(style.shadowBlur || block.shadowBlur || 10);
+    ctx.shadowOffsetX = Number(style.shadowOffsetX || block.shadowOffsetX || 2);
+    ctx.shadowOffsetY = Number(style.shadowOffsetY || block.shadowOffsetY || 4);
+  } else {
+    ctx.shadowColor = 'transparent';
+    ctx.shadowBlur = 0;
+    ctx.shadowOffsetX = 0;
+    ctx.shadowOffsetY = 0;
+  }
+
+  if (style.background || style.backgroundColor) {
+    ctx.fillStyle = style.background || style.backgroundColor;
+    ctx.fillRect(x - 3, y - 2, columnWidth + 6, fontSize + 5);
+  }
+
+  if (style.stroke || block.stroke) {
+    ctx.strokeStyle = style.strokeColor || block.strokeColor || '#FFFFFF';
+    ctx.lineWidth = Number(style.strokeWidth || block.strokeWidth || 2);
+    ctx.strokeText(glyph, drawX, y);
+  }
+
+  ctx.fillStyle = style.color || block.color || '#333333';
+  ctx.fillText(glyph, drawX, y);
+  if (style.underline) {
+    ctx.shadowColor = 'transparent';
+    ctx.strokeStyle = ctx.fillStyle;
+    ctx.lineWidth = Math.max(1, fontSize / 16);
+    ctx.beginPath();
+    ctx.moveTo(drawX, y + fontSize + 3);
+    ctx.lineTo(drawX + textWidth, y + fontSize + 3);
+    ctx.stroke();
+  }
+  ctx.restore();
+}
+
+function drawVerticalTextBlock(ctx, block, design) {
+  const ops = normalizeOps(block.delta);
+  const sourceX = Number(block.x || 0);
+  const sourceY = Number(block.y || 0);
+  const maxWidth = Number(block.width || 120);
+  const boxHeight = Number(block.height || 360);
+  const lineHeight = Number(block.lineHeight || 1.6);
+  const blockLetterSpacing = Number(block.letterSpacing || 0);
+  const rotation = Number(block.rotation || 0);
+  let x = sourceX;
+  let y = sourceY;
+
+  if (rotation) {
+    ctx.save();
+    ctx.translate(sourceX + maxWidth / 2, sourceY + boxHeight / 2);
+    ctx.rotate(rotation * Math.PI / 180);
+    x = -maxWidth / 2;
+    y = -boxHeight / 2;
+  }
+
+  const maxFontSize = ops.reduce((max, op) => {
+    const attrs = op.attributes || {};
+    return Math.max(max, parseInt(attrs.size || attrs.fontSize || 30, 10) || 30);
+  }, 30);
+  const columnWidth = Math.max(maxFontSize * 1.2, 28);
+  let cursorX = x + maxWidth - columnWidth;
+  let cursorY = y;
+
+  function nextColumn() {
+    cursorX -= columnWidth;
+    cursorY = y;
+  }
+
+  ops.forEach(op => {
+    const style = {
+      fontFamily: block.fontFamily,
+      fontUrl: block.fontUrl,
+      ...(op.attributes || {})
+    };
+    const fontSize = parseInt(style.size || style.fontSize || 30, 10) || 30;
+    const letterSpacing = Number(style.letterSpacing || blockLetterSpacing);
+    const stepY = Math.max(fontSize * lineHeight + letterSpacing, fontSize + 4);
+    const text = String(op.insert || '');
+    for (let i = 0; i < text.length; i++) {
+      const glyph = text[i];
+      if (glyph === '\n') {
+        nextColumn();
+        continue;
+      }
+      if (cursorY + stepY > y + boxHeight && cursorY > y) nextColumn();
+      drawVerticalGlyph(ctx, glyph, style, block, design, cursorX, cursorY, columnWidth);
+      cursorY += stepY;
+    }
+  });
+
+  ctx.shadowColor = 'transparent';
+  ctx.shadowBlur = 0;
+  if (rotation) ctx.restore();
 }
 
 function measureChar(ctx, ch, letterSpacing) {
@@ -75,7 +196,11 @@ function layoutText(ctx, block, design) {
     const text = run.text || '';
     for (let i = 0; i < text.length; i++) {
       const ch = text[i];
-      const style = { ...(run.style || {}) };
+      const style = {
+        fontFamily: block.fontFamily,
+        fontUrl: block.fontUrl,
+        ...(run.style || {})
+      };
       ctx.font = pickFont(style, design);
       const chWidth = measureChar(ctx, ch, Number(style.letterSpacing || blockLetterSpacing));
       if (width + chWidth > maxWidth && line.length) {
@@ -91,19 +216,78 @@ function layoutText(ctx, block, design) {
 }
 
 function drawTextBlock(ctx, block, design) {
+  if (isVerticalTextBlock(block)) {
+    drawVerticalTextBlock(ctx, block, design);
+    return;
+  }
   const lines = layoutText(ctx, block, design);
   const baseSize = 30;
-  let y = Number(block.y || 0);
-  const x = Number(block.x || 0);
+  const sourceY = Number(block.y || 0);
+  const sourceX = Number(block.x || 0);
   const maxWidth = Number(block.width || 500);
   const align = block.align || 'left';
-
-  lines.forEach(line => {
+  const lineHeights = lines.map(line => {
     let lineHeight = 0;
     line.runs.forEach(run => {
       const size = parseInt(run.style.size || run.style.fontSize || baseSize, 10) || baseSize;
       lineHeight = Math.max(lineHeight, size * Number(block.lineHeight || 1.6));
     });
+    return lineHeight || baseSize * Number(block.lineHeight || 1.6);
+  });
+  const contentHeight = lineHeights.reduce((sum, item) => sum + item, 0);
+  const boxHeight = Number(block.height || contentHeight || 1);
+  const rotation = Number(block.rotation || 0);
+  let x = sourceX;
+  let y = sourceY;
+
+  // ===== 先绘制整个文字块的背景色（铺满整个方块区域） =====
+  ctx.save();
+  if (rotation) {
+    ctx.translate(sourceX + maxWidth / 2, sourceY + boxHeight / 2);
+    ctx.rotate(rotation * Math.PI / 180);
+    x = -maxWidth / 2;
+    y = -boxHeight / 2;
+  }
+
+  // 检查是否有任意文字设置了背景色
+  const hasAnyBg = lines.some(l => l.runs.some(r => r.style && (r.style.background || r.style.backgroundColor)));
+  if (hasAnyBg) {
+    // 合并所有行的背景色，取第一个有背景色的作为整块背景
+    let bgStyle = null;
+    for (const l of lines) {
+      for (const r of l.runs) {
+        if (r.style && (r.style.background || r.style.backgroundColor)) {
+          bgStyle = r.style.background || r.style.backgroundColor;
+          break;
+        }
+      }
+      if (bgStyle) break;
+    }
+    if (bgStyle) {
+      ctx.fillStyle = bgStyle;
+      drawRoundRect(ctx, x, y, maxWidth, boxHeight, Math.min(12, maxWidth * 0.02));
+      ctx.fill();
+    }
+  } else {
+    // 无背景色时也绘制一个半透明白色底（让文字区域可见）
+    ctx.fillStyle = 'rgba(255, 248, 235, 0.45)';
+    drawRoundRect(ctx, x, y, maxWidth, boxHeight, Math.min(12, maxWidth * 0.02));
+    ctx.fill();
+  }
+  ctx.restore();
+
+  // ===== 重置坐标（旋转后需要重新计算） =====
+  if (rotation) {
+    ctx.save();
+    ctx.translate(sourceX + maxWidth / 2, sourceY + boxHeight / 2);
+    ctx.rotate(rotation * Math.PI / 180);
+    x = -maxWidth / 2;
+    y = -boxHeight / 2;
+  }
+
+  // ===== 绘制每一行文字 =====
+  lines.forEach((line, lineIndex) => {
+    const lineHeight = lineHeights[lineIndex];
     let cursorX = x;
     if (align === 'center') cursorX = x + (maxWidth - line.width) / 2;
     if (align === 'right') cursorX = x + maxWidth - line.width;
@@ -112,24 +296,23 @@ function drawTextBlock(ctx, block, design) {
       const style = run.style || {};
       const fontSize = parseInt(style.size || style.fontSize || baseSize, 10) || baseSize;
       const letterSpacing = Number(style.letterSpacing || block.letterSpacing || 0);
+      const opacity = Number(style.opacity || 1);
       ctx.font = pickFont(style, design);
       ctx.textBaseline = 'top';
+      const textWidth = ctx.measureText(run.text).width;
+      ctx.save();
+      ctx.globalAlpha = Math.max(0.05, Math.min(opacity, 1));
 
       if (style.shadow || block.shadow) {
         ctx.shadowColor = style.shadowColor || block.shadowColor || 'rgba(80,54,30,0.25)';
-        ctx.shadowBlur = Number(style.shadowBlur || 10);
-        ctx.shadowOffsetX = Number(style.shadowOffsetX || 2);
-        ctx.shadowOffsetY = Number(style.shadowOffsetY || 4);
+        ctx.shadowBlur = Number(style.shadowBlur || block.shadowBlur || 10);
+        ctx.shadowOffsetX = Number(style.shadowOffsetX || block.shadowOffsetX || 2);
+        ctx.shadowOffsetY = Number(style.shadowOffsetY || block.shadowOffsetY || 4);
       } else {
         ctx.shadowColor = 'transparent';
         ctx.shadowBlur = 0;
         ctx.shadowOffsetX = 0;
         ctx.shadowOffsetY = 0;
-      }
-
-      if (style.background || style.backgroundColor) {
-        ctx.fillStyle = style.background || style.backgroundColor;
-        ctx.fillRect(cursorX - 3, y + (lineHeight - fontSize) / 2 - 2, run.width + 6, fontSize + 5);
       }
 
       if (style.stroke || block.stroke) {
@@ -140,7 +323,18 @@ function drawTextBlock(ctx, block, design) {
 
       ctx.fillStyle = style.color || block.color || '#333333';
       ctx.fillText(run.text, cursorX, y + (lineHeight - fontSize) / 2);
-      cursorX += ctx.measureText(run.text).width + letterSpacing;
+      if (style.underline) {
+        ctx.shadowColor = 'transparent';
+        ctx.strokeStyle = ctx.fillStyle;
+        ctx.lineWidth = Math.max(1, fontSize / 16);
+        const underlineY = y + (lineHeight - fontSize) / 2 + fontSize + 3;
+        ctx.beginPath();
+        ctx.moveTo(cursorX, underlineY);
+        ctx.lineTo(cursorX + textWidth, underlineY);
+        ctx.stroke();
+      }
+      ctx.restore();
+      cursorX += textWidth + letterSpacing;
     });
 
     y += lineHeight;
@@ -148,6 +342,7 @@ function drawTextBlock(ctx, block, design) {
 
   ctx.shadowColor = 'transparent';
   ctx.shadowBlur = 0;
+  if (rotation) ctx.restore();
 }
 
 function drawGradient(ctx, bg, width, height) {
@@ -161,6 +356,21 @@ function drawGradient(ctx, bg, width, height) {
   });
   ctx.fillStyle = gradient;
   ctx.fillRect(0, 0, width, height);
+}
+
+function hexToRgb(hex) {
+  const value = /^#[0-9a-fA-F]{6}$/.test(String(hex || '')) ? String(hex).slice(1) : 'f7f1ea';
+  return {
+    r: parseInt(value.slice(0, 2), 16),
+    g: parseInt(value.slice(2, 4), 16),
+    b: parseInt(value.slice(4, 6), 16)
+  };
+}
+
+function glassFillStyle(bg, alpha) {
+  const color = bg.glassColor || bg.color || ((bg.colors && bg.colors[0]) || '#F7F1EA');
+  const rgb = hexToRgb(color);
+  return `rgba(${rgb.r},${rgb.g},${rgb.b},${alpha})`;
 }
 
 function getImagePath(src) {
@@ -194,14 +404,25 @@ function loadCanvasImage(canvas, src) {
 
 async function drawBackground(canvas, ctx, design, width, height) {
   const bg = design.background || {};
+  ctx.fillStyle = bg.color || '#F7F1EA';
+  ctx.fillRect(0, 0, width, height);
   if (bg.type === 'image' && bg.src) {
     const path = await getImagePath(bg.src);
     const image = await loadCanvasImage(canvas, path);
     try {
       if (!image) throw new Error('background image load failed');
-      ctx.drawImage(image, 0, 0, width, height);
+      const sourceWidth = Number(bg.bgWidth || image.width || width);
+      const sourceHeight = Number(bg.bgHeight || image.height || height);
+      const scale = Math.min(width / sourceWidth, height / sourceHeight);
+      const drawWidth = sourceWidth * scale;
+      const drawHeight = sourceHeight * scale;
+      const offsetX = Number(bg.offsetX || 0) * width / PREVIEW_STAGE_RPX;
+      const offsetY = Number(bg.offsetY || 0) * height / PREVIEW_STAGE_HEIGHT_RPX;
+      const drawX = (width - drawWidth) / 2 + offsetX;
+      const drawY = (height - drawHeight) / 2 + offsetY;
+      ctx.drawImage(image, drawX, drawY, drawWidth, drawHeight);
       if (bg.blur) {
-        ctx.fillStyle = 'rgba(250,244,235,0.42)';
+        ctx.fillStyle = glassFillStyle(bg, 0.42);
         ctx.fillRect(0, 0, width, height);
       }
       return;
@@ -209,13 +430,15 @@ async function drawBackground(canvas, ctx, design, width, height) {
   }
   if (bg.type === 'gradient') {
     drawGradient(ctx, bg, width, height);
+    if (bg.blur) {
+      ctx.fillStyle = glassFillStyle(bg, 0.22);
+      ctx.fillRect(28, 28, width - 56, height - 56);
+    }
     drawPaperTexture(ctx, bg, width, height);
     return;
   }
-  ctx.fillStyle = bg.color || '#F7F1EA';
-  ctx.fillRect(0, 0, width, height);
   if (bg.blur) {
-    ctx.fillStyle = 'rgba(255,255,255,0.28)';
+    ctx.fillStyle = glassFillStyle(bg, 0.28);
     ctx.fillRect(32, 32, width - 64, height - 64);
   }
   drawPaperTexture(ctx, bg, width, height);
@@ -278,17 +501,33 @@ function drawDecorations(ctx, decorations) {
   });
 }
 
+function collectFonts(design) {
+  const map = {};
+  if (design.fontUrl) {
+    map[design.fontFamily || 'CardSerif'] = design.fontUrl;
+  }
+  (design.blocks || []).forEach(block => {
+    if (block.fontUrl && block.fontFamily) map[block.fontFamily] = block.fontUrl;
+    normalizeOps(block.delta).forEach(op => {
+      const attrs = op.attributes || {};
+      if (attrs.fontUrl && attrs.fontFamily) map[attrs.fontFamily] = attrs.fontUrl;
+    });
+  });
+  return Object.keys(map).map(family => ({ family, url: map[family] }));
+}
+
 async function preloadFont(design) {
-  if (!design.fontUrl) return;
-  await new Promise(resolve => {
+  const fonts = collectFonts(design);
+  if (!fonts.length) return;
+  await Promise.all(fonts.map(font => new Promise(resolve => {
     wx.loadFontFace({
-      family: design.fontFamily || 'CardSerif',
-      source: `url("${design.fontUrl}")`,
+      family: font.family,
+      source: `url("${font.url}")`,
       global: false,
       success: resolve,
       fail: resolve
     });
-  });
+  })));
   design.fontFamily = design.fontFamily || 'CardSerif';
 }
 
@@ -334,6 +573,22 @@ async function exportPoster(page, selector, sourceDesign, options) {
       fail: reject
     });
   });
+}
+
+function _drawRoundedRect(ctx, x, y, w, h, r) {
+  if (w < 1 || h < 1) return;
+  r = Math.min(r, Math.min(w / 2, h / 2));
+  ctx.beginPath();
+  ctx.moveTo(x + r, y);
+  ctx.lineTo(x + w - r, y);
+  ctx.arcTo(x + w, y, x + w, y + r, r);
+  ctx.lineTo(x + w, y + h - r);
+  ctx.arcTo(x + w, y + h, x + w, y + h, r);
+  ctx.lineTo(x + r, y + h);
+  ctx.arcTo(x, y + h, x, y + h, r);
+  ctx.lineTo(x, y + r);
+  ctx.closePath();
+  ctx.fill();
 }
 
 module.exports = {

@@ -7,8 +7,8 @@
       <view class="header-left">
         <view class="today-header">
           <text class="today-date">{{todayInfo.year}}年{{todayInfo.month}}月{{todayInfo.day}}日</text>
-          <text class="today-lunar">{{todayInfo.lunarMonth}}{{todayInfo.lunarDay}}</text>
-          <text class="today-ganzhi" wx:if="{{todayInfo.ganzhiYear}}"> {{todayInfo.ganzhiYear}}年</text>
+          <text class="today-lunar">农历{{todayInfo.lunarMonth}}{{todayInfo.lunarDay}}</text>
+          <text class="today-ganzhi" wx:if="{{todayInfo.ganzhiYear}}">{{todayInfo.ganzhiYear}}年</text>
         </view>
         <!-- 今日节日标签 -->
         <view class="festival-tags-row" wx:if="{{todayFestivals.length > 0}}">

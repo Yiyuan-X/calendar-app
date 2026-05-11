@@ -1,136 +1,323 @@
 <view class="editor-page">
-  <view class="stage-wrap">
-    <view class="poster-stage" style="background: {{previewBackground}};">
-      <image wx:if="{{previewBackgroundImage}}" class="stage-bg-image" src="{{previewBackgroundImage}}" mode="aspectFill"></image>
-      <view class="stage-mask {{design.background.blur ? 'blur' : ''}}"></view>
+    <view class="stage-wrap">
+    <view class="poster-stage {{activePanel === 'background' && previewBackgroundImage ? 'bg-editing' : ''}}" style="background: {{previewBackground}};">
+      <view class="bg-image-container" wx:if="{{previewBackgroundImage}}" bindtouchstart="onBgTouchStart" bindtouchmove="onBgTouchMove" bindtouchend="onBgTouchEnd">
+        <image
+          class="stage-bg-image"
+          src="{{previewBackgroundImage}}"
+          mode="aspectFit"
+          style="width: {{bgDisplayWidth}}rpx; height: {{bgDisplayHeight}}rpx; transform: translate(-50%, -50%) translate({{bgOffsetX}}rpx, {{bgOffsetY}}rpx);"
+        ></image>
+        <view class="bg-drag-hint">☝ 可拖动调整背景位置</view>
+      </view>
+      <view class="cross-guide" wx:if="{{previewBackgroundImage}}"></view>
+      <view class="stage-mask {{design.background.blur ? 'blur' : ''}}" style="{{previewBlurStyle}}"></view>
       <movable-area class="movable-area">
-        <movable-view
+        <view
           wx:for="{{design.blocks}}"
           wx:key="id"
-          class="text-block {{activeBlockId === item.id ? 'active' : ''}}"
-          x="{{item.previewX}}"
-          y="{{item.previewY}}"
-          direction="all"
+          class="text-block-wrapper"
+          style="position: absolute; left: {{item.previewX}}rpx; top: {{item.previewY}}rpx;"
           data-id="{{item.id}}"
-          bindtap="selectBlock"
-          bindchange="onBlockMove"
-          style="width: {{item.previewWidth}}rpx; text-align: {{item.align}}; line-height: {{item.lineHeight}};"
+          bindlongpress="editBlockText"
+          catchtouchstart="onBlockTouchStart"
+          catchtouchmove="onBlockMoveByResize"
+          catchtouchend="onBlockTouchEnd"
         >
-          <rich-text nodes="{{item.previewNodes}}"></rich-text>
-        </movable-view>
+        <view
+          class="text-block {{activeBlockId === item.id ? 'active' : ''}} {{item.previewVerticalClass}} {{inlineEditing && activeBlockId === item.id ? 'editing' : ''}}"
+          style="width: {{item.previewWidth}}rpx; {{inlineEditing && activeBlockId === item.id ? item.editingHeightStyle : item.previewHeightStyle}} text-align: {{item.align}}; line-height: {{item.lineHeight}}; {{item.previewFontSizeStyle}} {{item.previewLetterSpacingStyle}} {{item.previewFontFamilyStyle}} {{item.previewTransformStyle}}"
+          data-id="{{item.id}}"
+          catchtap="editBlockText"
+        >
+          <view
+            wx:if="{{activeBlockId === item.id && !inlineEditing}}"
+            class="block-control copy"
+            catchtap="copyActiveBlock"
+          >⧉</view>
+          <view
+            wx:if="{{activeBlockId === item.id && !inlineEditing}}"
+            class="block-control delete"
+            catchtap="deleteActiveBlock"
+          >×</view>
+          <textarea
+            wx:if="{{inlineEditing && activeBlockId === item.id}}"
+            class="stage-editor"
+            value="{{activePlainText}}"
+            placeholder="{{item.placeholder || '输入文字...'}}"
+            focus="{{textInputFocus}}"
+            cursor="{{selectionEnd}}"
+            maxlength="-1"
+            auto-height="{{false}}"
+            adjust-position="{{false}}"
+            cursor-spacing="24"
+            catchtouchstart="stopPropagation"
+            catchtouchmove="stopPropagation"
+            catchtouchend="stopPropagation"
+            bindinput="onActiveTextInput"
+            bindselect="onTextSelection"
+            bindblur="finishInlineEditing"
+          ></textarea>
+          <view wx:elif="{{!item.plainText}}" class="placeholder-text">{{item.placeholder || '输入文字...'}}</view>
+          <rich-text wx:else class="block-rich-text" node="{{nodeVersion}}" nodes="{{item.previewNodes}}"></rich-text>
+        </view>
+        </view>
+
+        <!-- 调整大小手柄（放在 movable-area 上层，不参与 movable-view 拖拽） -->
+        <view
+          wx:for="{{design.blocks}}"
+          wx:key="id"
+          wx:if="{{activeBlockId === item.id && !inlineEditing}}"
+          class="resize-handles-overlay"
+          data-id="{{item.id}}"
+          style="position: absolute; left: {{item.previewX}}rpx; top: {{item.previewY}}rpx; width: {{item.previewWidth}}rpx; height: {{item.previewOverlayHeight}}rpx;"
+          catchtap="editBlockText"
+          catchtouchstart="onBlockTouchStart"
+          catchtouchmove="onBlockMoveByResize"
+          catchtouchend="onBlockTouchEnd"
+        >
+          <view
+            class="resize-edit-hotspot"
+            data-id="{{item.id}}"
+            catchtap="editBlockText"
+            catchtouchstart="onBlockTouchStart"
+            catchtouchmove="onBlockMoveByResize"
+            catchtouchend="onBlockTouchEnd"
+          ></view>
+          <view class="resize-handle resize-tl" data-id="{{item.id}}" data-edge="tl" catchtouchstart="onResizeStart" catchtouchmove="onResizeMove" catchtouchend="onResizeEnd"></view>
+          <view class="resize-handle resize-tm" data-id="{{item.id}}" data-edge="tm" catchtouchstart="onResizeStart" catchtouchmove="onResizeMove" catchtouchend="onResizeEnd"></view>
+          <view class="resize-handle resize-tr" data-id="{{item.id}}" data-edge="tr" catchtouchstart="onResizeStart" catchtouchmove="onResizeMove" catchtouchend="onResizeEnd"></view>
+          <view class="resize-handle resize-ml" data-id="{{item.id}}" data-edge="ml" catchtouchstart="onResizeStart" catchtouchmove="onResizeMove" catchtouchend="onResizeEnd"></view>
+          <view class="resize-handle resize-mr" data-id="{{item.id}}" data-edge="mr" catchtouchstart="onResizeStart" catchtouchmove="onResizeMove" catchtouchend="onResizeEnd"></view>
+          <view class="resize-handle resize-bl" data-id="{{item.id}}" data-edge="bl" catchtouchstart="onResizeStart" catchtouchmove="onResizeMove" catchtouchend="onResizeEnd"></view>
+          <view class="resize-handle resize-bm" data-id="{{item.id}}" data-edge="bm" catchtouchstart="onResizeStart" catchtouchmove="onResizeMove" catchtouchend="onResizeEnd"></view>
+          <view class="resize-handle resize-br" data-id="{{item.id}}" data-edge="br" catchtouchstart="onResizeStart" catchtouchmove="onResizeMove" catchtouchend="onResizeEnd"></view>
+        </view>
       </movable-area>
-      <image wx:if="{{design.qrcode.visible && design.qrcode.src}}" class="qr-preview" src="{{design.qrcode.src}}" mode="aspectFill"></image>
+      <view wx:if="{{design.qrcode.visible && design.qrcode.src}}" class="qr-wrap">
+        <image class="qr-preview" src="{{design.qrcode.src}}" mode="aspectFill"></image>
+        <view class="block-control qr-delete" catchtap="deleteQrCode">⌫</view>
+      </view>
     </view>
   </view>
 
-  <scroll-view class="editor-card" scroll-y="true" enhanced="true" show-scrollbar="false">
-    <view class="auto-panel">
-      <view class="auto-head">
-        <view>
-          <text class="auto-title">自动美学排版</text>
-          <text class="auto-sub">输入一句话，系统自动断句、留白和高亮</text>
+  <view class="editor-card">
+    <view class="editor-tabs">
+      <view class="editor-tab {{activePanel === 'background' ? 'active' : ''}}" data-panel="background" bindtap="switchPanel">背景</view>
+      <view class="editor-tab {{activePanel === 'font' ? 'active' : ''}}" data-panel="font" bindtap="switchPanel">字体</view>
+      <view class="editor-tab {{activePanel === 'style' ? 'active' : ''}}" data-panel="style" bindtap="switchPanel">样式</view>
+      <view class="editor-tab {{activePanel === 'layout' ? 'active' : ''}}" data-panel="layout" bindtap="switchPanel">排列</view>
+      <!-- 撤销 / 重做 -->
+      <view class="undo-btn {{!canUndo ? 'disabled' : ''}}" bindtap="undo">
+        <text>↩</text>
+      </view>
+      <view class="redo-btn {{!canRedo ? 'disabled' : ''}}" bindtap="redo">
+        <text>↪</text>
+      </view>
+    </view>
+
+    <view class="panel-body">
+      <view wx:if="{{activePanel === 'background'}}">
+        <view class="seg-row asset-mini-row">
+          <button class="seg" bindtap="addTextBlock">＋增加文字</button>
+          <button class="seg" bindtap="chooseBackground">＋增加背景</button>
+          <button class="seg" bindtap="chooseQrCode">二维码</button>
         </view>
-        <button class="auto-btn" bindtap="beautifyCurrentText">优化</button>
+        <view class="background-row">
+          <button class="bg-btn" data-type="solid" bindtap="setBackgroundType">纯色</button>
+          <button class="bg-btn" data-type="gradient" bindtap="setBackgroundType">渐变</button>
+          <button class="bg-btn" data-type="blur" bindtap="setBackgroundType">毛玻璃</button>
+        </view>
+        <view wx:if="{{showSolidPalette}}" class="bg-palette">
+          <view
+            wx:for="{{backgroundColors}}"
+            wx:key="*this"
+            class="bg-swatch {{(design.background.color === item || design.background.glassColor === item || design.background.baseColor === item) ? 'active' : ''}}"
+            style="background: {{item}};"
+            data-color="{{item}}"
+            bindtap="setBackgroundPaletteColor"
+          ></view>
+        </view>
       </view>
-      <textarea class="sentence-input" value="{{inputText}}" maxlength="80" auto-height="true" bindinput="onInputText" placeholder="输入一句静心语，例如：人生最重要的是内心平静"></textarea>
-      <view class="style-row">
-        <button
-          wx:for="{{stylePresets}}"
-          wx:key="id"
-          class="style-pill {{currentStyleId === item.id ? 'active' : ''}}"
-          data-id="{{item.id}}"
-          bindtap="switchAutoStyle"
-        >{{item.name}}</button>
+
+      <view wx:elif="{{activePanel === 'font'}}">
+        <scroll-view class="font-scroll" scroll-y enhanced show-scrollbar="{{false}}">
+          <view class="font-row">
+            <button
+              class="font-btn {{activeFontId === item.id ? 'active' : ''}}"
+              wx:for="{{fonts}}"
+              wx:key="id"
+              style="font-family: {{item.previewFamily}};"
+              data-id="{{item.id}}"
+              bindtap="setFontFamily"
+            >{{item.name}}</button>
+          </view>
+        </scroll-view>
       </view>
+
+      <view wx:elif="{{activePanel === 'style'}}">
+        <view class="style-subtabs">
+          <view class="style-subtab {{activeStyleTool === 'text' ? 'active' : ''}}" data-tool="text" bindtap="switchStyleTool">文字</view>
+          <view class="style-subtab {{activeStyleTool === 'stroke' ? 'active' : ''}}" data-tool="stroke" bindtap="switchStyleTool">描边</view>
+          <view class="style-subtab {{activeStyleTool === 'bg' ? 'active' : ''}}" data-tool="bg" bindtap="switchStyleTool">背景</view>
+          <view class="style-subtab {{activeStyleTool === 'shadow' ? 'active' : ''}}" data-tool="shadow" bindtap="switchStyleTool">阴影</view>
+        </view>
+
+        <!-- 文字：颜色 + 透明度 -->
+        <view wx:if="{{activeStyleTool === 'text'}}">
+          <view class="tool-strip">
+            <button class="circle-tool">↗</button>
+            <view class="color-wheel" catchtap="pickTextColor"></view>
+            <view class="thin-line"></view>
+            <view class="current-color" style="background: {{activeTextColor}};" catchtap="pickTextColor"></view>
+          </view>
+          <text class="panel-label">默认颜色</text>
+          <view class="swatches color-scroll">
+            <view class="swatch {{activeTextColor === item ? 'active' : ''}}" wx:for="{{colors}}" wx:key="*this" style="background: {{item}};" data-name="color" data-value="{{item}}" bindtap="format"></view>
+          </view>
+          <view class="control-stack">
+            <text class="panel-label">透明度</text>
+            <slider class="slider neon" min="0.2" max="1" step="0.05" value="{{textOpacity}}" bindchanging="changeOpacity" bindchange="changeOpacity" activeColor="#DAA520" backgroundColor="#E8DCCB"></slider>
+          </view>
+        </view>
+
+        <!-- 描边：开关 + 颜色选择 -->
+        <view wx:elif="{{activeStyleTool === 'stroke'}}">
+          <view class="tool-strip">
+            <button class="circle-tool {{activeBlock.stroke ? 'on' : ''}}" catchtap="toggleStroke">
+              <image wx:if="{{activeBlock.stroke}}" class="tool-check-icon" src="/images/icons/check-white.svg" mode="aspectFit"></image>
+              <text wx:else>✎</text>
+            </button>
+            <view class="color-wheel" catchtap="pickStrokeColor"></view>
+            <view class="thin-line"></view>
+            <view class="current-color" style="background: {{activeStrokeColor}};" catchtap="pickStrokeColor"></view>
+          </view>
+          <text class="panel-label">描边颜色</text>
+          <view class="swatches color-scroll">
+            <view class="swatch {{activeStrokeColor === item ? 'active' : ''}}" wx:for="{{colors}}" wx:key="*this" style="background: {{item}};" data-value="{{item}}" catchtap="setStrokeColor"></view>
+          </view>
+        </view>
+
+        <!-- 背景：颜色选择 + 透明度 -->
+        <view wx:elif="{{activeStyleTool === 'bg'}}">
+          <view class="tool-strip">
+            <button class="circle-tool" catchtap="pickBackgroundColor">
+              <text>🎨</text>
+            </button>
+            <view class="color-wheel" catchtap="pickBackgroundColor"></view>
+            <view class="thin-line"></view>
+            <view class="current-color" style="background: {{activeBackground}};" catchtap="pickBackgroundColor"></view>
+          </view>
+          <text class="panel-label">背景颜色</text>
+          <view class="swatches color-scroll">
+            <view class="swatch {{activeBackground === item ? 'active' : ''}}" wx:for="{{bgColors}}" wx:key="*this" style="background: {{item}};" data-value="{{item}}" catchtap="setBgColor"></view>
+          </view>
+          <view class="control-stack">
+            <text class="panel-label">透明度</text>
+            <slider class="slider neon" min="0.05" max="1" step="0.05" value="{{bgOpacity || 0.8}}" bindchange="changeBgOpacity" activeColor="#DAA520" backgroundColor="#E8DCCB"></slider>
+          </view>
+        </view>
+
+        <!-- 阴影：开关 + 颜色选择 + 强度 -->
+        <view wx:elif="{{activeStyleTool === 'shadow'}}">
+          <view class="tool-strip">
+            <button class="circle-tool {{activeBlock.shadow ? 'on' : ''}}" catchtap="toggleShadow">
+              <image wx:if="{{activeBlock.shadow}}" class="tool-check-icon" src="/images/icons/check-white.svg" mode="aspectFit"></image>
+              <text wx:else>◐</text>
+            </button>
+            <view class="color-wheel" catchtap="pickShadowColor"></view>
+            <view class="thin-line"></view>
+            <view class="current-color" style="background: {{activeShadowColor}};" catchtap="pickShadowColor"></view>
+          </view>
+          <text class="panel-label">阴影颜色</text>
+          <view class="swatches color-scroll">
+            <view class="swatch {{activeShadowColor === item ? 'active' : ''}}" wx:for="{{colors}}" wx:key="*this" style="background: {{item}};" data-value="{{item}}" catchtap="setShadowColor"></view>
+          </view>
+          <view class="control-stack">
+            <text class="panel-label">柔和强度</text>
+            <slider class="slider neon" min="0" max="1" step="0.1" value="{{shadowStrength}}" bindchange="changeShadowStrength" activeColor="#DAA520" backgroundColor="#E8DCCB"></slider>
+          </view>
+        </view>
+      </view>
+
+      <view wx:elif="{{activePanel === 'layout'}}">
+        <view class="layout-format-row">
+          <button class="format-key {{formats.bold ? 'on' : ''}}" data-name="bold" bindtap="format">B</button>
+          <button class="format-key {{formats.italic ? 'on' : ''}}" data-name="italic" bindtap="format">I</button>
+          <button class="format-key {{formats.underline ? 'on' : ''}}" data-name="underline" bindtap="format">U</button>
+        </view>
+        <!-- 对齐：左 / 中 / 右 / 两端对齐 / 分散对齐 / 无缩进 -->
+        <view class="align-row layout-align-row">
+          <button class="align-key {{activeBlock.align === 'left' ? 'on' : ''}}" data-align="left" bindtap="setAlign">
+            <view class="align-icon"><view class="bar"></view><view class="bar"></view><view class="bar short"></view></view>
+          </button>
+          <button class="align-key {{activeBlock.align === 'center' ? 'on' : ''}}" data-align="center" bindtap="setAlign">
+            <view class="align-icon center"><view class="bar"></view><view class="bar"></view><view class="bar short"></view></view>
+          </button>
+          <button class="align-key {{activeBlock.align === 'right' ? 'on' : ''}}" data-align="right" bindtap="setAlign">
+            <view class="align-icon right"><view class="bar"></view><view class="bar"></view><view class="bar short"></view></view>
+          </button>
+          <button class="align-key {{activeBlock.align === 'justify' ? 'on' : ''}}" data-align="justify" bindtap="setAlign">
+            <view class="align-icon justify"><view class="bar full"></view><view class="bar full"></view><view class="bar short full"></view></view>
+          </button>
+          <button class="align-key {{activeBlock.align === 'distribute' ? 'on' : ''}}" data-align="distribute" bindtap="setAlign">
+            <view class="align-icon distribute"><view class="bar edge"></view><view class="bar mid"></view><view class="bar short edge"></view></view>
+          </button>
+          <button class="align-key {{activeBlock.align === 'none' ? 'on' : ''}}" data-align="none" bindtap="setAlign">
+            <view class="align-icon no-indent"><view class="bar"></view><view class="bar indent"></view><view class="bar short indent"></view></view>
+          </button>
+        </view>
+        <!-- 大小 slider -->
+        <view class="layout-slider-row">
+          <text class="layout-slider-label">大小</text>
+          <slider class="slider neon" min="12" max="160" step="1" value="{{fontSize || 32}}" bindchanging="changeFontSize" bindchange="changeFontSize" activeColor="#DAA520" backgroundColor="#E8DCCB"></slider>
+        </view>
+        <!-- 行间距 slider -->
+        <view class="layout-slider-row">
+          <text class="layout-slider-label">行间距</text>
+          <slider class="slider neon" min="0.8" max="3.0" step="0.1" value="{{activeBlock.lineHeight || 1.6}}" bindchanging="changeLineHeight" bindchange="changeLineHeight" activeColor="#DAA520" backgroundColor="#E8DCCB"></slider>
+        </view>
+        <!-- 字间距 slider -->
+        <view class="layout-slider-row">
+          <text class="layout-slider-label">字间距</text>
+          <slider class="slider neon" min="-2" max="10" step="0.5" value="{{activeBlock.letterSpacing || 0}}" bindchanging="changeLetterSpacing" bindchange="changeLetterSpacing" activeColor="#DAA520" backgroundColor="#E8DCCB"></slider>
+        </view>
+        <view class="block-action-row layout-secondary-actions">
+          <button class="block-action" catchtap="copyActiveBlock">复制</button>
+          <button class="block-action" catchtap="rotateActiveBlock">旋转</button>
+          <button class="block-action danger" catchtap="deleteActiveBlock">删除</button>
+        </view>
+      </view>
+
     </view>
 
-    <editor
-      id="richEditor"
-      class="rich-editor"
-      placeholder="自动排版后，可在这里继续选中文字微调样式"
-      show-img-size="{{false}}"
-      show-img-toolbar="{{false}}"
-      show-img-resize="{{false}}"
-      bindready="onEditorReady"
-      bindinput="onEditorInput"
-      bindstatuschange="onStatusChange"
-    ></editor>
-
-    <view class="panel-section">
-      <view class="section-head">
-        <text>文字样式</text>
-      </view>
-      <view class="toolbar">
-        <button class="tool {{formats.bold ? 'on' : ''}}" data-name="bold" bindtap="format">B</button>
-        <button class="tool" data-name="fontSize" data-value="{{fontSize}}px" bindtap="format">{{fontSize}}</button>
-        <button class="tool" data-name="backgroundColor" data-value="{{activeBackground}}" bindtap="format">底</button>
-        <button class="tool {{activeBlock.stroke ? 'on' : ''}}" bindtap="toggleStroke">描</button>
-        <button class="tool {{activeBlock.shadow ? 'on' : ''}}" bindtap="toggleShadow">影</button>
-        <button class="tool" data-align="left" bindtap="setAlign">左</button>
-        <button class="tool" data-align="center" bindtap="setAlign">中</button>
-        <button class="tool" data-align="right" bindtap="setAlign">右</button>
-      </view>
+    <view class="bottom-actions safe-area-bottom">
+      <button class="action ghost" bindtap="saveDraft">存草稿</button>
+      <button class="action primary" bindtap="goExport">导出分享图</button>
     </view>
-
-    <view class="panel-section compact">
-      <view class="section-head">
-        <text>颜色与字体</text>
-      </view>
-      <view class="swatches">
-        <view class="swatch" wx:for="{{colors}}" wx:key="*this" style="background: {{item}};" data-name="color" data-value="{{item}}" bindtap="format"></view>
-      </view>
-
-      <view class="font-row">
-        <button class="font-btn" wx:for="{{fonts}}" wx:key="family" data-family="{{item.family}}" bindtap="setFontFamily">{{item.name}}</button>
-      </view>
-    </view>
-
-    <view class="panel-section">
-      <view class="section-head">
-        <text>排版</text>
-      </view>
-      <view class="control-row">
-        <text class="label">字号</text>
-        <slider class="slider" min="18" max="72" step="1" value="{{fontSize}}" bindchange="changeFontSize" activeColor="#A77E50" backgroundColor="#E8DDD0"></slider>
-        <text class="value">{{fontSize}}</text>
-      </view>
-
-      <view class="control-row">
-        <text class="label">行距</text>
-        <slider class="slider" min="1.1" max="2.4" step="0.1" value="{{activeBlock.lineHeight}}" bindchange="changeLineHeight" activeColor="#A77E50" backgroundColor="#E8DDD0"></slider>
-        <text class="value">{{activeBlock.lineHeight}}</text>
-      </view>
-
-      <view class="control-row">
-        <text class="label">字距</text>
-        <slider class="slider" min="0" max="8" step="1" value="{{activeBlock.letterSpacing}}" bindchange="changeLetterSpacing" activeColor="#A77E50" backgroundColor="#E8DDD0"></slider>
-        <text class="value">{{activeBlock.letterSpacing}}</text>
-      </view>
-    </view>
-
-    <view class="panel-section">
-      <view class="section-head">
-        <text>素材</text>
-      </view>
-      <view class="seg-row">
-        <button class="seg" bindtap="addTextBlock">多段文字</button>
-        <button class="seg" bindtap="chooseBackground">换背景图</button>
-        <button class="seg" bindtap="chooseAvatar">头像/图片</button>
-        <button class="seg" bindtap="chooseQrCode">二维码</button>
-      </view>
-
-      <view class="background-row">
-        <button class="bg-btn" data-type="solid" bindtap="setBackgroundType">纯色</button>
-        <button class="bg-btn" data-type="gradient" bindtap="setBackgroundType">渐变</button>
-        <button class="bg-btn" bindtap="toggleBlur">毛玻璃</button>
-      </view>
-    </view>
-  </scroll-view>
-
-  <view class="bottom-actions safe-area-bottom">
-    <button class="action ghost" bindtap="saveDraft">存草稿</button>
-    <button class="action primary" bindtap="goExport">导出分享图</button>
   </view>
 
   <canvas type="2d" id="exportCanvas" class="hidden-canvas"></canvas>
+
+  <!-- 颜色选择器弹窗 -->
+  <view wx:if="{{showColorPicker}}" class="color-picker-mask" catchtap="closeColorPicker">
+    <view class="color-picker-popup" catchtap stopPropagation>
+      <view class="color-picker-header">
+        <text class="color-picker-title">{{colorPickerTitle || '选取颜色'}}</text>
+        <view class="color-picker-preview" style="background: {{colorPickerPreview}};"></view>
+      </view>
+      <view class="color-picker-body">
+        <view class="cp-sv-panel" style="background: linear-gradient(to bottom, {{colorPickerHuePure}}, #000000), linear-gradient(to right, #FFF, transparent);" bindtouchstart="onSvPanelTouchStart" bindtouchmove="onSvPanelTouchEnd" bindtouchend="onSvPanelTouchEnd">
+          <view class="cp-sv-cursor" style="left: {{colorPickerSvX}}px; top: {{colorPickerSvY}}px;"></view>
+        </view>
+        <view class="cp-hue-bar" bindtouchstart="onHueBarTouchStart" bindtouchmove="onHueBarTouchEnd" bindtouchend="onHueBarTouchEnd">
+          <view class="cp-hue-cursor" style="top: {{colorPickerHueY}}px;"></view>
+        </view>
+      </view>
+      <view class="color-picker-actions">
+        <button class="cp-btn cp-btn-cancel" bindtap="closeColorPicker">取消</button>
+        <button class="cp-btn cp-btn-confirm" bindtap="confirmColorPicker">确定</button>
+      </view>
+    </view>
+  </view>
 </view>

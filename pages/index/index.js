@@ -151,10 +151,19 @@ Page({
     const getBreakIndex = segment => {
       let breakIndex = maxLineLength;
       const nextChar = segment.slice(breakIndex, breakIndex + 1);
+      // 优先在顿号处断行
       const pauseIndex = segment.slice(0, breakIndex).lastIndexOf('、');
+      // 在逗号/句号/分号处断行
+      const commaIndex = segment.slice(0, breakIndex).lastIndexOf('，');
+      // 破折号前断行
+      const dashIndex = segment.slice(0, breakIndex).lastIndexOf('—');
 
       if (pauseIndex >= 4) {
         breakIndex = pauseIndex;
+      } else if (dashIndex >= 3) {
+        breakIndex = dashIndex;
+      } else if (commaIndex >= 4) {
+        breakIndex = commaIndex;
       } else if ('，。；、'.indexOf(nextChar) >= 0) {
         breakIndex += 1;
       }
@@ -171,12 +180,16 @@ Page({
 
       return breakIndex;
     };
-    const parts = text
-      .replace(/[「」]/g, '')
-      .split(/([，。；])/)
+    // 预处理：将破折号替换为单字符便于处理，同时保留标点
+    const normalizedText = text
+      .replace(/[「」""''【】《》]/g, '')
+      .replace(/——/g, '—')
+      .replace(/--/g, '—');
+    const parts = normalizedText
+      .split(/([，。；、—])/)
       .reduce((lines, part) => {
         if (!part) return lines;
-        if (/[，。；]/.test(part) && lines.length) {
+        if (/[，。；、—]/.test(part) && lines.length) {
           lines[lines.length - 1] += part;
           return lines;
         }
@@ -199,7 +212,7 @@ Page({
       while (segment.length > maxLineLength) {
         const breakIndex = getBreakIndex(segment);
         lines.push(segment.slice(0, breakIndex));
-        segment = segment.slice(breakIndex).replace(/^、/, '');
+        segment = segment.slice(breakIndex).replace(/^[、—]/, '');
       }
       if (segment) lines.push(segment);
       return lines;
@@ -730,7 +743,7 @@ Page({
   },
 
   goToCardTool() {
-    wx.navigateTo({ url: '/packageCard/templates/templates' });
+    wx.navigateTo({ url: '/packageCard/editor/editor?templateId=solar-term-paper' });
   },
 
 goToMerit() {

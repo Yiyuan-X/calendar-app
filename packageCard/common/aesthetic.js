@@ -1,26 +1,6 @@
 const KEYWORDS = ['平静', '自在', '慈悲', '智慧', '清明', '欢喜', '安住', '当下', '心', '静', '善', '福', '悟', '慢'];
 
 const STYLE_PRESETS = {
-  'daily-sign-warm': {
-    id: 'daily-sign-warm',
-    name: '日签版',
-    accent: '#A77E50',
-    focus: '#6B4F39',
-    body: '#8A705B',
-    bg: { type: 'gradient', colors: ['#FFF8ED', '#F2E6D7'], direction: 'vertical', paper: true },
-    meta: '',
-    align: 'center'
-  },
-  'mindful-quote': {
-    id: 'mindful-quote',
-    name: '禅意版',
-    accent: '#B98568',
-    focus: '#5A4335',
-    body: '#8B7464',
-    bg: { type: 'gradient', colors: ['#FBF2E8', '#EFE1D0'], direction: 'vertical', blur: true, paper: true },
-    meta: '',
-    align: 'center'
-  },
   'solar-term-paper': {
     id: 'solar-term-paper',
     name: '节气版',
@@ -183,17 +163,20 @@ function buildDelta(text, preset, profile) {
 
 function applyAesthetic(template, text, styleId) {
   const design = clone(template);
-  const preset = STYLE_PRESETS[styleId] || STYLE_PRESETS[design.templateId] || STYLE_PRESETS[design.id] || STYLE_PRESETS['mindful-quote'];
-  const inputText = normalizeText(text) || '人生最重要的是内心平静';
+  const preset = STYLE_PRESETS[styleId] || STYLE_PRESETS[design.templateId] || STYLE_PRESETS[design.id] || STYLE_PRESETS['solar-term-paper'];
+  const rawText = normalizeText(text) || '';
+  const inputText = rawText || '';
   const profile = getLengthProfile(inputText);
   const align = preset.align || 'center';
-  const textX = align === 'left' ? 88 : 92;
-  const textWidth = align === 'left' ? 574 : 566;
+  const isEmptyInput = !rawText;
+  const textX = isEmptyInput ? 125 : (align === 'left' ? 88 : 92);
+  const textY = isEmptyInput ? 130 : profile.y;
+  const textWidth = isEmptyInput ? 500 : (align === 'left' ? 574 : 566);
 
   design.id = design.id || '';
   design.templateId = preset.id;
   design.name = preset.name;
-  design.inputText = inputText;
+  design.inputText = rawText;
   design.styleId = preset.id;
   design.background = clone(preset.bg);
   design.fontUrl = design.fontUrl || template.fontUrl || '';
@@ -202,13 +185,17 @@ function applyAesthetic(template, text, styleId) {
       id: 'quote',
       type: 'text',
       x: textX,
-      y: profile.y,
+      y: textY,
       width: textWidth,
-      align,
-      lineHeight: profile.lineHeight,
-      letterSpacing: profile.letterSpacing,
+      height: isEmptyInput ? 220 : undefined,
+      align: isEmptyInput ? 'left' : align,
+      lineHeight: isEmptyInput ? 1.6 : profile.lineHeight,
+      letterSpacing: isEmptyInput ? 1 : profile.letterSpacing,
       shadow: false,
-      delta: buildDelta(inputText, preset, profile)
+      placeholder: '输入文字...',
+      placeholderSize: 30,
+      placeholderStyle: 'color: #B0B0B0; font-size: 28rpx;',
+      delta: rawText ? buildDelta(rawText, preset, profile) : { ops: [{ insert: '', attributes: { size: profile.mainSize, color: preset.focus } }] }
     }
   ];
   design.decorations = [

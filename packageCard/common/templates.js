@@ -1,11 +1,12 @@
 const CDN_BASE = 'https://cdn.jsdelivr.net/gh/wechat-miniprogram-assets/poster-card';
 const TEMPLATE_CONFIG_URL = `${CDN_BASE}/templates/card-templates.json`;
+const DEFAULT_FONT_URL = 'https://cdn.jsdelivr.net/fontsource/fonts/noto-serif-sc@latest/chinese-simplified-400-normal.woff2';
 let remoteTemplates = null;
 
 const templates = [
   {
     id: 'daily-sign-warm',
-    name: '日签卡',
+    name: '分享卡',
     scene: '日签',
     cover: '',
     size: { width: 750, height: 1000 },
@@ -15,7 +16,7 @@ const templates = [
       direction: 'vertical',
       blur: false
     },
-    fontUrl: `${CDN_BASE}/fonts/Huiwen-mincho.woff2`,
+    fontUrl: DEFAULT_FONT_URL,
     blocks: [
       {
         id: 'title',
@@ -50,7 +51,7 @@ const templates = [
       direction: 'diagonal',
       blur: false
     },
-    fontUrl: `${CDN_BASE}/fonts/Huiwen-mincho.woff2`,
+    fontUrl: DEFAULT_FONT_URL,
     blocks: [
       {
         id: 'title',
@@ -98,7 +99,7 @@ const templates = [
       color: '#F7F1EA',
       blur: true
     },
-    fontUrl: `${CDN_BASE}/fonts/Huiwen-mincho.woff2`,
+    fontUrl: DEFAULT_FONT_URL,
     blocks: [
       {
         id: 'quote',
