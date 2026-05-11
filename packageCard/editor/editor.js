@@ -799,6 +799,21 @@ getPreviewBackground(bg) {
     });
   },
 
+  // textarea 获得焦点时：自动全选 + 弹出工具栏
+  onTextareaFocus(e) {
+    const text = this.data.activePlainText || '';
+    // 延迟设置选区，等 textarea 完成聚焦
+    setTimeout(() => {
+      this.setData({
+        textInputFocus: true,
+        showPasteTip: true,
+        selectionStart: 0,
+        selectionEnd: text.length,
+        selectionHint: text ? '已全选' : ''
+      });
+    }, 150);
+  },
+
   onStageEditorTap() {
     if (this._skipNextEditorTap) {
       this._skipNextEditorTap = false;
@@ -904,21 +919,20 @@ getPreviewBackground(bg) {
   selectAllActiveText() {
     if (this.shouldSkipFormatAction('selectAll')) return;
     const text = this.data.activePlainText || '';
+    // 关键：先失焦再聚焦，让 selection 生效
     this.setData({
-      textInputFocus: true,
-      selectionStart: 0,
-      selectionEnd: text.length,
+      textInputFocus: false,
       showPasteTip: true,
       selectionHint: text ? '已全选' : ''
     });
+    // 延迟重新聚焦并设置选区
     setTimeout(() => {
       this.setData({
         textInputFocus: true,
         selectionStart: 0,
-        selectionEnd: text.length,
-        showPasteTip: true
+        selectionEnd: text.length
       });
-    }, 30);
+    }, 80);
   },
 
   selectTextBeforeCursor() {
@@ -983,6 +997,15 @@ getPreviewBackground(bg) {
     if (this.shouldSkipFormatAction('fontSize')) return;
     const attrs = getAttrsAtOffset(this.data.activeBlock && this.data.activeBlock.delta, this.data.selectionStart || 0);
     const fontSize = clampFontSize((parseInt(attrs.size || attrs.fontSize || this.data.fontSize || 32, 10) || 32) + 4);
+    this.setData({ fontSize, textInputFocus: true, showPasteTip: true });
+    this.applyFormatToSelection({ size: fontSize });
+    this._saveHistory(this.data.design);
+  },
+
+  decreaseSelectedFontSize() {
+    if (this.shouldSkipFormatAction('fontSizeDown')) return;
+    const attrs = getAttrsAtOffset(this.data.activeBlock && this.data.activeBlock.delta, this.data.selectionStart || 0);
+    const fontSize = clampFontSize((parseInt(attrs.size || attrs.fontSize || this.data.fontSize || 32, 10) || 32) - 4);
     this.setData({ fontSize, textInputFocus: true, showPasteTip: true });
     this.applyFormatToSelection({ size: fontSize });
     this._saveHistory(this.data.design);
