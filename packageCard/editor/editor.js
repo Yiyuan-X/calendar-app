@@ -935,6 +935,40 @@ getPreviewBackground(bg) {
     }, 80);
   },
 
+  selectCurrentLineText() {
+    if (this.shouldSkipFormatAction('selectLine')) return;
+    const text = this.data.activePlainText || '';
+    if (!text) {
+      this.setData({
+        textInputFocus: true,
+        showPasteTip: true,
+        selectionHint: ''
+      });
+      return;
+    }
+    const rawCursor = typeof this.data.selectionEnd === 'number'
+      ? this.data.selectionEnd
+      : (typeof this.data.selectionStart === 'number' ? this.data.selectionStart : text.length);
+    const cursor = Math.max(0, Math.min(rawCursor, text.length));
+    const lineStart = text.lastIndexOf('\n', Math.max(cursor - 1, 0)) + 1;
+    const nextBreak = text.indexOf('\n', cursor);
+    const lineEnd = nextBreak >= 0 ? nextBreak : text.length;
+    const start = lineStart < lineEnd ? lineStart : 0;
+    const end = lineStart < lineEnd ? lineEnd : text.length;
+    this.setData({
+      textInputFocus: false,
+      showPasteTip: true,
+      selectionHint: end > start ? '已选择' : ''
+    });
+    setTimeout(() => {
+      this.setData({
+        textInputFocus: true,
+        selectionStart: start,
+        selectionEnd: end
+      });
+    }, 80);
+  },
+
   selectTextBeforeCursor() {
     if (this.shouldSkipFormatAction('selectBefore')) return;
     const text = this.data.activePlainText || '';

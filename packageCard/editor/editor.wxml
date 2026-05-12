@@ -56,6 +56,7 @@
             bindtap="onStageEditorTap"
             bindtouchend="onStageEditorTouchEnd"
             bindinput="onActiveTextInput"
+            bindselect="onTextSelection"
             bindfocus="onTextareaFocus"
             bindblur="finishInlineEditing"
           ></textarea>
@@ -63,15 +64,20 @@
             wx:if="{{inlineEditing && activeBlockId === item.id && showPasteTip}}"
             class="paste-tip"
           >
-            <view class="paste-menu-btn" catchtouchend="pasteClipboardToActiveText" catchtap="pasteClipboardToActiveText">粘贴</view>
-            <view class="paste-menu-btn danger" catchtouchend="deleteSelectedText" catchtap="deleteSelectedText">删除</view>
-            <view class="paste-menu-btn" catchtouchend="selectAllActiveText" catchtap="selectAllActiveText">全选</view>
-            <view class="paste-menu-btn strong {{formats.bold ? 'on' : ''}}" catchtouchend="toggleSelectedBold" catchtap="toggleSelectedBold">B</view>
-            <view class="paste-menu-btn" catchtouchend="decreaseSelectedFontSize" catchtap="decreaseSelectedFontSize">A-</view>
-            <view class="paste-menu-btn strong" catchtouchend="increaseSelectedFontSize" catchtap="increaseSelectedFontSize">A+</view>
-            <view class="paste-menu-btn" catchtouchend="showFontPanelForSelection" catchtap="showFontPanelForSelection">字体</view>
-            <view class="paste-menu-btn" catchtouchend="showColorPanelForSelection" catchtap="showColorPanelForSelection">颜色</view>
-            <view class="paste-menu-btn done" catchtouchend="finishInlineEditingFromMenu" catchtap="finishInlineEditingFromMenu">完成</view>
+            <view class="paste-menu-row">
+              <view class="paste-menu-btn" catchtouchend="pasteClipboardToActiveText" catchtap="pasteClipboardToActiveText">粘贴</view>
+              <view class="paste-menu-btn danger" catchtouchend="deleteSelectedText" catchtap="deleteSelectedText">删除</view>
+              <view class="paste-menu-btn" catchtouchend="selectCurrentLineText" catchtap="selectCurrentLineText">选择</view>
+              <view class="paste-menu-btn" catchtouchend="selectAllActiveText" catchtap="selectAllActiveText">全选</view>
+              <view class="paste-menu-btn strong {{formats.bold ? 'on' : ''}}" catchtouchend="toggleSelectedBold" catchtap="toggleSelectedBold">B</view>
+            </view>
+            <view class="paste-menu-row">
+              <view class="paste-menu-btn" catchtouchend="decreaseSelectedFontSize" catchtap="decreaseSelectedFontSize">A-</view>
+              <view class="paste-menu-btn strong" catchtouchend="increaseSelectedFontSize" catchtap="increaseSelectedFontSize">A+</view>
+              <view class="paste-menu-btn" catchtouchend="showFontPanelForSelection" catchtap="showFontPanelForSelection">字体</view>
+              <view class="paste-menu-btn" catchtouchend="showColorPanelForSelection" catchtap="showColorPanelForSelection">颜色</view>
+              <view class="paste-menu-btn done" catchtouchend="finishInlineEditingFromMenu" catchtap="finishInlineEditingFromMenu">完成</view>
+            </view>
             <view wx:if="{{selectionHint}}" class="paste-menu-hint">{{selectionHint}}</view>
           </view>
           <view wx:if="{{!inlineEditing && !item.plainText}}" class="placeholder-text">{{item.placeholder || '输入文字...'}}</view>

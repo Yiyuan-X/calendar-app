@@ -424,41 +424,50 @@
 
 .paste-tip {
   position: absolute;
-  left: 0;
-  top: -64rpx;
+  left: 50%;
+  top: 100%;
   z-index: 20;
   display: flex;
-  align-items: center;
-  gap: 0;
-  max-width: 100%;
+  flex-direction: column;
+  align-items: stretch;
+  gap: 2rpx;
+  width: 456rpx;
   height: auto;
-  min-height: 54rpx;
-  padding: 6rpx 10rpx;
-  flex-wrap: wrap;
+  min-height: 104rpx;
+  margin-top: 12rpx;
+  padding: 8rpx 10rpx;
   color: #FFFFFF;
   background: rgba(55, 43, 34, 0.94);
   border-radius: 16rpx;
   box-shadow: 0 6rpx 18rpx rgba(55, 43, 34, 0.24);
   box-sizing: border-box;
+  transform: translateX(-50%);
 }
 
 .paste-tip::after {
   content: '';
   position: absolute;
-  left: 34rpx;
-  bottom: -10rpx;
+  left: 50%;
+  top: -10rpx;
   width: 0;
   height: 0;
+  margin-left: -10rpx;
   border-left: 10rpx solid transparent;
   border-right: 10rpx solid transparent;
-  border-top: 10rpx solid rgba(55, 43, 34, 0.94);
+  border-bottom: 10rpx solid rgba(55, 43, 34, 0.94);
+}
+
+.paste-menu-row {
+  display: grid;
+  grid-template-columns: repeat(5, minmax(0, 1fr));
+  gap: 0;
+  width: 100%;
 }
 
 .paste-menu-btn {
-  flex: 0 0 auto;
-  min-width: 64rpx;
+  min-width: 0;
   height: 44rpx;
-  padding: 0 12rpx;
+  padding: 0 6rpx;
   color: #FFFFFF;
   border-radius: 10rpx;
   font-size: 24rpx;
@@ -468,7 +477,7 @@
   box-sizing: border-box;
 }
 
-.paste-menu-btn + .paste-menu-btn {
+.paste-menu-btn:not(:first-child) {
   border-left: 1rpx solid rgba(255, 255, 255, 0.22);
 }
 
@@ -490,13 +499,21 @@
 }
 
 .paste-menu-hint {
-  flex: 0 0 auto;
+  position: absolute;
+  left: 50%;
+  bottom: -38rpx;
+  min-width: 96rpx;
   height: 44rpx;
-  padding: 0 12rpx;
+  padding: 0 16rpx;
   color: #FFD34E;
+  background: rgba(55, 43, 34, 0.88);
+  border-radius: 999rpx;
   font-size: 22rpx;
   font-weight: 800;
   line-height: 44rpx;
+  text-align: center;
+  transform: translateX(-50%);
+  box-shadow: 0 4rpx 12rpx rgba(55, 43, 34, 0.18);
 }
 
 /* 保留类名兼容旧结构，当前格式菜单已合并进浮层 */
