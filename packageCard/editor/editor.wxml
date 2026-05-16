@@ -151,11 +151,34 @@
           <view class="resize-handle resize-bm" data-id="{{item.id}}" data-edge="bm" catchtouchstart="onResizeStart" catchtouchmove="onResizeMove" catchtouchend="onResizeEnd"></view>
           <view class="resize-handle resize-br" data-id="{{item.id}}" data-edge="br" catchtouchstart="onResizeStart" catchtouchmove="onResizeMove" catchtouchend="onResizeEnd"></view>
         </view>
+        <!-- 二维码：可拖拽 + 可缩放 + 透明背景（必须在 movable-area 内） -->
+        <!-- useCanvasPreview 时隐藏 image（canvas 已绘制），只用透明热区做交互；非 canvas 模式才显示 image -->
+        <movable-view
+          wx:if="{{design.qrcode.visible && design.qrcode.src}}"
+          class="qr-movable {{qrcodeActive ? 'qr-active' : ''}}"
+          x="{{qrPreviewX}}"
+          y="{{qrPreviewY}}"
+          direction="all"
+          inertia="true"
+          damping="6"
+          friction="4"
+          bindchange="onQrMove"
+          bindtouchstart="onQrTouchStart"
+          catchtap="onQrTap"
+        >
+          <view class="qr-inner" style="width: {{qrPreviewSize}}rpx; height: {{qrPreviewSize}}rpx;">
+            <image wx:if="{{!useCanvasPreview}}" class="qr-preview-img" src="{{design.qrcode.src}}" mode="aspectFit"></image>
+            <!-- 选中时显示操作按钮 -->
+            <view wx:if="{{qrcodeActive}}" class="qr-actions">
+              <view class="qr-action-btn qr-copy" catchtouchend="copyQrCode" catchtap="copyQrCode">⧉</view>
+              <view class="qr-action-btn qr-change" catchtouchend="chooseQrCode" catchtap="chooseQrCode">↻</view>
+              <view class="qr-action-btn qr-del" catchtouchend="deleteQrCode" catchtap="deleteQrCode">×</view>
+            </view>
+            <!-- 缩放手柄（右下角） -->
+            <view wx:if="{{qrcodeActive}}" class="qr-resize-handle" catchtouchstart="onQrResizeStart" catchtouchmove="onQrResizeMove" catchtouchend="onQrResizeEnd"></view>
+          </view>
+        </movable-view>
       </movable-area>
-      <view wx:if="{{design.qrcode.visible && design.qrcode.src}}" class="qr-wrap">
-        <image class="qr-preview" src="{{design.qrcode.src}}" mode="aspectFill"></image>
-        <view class="block-control qr-delete" catchtap="deleteQrCode">⌫</view>
-      </view>
     </view>
   </view>
 

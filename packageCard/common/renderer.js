@@ -121,6 +121,48 @@ function drawVerticalGlyph(ctx, glyph, style, block, design, x, y, columnWidth) 
   ctx.restore();
 }
 
+/**
+ * 将文本按中文词组拆分为片段，用于竖排时的合理换行
+ * 规则：
+ * - 英文单词、数字保持完整
+ * - 中文按 2 字词组优先（如"心安"、"当下"），长句自适应
+ * - 标点符号附着在前一个字符上
+ */
+function splitTextForVertical(text) {
+  const segments = [];
+  // 匹配：英文单词/数字 | 中文标点 | 中文字符（成对或单字）
+  const re = /[a-zA-Z0-9]+|[，。！？；：""''、…—·\-\(\)\[\]【】《》]|[\u4e00-\u9fa5]/g;
+  let match;
+  const buffer = []; // 缓存中文字符，尝试组成 2 字词组
+  function flushBuffer() {
+    if (buffer.length === 1) {
+      segments.push(buffer[0]);
+    } else if (buffer.length >= 2) {
+      // 两两分组，剩余单字单独成段
+      for (let i = 0; i < buffer.length; i += 2) {
+        if (i + 1 < buffer.length) {
+          segments.push(buffer[i] + buffer[i + 1]);
+        } else {
+          segments.push(buffer[i]);
+        }
+      }
+    }
+    buffer.length = 0;
+  }
+
+  while ((match = re.exec(text)) !== null) {
+    const token = match[0];
+    if (/[\u4e00-\u9fa5]/.test(token)) {
+      buffer.push(token);
+    } else {
+      flushBuffer();
+      segments.push(token); // 非中文字符直接成段
+    }
+  }
+  flushBuffer();
+  return segments;
+}
+
 function drawVerticalTextBlock(ctx, block, design) {
   const ops = normalizeOps(block.delta);
   const sourceX = Number(block.x || 0);
@@ -147,8 +189,9 @@ function drawVerticalTextBlock(ctx, block, design) {
     return Math.max(max, parseInt(attrs.size || attrs.fontSize || 30, 10) || 30);
   }, 30);
   const columnWidth = Math.max(maxFontSize * 1.2, 28);
-  const columns = [[]];
-  let currentHeight = 0;
+
+  // 收集所有带样式的文本片段（按词组拆分）
+  const allSegments = [];
   ops.forEach(op => {
     const style = {
       fontFamily: block.fontFamily,
@@ -159,32 +202,51 @@ function drawVerticalTextBlock(ctx, block, design) {
     const letterSpacing = Number(style.letterSpacing || blockLetterSpacing);
     const stepY = Math.max(fontSize * lineHeight + letterSpacing, fontSize + 4);
     const text = String(op.insert || '');
-    for (let i = 0; i < text.length; i++) {
-      const glyph = text[i];
-      if (glyph === '\n') {
-        columns.push([]);
-        currentHeight = 0;
-        continue;
+    if (!text) return;
+
+    // 按词组拆分文本
+    const segments = splitTextForVertical(text);
+    segments.forEach(seg => {
+      if (seg === '\n') {
+        allSegments.push({ isNewline: true });
+      } else {
+        allSegments.push({ text: seg, style, stepY });
       }
-      if (currentHeight + stepY > boxHeight && currentHeight > 0) {
-        columns.push([]);
-        currentHeight = 0;
-      }
-      columns[columns.length - 1].push({ glyph, style, stepY });
-      currentHeight += stepY;
+    });
+  });
+
+  // 将片段分配到列中（每列不超过 boxHeight）
+  const columns = [[]];
+  let currentHeight = 0;
+  allSegments.forEach(seg => {
+    if (seg.isNewline) {
+      columns.push([]);
+      currentHeight = 0;
+      return;
     }
+    const segHeight = seg.text.length * seg.stepY;
+    // 如果当前列放不下这个片段且已有内容，换到下一列
+    if (currentHeight + segHeight > boxHeight && currentHeight > 0) {
+      columns.push([]);
+      currentHeight = 0;
+    }
+    columns[columns.length - 1].push(seg);
+    currentHeight += segHeight;
   });
 
   const visibleColumns = columns.filter(column => column.length);
   visibleColumns.forEach((column, columnIndex) => {
     const cursorX = x + maxWidth - columnWidth * (columnIndex + 1);
-    const columnHeight = column.reduce((sum, item) => sum + item.stepY, 0);
+    const columnHeight = column.reduce((sum, item) => sum + item.text.length * item.stepY, 0);
     let cursorY = y;
     if (verticalAlign === 'middle') cursorY = y + Math.max((boxHeight - columnHeight) / 2, 0);
     if (verticalAlign === 'bottom') cursorY = y + Math.max(boxHeight - columnHeight, 0);
     column.forEach(item => {
-      drawVerticalGlyph(ctx, item.glyph, item.style, block, design, cursorX, cursorY, columnWidth);
-      cursorY += item.stepY;
+      // 将片段中的每个字符绘制在同一列
+      for (let c = 0; c < item.text.length; c++) {
+        drawVerticalGlyph(ctx, item.text[c], item.style, block, design, cursorX, cursorY, columnWidth);
+        cursorY += item.stepY;
+      }
     });
   });
 
@@ -204,6 +266,9 @@ function layoutText(ctx, block, design) {
   let width = 0;
   const maxWidth = Number(block.width || 500);
   const blockLetterSpacing = Number(block.letterSpacing || 0);
+
+  // 中文禁则标点：这些符号不应出现在行首（应与前一个字符粘连）
+  const PROHIBIT_LINE_START = /[，。；：！？、》』】）…~\-–—]/;
 
   function flush() {
     lines.push({ runs: line, width });
@@ -227,10 +292,20 @@ function layoutText(ctx, block, design) {
       ctx.font = pickFont(style, design);
       const chWidth = measureChar(ctx, ch, Number(style.letterSpacing || blockLetterSpacing));
       if (width + chWidth > maxWidth && line.length) {
-        flush();
+        // 禁止标点符号出现在行首：将标点挤到上一行末尾
+        if (PROHIBIT_LINE_START.test(ch)) {
+          line.push({ text: ch, style, width: chWidth });
+          width += chWidth;
+          flush();
+        } else {
+          flush();
+          line.push({ text: ch, style, width: chWidth });
+          width += chWidth;
+        }
+      } else {
+        line.push({ text: ch, style, width: chWidth });
+        width += chWidth;
       }
-      line.push({ text: ch, style, width: chWidth });
-      width += chWidth;
     }
   });
 

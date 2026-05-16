@@ -553,6 +553,136 @@ function getTextPanelState(block, fallback) {
   };
 }
 
+/**
+ * 将文本按中文词组拆分为片段（与 renderer.js 的 splitTextForVertical 逻辑一致）
+ * - 英文单词/数字保持完整
+ * - 中文按 2 字词组优先分组
+ * - 标点符号单独成段附着在前面的词组后
+ */
+function splitTextForVerticalPreview(text) {
+  const segments = [];
+  const re = /[a-zA-Z0-9]+|[，。！？；：""''、…—·\-\(\)\[\]【】《》]|[\u4e00-\u9fa5]/g;
+  let match;
+  const buffer = [];
+  function flushBuffer() {
+    if (buffer.length === 1) {
+      segments.push(buffer[0]);
+    } else if (buffer.length >= 2) {
+      for (let i = 0; i < buffer.length; i += 2) {
+        if (i + 1 < buffer.length) {
+          segments.push(buffer[i] + buffer[i + 1]);
+        } else {
+          segments.push(buffer[i]);
+        }
+      }
+    }
+    buffer.length = 0;
+  }
+  while ((match = re.exec(text)) !== null) {
+    const token = match[0];
+    if (/[\u4e00-\u9fa5]/.test(token)) {
+      buffer.push(token);
+    } else {
+      flushBuffer();
+      segments.push(token);
+    }
+  }
+  flushBuffer();
+  return segments;
+}
+
+/**
+ * 构建竖排文字的 rich-text 预览节点（按词组分列，从右到左排列）
+ * 与 renderer.js 的 drawVerticalTextBlock 渲染效果一致
+ */
+function buildVerticalPreviewNodes(delta, block, textScale, blockLetterSpacing) {
+  const ops = (delta && delta.ops) || [];
+  const lineHeightVal = Number(block.lineHeight || 1.6);
+
+  // 收集所有文本片段
+  const allSegments = [];
+  ops.forEach(op => {
+    const attrs = op.attributes || {};
+    const fontSize = Math.max(Math.round((parseInt(attrs.size || attrs.fontSize || 30, 10) || 30) * textScale), 12);
+    const letterSpacing = Math.round(Number(attrs.letterSpacing || block.letterSpacing || 0) * textScale * 10) / 10;
+    const charStepY = Math.round(fontSize * lineHeightVal + letterSpacing);
+
+    const style = [
+      `font-size:${fontSize}rpx`,
+      `color:${attrs.color || '#4B4038'}`,
+      `opacity:${attrs.opacity || 1}`,
+      attrs.bold ? 'font-weight:700' : '',
+      attrs.italic ? 'font-style:italic' : '',
+      (attrs.fontFamily || block.fontFamily) ? `font-family:${attrs.fontFamily || block.fontFamily}` : ''
+    ].filter(Boolean).join(';');
+
+    const text = String(op.insert || '');
+    if (!text) return;
+
+    const segments = splitTextForVerticalPreview(text);
+    segments.forEach(seg => {
+      if (seg === '\n') {
+        allSegments.push({ isNewline: true });
+      } else {
+        allSegments.push({ text: seg, style, charStepY });
+      }
+    });
+  });
+
+  // 如果没有内容，返回空节点
+  if (!allSegments.length) {
+    return [{ name: 'div', attrs: { style: 'display:flex;flex-direction:row-reverse;justify-content:flex-start;align-items:flex-start;height:100%;gap:8rpx;' }, children: [] }];
+  }
+
+  // 将片段分配到列中（模拟 boxHeight，这里用合理的行数限制）
+  const maxCharsPerColumn = 18; // 每列最多字符数（预览用近似值）
+  const columns = [[]];
+  let currentColChars = 0;
+  allSegments.forEach(seg => {
+    if (seg.isNewline) {
+      columns.push([]);
+      currentColChars = 0;
+      return;
+    }
+    const segChars = seg.text.length;
+    if (currentColChars + segChars > maxCharsPerColumn && currentColChars > 0) {
+      columns.push([]);
+      currentColChars = 0;
+    }
+    columns[columns.length - 1].push(seg);
+    currentColChars += segChars;
+  });
+
+  // 从右到左生成列节点（每列是一个竖向 flex 容器）
+  const columnNodes = columns.filter(col => col.length).reverse().map(column => {
+    const spanChildren = column.map(seg => ({
+      name: 'span',
+      attrs: { style: `${seg.style};display:block;text-align:center;padding:2rpx 0;` },
+      children: seg.text.split('').map(ch => ({ type: 'text', text: ch }))
+    }));
+    return {
+      name: 'div',
+      attrs: { style: 'display:flex;flex-direction:column;align-items:center;justify-content:flex-start;gap:2rpx;' },
+      children: spanChildren
+    };
+  });
+
+  return [{
+    name: 'div',
+    attrs: {
+      style: [
+        'display:flex',
+        'flex-direction:row-reverse',       // 从右到左排列
+        'justify-content:flex-start',
+        'align-items:flex-start',
+        'height:100%',
+        `gap:${Math.max(Math.round(blockLetterSpacing * 1.5), 6)}rpx`
+      ].join(';')
+    },
+    children: columnNodes
+  }];
+}
+
 function deltaToNodes(delta, block) {
   const previewScale = block && block._previewScale ? block._previewScale : { x: PREVIEW_SCALE, y: PREVIEW_SCALE };
   const textScale = previewScale.x || PREVIEW_SCALE;
@@ -587,6 +717,12 @@ function deltaToNodes(delta, block) {
   const children = [];
   const blockLetterSpacing = Math.round(Number(block.letterSpacing || 0) * textScale * 10) / 10;
   const vertical = isVerticalTextBlock(block);
+
+  // ===== 竖排模式：按词组分列生成节点（与导出渲染一致） =====
+  if (vertical) {
+    return buildVerticalPreviewNodes(delta, block, textScale, blockLetterSpacing);
+  }
+
   ops.forEach(op => {
     const attrs = op.attributes || {};
     const strokeEnabled = typeof attrs.stroke === 'boolean' ? attrs.stroke : !!block.stroke;
@@ -618,10 +754,7 @@ function deltaToNodes(delta, block) {
     attrs: {
       style: [
         `letter-spacing:${blockLetterSpacing}rpx`,
-        `line-height:${block.lineHeight || 1.6}`,
-        vertical ? 'writing-mode:vertical-rl' : '',
-        vertical ? 'text-orientation:upright' : '',
-        vertical ? 'height:100%' : ''
+        `line-height:${block.lineHeight || 1.6}`
       ].filter(Boolean).join(';')
     },
     children
@@ -727,6 +860,17 @@ function hydrateDesign(design) {
       plainText: deltaToText(block.delta)
     };
   });
+  // 计算二维码预览坐标（用于 movable-view 定位）
+  var qr = copyDesign.qrcode;
+  if (qr && qr.visible && qr.src) {
+    copyDesign._qrPreviewX = Math.round((qr.x || 0) * previewScale.x);
+    copyDesign._qrPreviewY = Math.round((qr.y || 0) * previewScale.y);
+    copyDesign._qrPreviewSize = Math.round((qr.size || 110) * previewScale.x);
+  } else {
+    copyDesign._qrPreviewX = 0;
+    copyDesign._qrPreviewY = 0;
+    copyDesign._qrPreviewSize = 88;
+  }
   return copyDesign;
 }
 
@@ -831,7 +975,12 @@ Page({
   // 草稿列表
   showDraftList: false,
   draftList: [],
-  draftListCount: 0
+  draftListCount: 0,
+  // 二维码交互状态
+  qrcodeActive: false,
+  qrPreviewX: 0,
+  qrPreviewY: 0,
+  qrPreviewSize: 88
 },
 
   // ==================== 撤销 / 重做 历史栈 ====================
@@ -948,6 +1097,9 @@ Page({
 
   async renderPreviewCanvas() {
     if (!this.data.useCanvasPreview || !this.data.design) return;
+    // 防止渲染堆积：如果上一次渲染还在进行中，标记需要重新渲染，完成后立即用最新数据再画一次
+    if (this._previewRendering) { this._previewDirty = true; return; }
+    this._previewRendering = true;
     try {
       await renderer.drawPosterToCanvas(this, '#previewCanvas', this.data.design, {
         scale: 1,
@@ -955,6 +1107,13 @@ Page({
       });
     } catch (e) {
       console.warn('预览画布渲染失败', e);
+    } finally {
+      this._previewRendering = false;
+      // 如果渲染期间有新的变更，立即用最新数据再渲染一次
+      if (this._previewDirty) {
+        this._previewDirty = false;
+        this.renderPreviewCanvas();
+      }
     }
   },
 
@@ -1150,8 +1309,16 @@ Page({
       bgDisplayHeight: bgLayout.height,
       previewStageWidth: stage.width,
       previewStageHeight: stage.height,
-      activeCanvasSizeId: detectCanvasSizeId(hydrated.size)
-    }, () => this.schedulePreviewRender(0));
+      activeCanvasSizeId: detectCanvasSizeId(hydrated.size),
+      // 二维码预览坐标（从 hydrateDesign 计算）
+      qrPreviewX: hydrated._qrPreviewX || 0,
+      qrPreviewY: hydrated._qrPreviewY || 0,
+      qrPreviewSize: hydrated._qrPreviewSize || 88
+    }, () => {
+      this.schedulePreviewRender(0);
+      // 如果有待进入编辑的新文字框，在渲染完成后立即激活
+      this.enterPendingNewBlock();
+    });
     this._saveHistory(hydrated);
   },
 
@@ -1336,11 +1503,10 @@ getPreviewBackground(bg) {
     this._typingHistoryStarted = true;
     const text = e.detail.value || '';
     const block = this.data.activeBlock || {};
-    const firstAttrs = block.delta && block.delta.ops && block.delta.ops[0] ? (block.delta.ops[0].attributes || {}) : {};
-    // 输入时：直接用当前文字创建干净的单 op delta
-    // （格式由底部面板统一控制，不需要保留多 op 结构）
-    const delta = { ops: [{ insert: text, attributes: firstAttrs }] };
-    const cursor = typeof e.detail.cursor === 'number' ? e.detail.cursor : text.length;
+    // 输入时：保留原有 delta 的多 op 格式结构，只替换文本内容
+    // 这样粗体/颜色/字号等差异化格式不会丢失
+    const delta = this.rebuildDeltaWithText(block.delta, text);
+    const cursor = typeof e.detail.cursor === 'number' ? e.cursor : text.length;
     const newNodeVer = (this.data.nodeVersion || 0) + 1;
     const caretState = this.getCaretState(cursor, text, { ...block, delta, _previewScale: getPreviewScales(this.data.design) });
     this.setData({
@@ -1352,8 +1518,59 @@ getPreviewBackground(bg) {
       nodeVersion: newNodeVer,
       ...caretState
     });
-    this.updateActiveBlock({ delta }, { silentEditor: true });
-    this.schedulePreviewRender(150); // 输入后延迟刷新 canvas 预览
+    this.updateActiveBlock({ delta }, { silentEditor: true, renderDelay: 50 });
+    // 快速同步画布：输入/换行/删除后 50ms 内刷新 canvas 预览
+    this.schedulePreviewRender(50);
+  },
+
+  /**
+   * 在保留原有 delta 格式属性（多 op 结构）的基础上，将文本替换为新内容。
+   * 按 \n 分割文本段，依次分配给各 op（循环复用格式），确保：
+   * - 换行符 \n 保留在对应位置（不被吞掉）
+   * - 粗体、颜色、字号等差异化格式不丢失
+   */
+  rebuildDeltaWithText(originalDelta, newText) {
+    const ops = (originalDelta && originalDelta.ops) || [];
+    // 保留原始 ops 的格式属性作为模板（即使文本为空也需要保留）
+    const templateOps = ops.length ? ops : [{ insert: '', attributes: {} }];
+    if (!newText) {
+      // 空文本：返回保留格式的空 delta
+      const firstAttrs = (templateOps[0] && templateOps[0].attributes) || {};
+      return { ops: [{ insert: '', attributes: firstAttrs }] };
+    }
+
+    // 将新文本按 \n 分割为段落（保留 \n 用于定位）
+    const segments = newText.split('\n');
+    const newOps = [];
+    let opIndex = 0;
+
+    for (var si = 0; si < segments.length; si++) {
+      var seg = segments[si];
+      if (si > 0) {
+        var prevAttrs = newOps.length > 0
+          ? (newOps[newOps.length - 1].attributes || {})
+          : (templateOps[0] && templateOps[0].attributes) || {};
+        newOps.push({ insert: '\n', attributes: prevAttrs });
+      }
+      if (!seg) continue;
+
+      var charIdx = 0;
+      while (charIdx < seg.length) {
+        if (opIndex >= templateOps.length) opIndex = 0;
+        var attrs = { ...(templateOps[opIndex] && templateOps[opIndex].attributes || {}) };
+        var chunkLen = Math.min(seg.length - charIdx, Math.max(Math.ceil(seg.length / Math.max(templateOps.length, 1)), 1));
+        var chunk = seg.slice(charIdx, charIdx + chunkLen);
+        if (chunk) newOps.push({ insert: chunk, attributes: attrs });
+        charIdx += chunkLen;
+        opIndex++;
+      }
+    }
+    // 如果结果为空（理论上不应该到达这里），返回带格式的空 delta
+    if (!newOps.length) {
+      const firstAttrs = (templateOps[0] && templateOps[0].attributes) || {};
+      return { ops: [{ insert: '', attributes: firstAttrs }] };
+    }
+    return { ops: newOps };
   },
 
   onTextSelection(e) {
@@ -1540,6 +1757,8 @@ getPreviewBackground(bg) {
     const styledChars = this.getSelectionStyledChars(value, block);
     const lines = [];
     let current = { chars: [], width: 0, startIndex: 0, fontSize, lineHeight };
+    // 中文禁则标点：这些符号不应出现在行首（应与前一个字符粘连）
+    const PROHIBIT_LINE_START = /[，。；：！？、》』】）…~\-–—]/;
     for (let i = 0; i < value.length; i++) {
       const ch = value[i];
       if (ch === '\n') {
@@ -1550,8 +1769,16 @@ getPreviewBackground(bg) {
       const styled = styledChars[i] || { fontSize, width: this.estimateSelectionCharWidth(ch, fontSize) };
       const chWidth = Math.max(Number(styled.width || 0), 1);
       if (current.chars.length && current.width + chWidth > usable) {
-        lines.push(current);
-        current = { chars: [], width: 0, startIndex: i, fontSize, lineHeight };
+        // 禁止标点符号出现在行首：将标点挤到上一行末尾
+        if (PROHIBIT_LINE_START.test(ch)) {
+          current.chars.push({ index: i, width: chWidth, fontSize: styled.fontSize || fontSize });
+          current.width += chWidth;
+          lines.push(current);
+          current = { chars: [], width: 0, startIndex: i + 1, fontSize, lineHeight };
+        } else {
+          lines.push(current);
+          current = { chars: [], width: 0, startIndex: i, fontSize, lineHeight };
+        }
       }
       current.fontSize = Math.max(Number(current.fontSize || fontSize), Number(styled.fontSize || fontSize));
       current.lineHeight = Math.max(Number(current.lineHeight || lineHeight), Number(styled.fontSize || fontSize) * Number(block.lineHeight || 1.6), Number(styled.fontSize || fontSize) + 6);
@@ -1593,14 +1820,14 @@ getPreviewBackground(bg) {
     const line = layout.lines[Math.max(0, Math.min(Number(lineIndex || 0), layout.lines.length - 1))] || { width: 0 };
     const align = (blockOverride && blockOverride.align) || (this.data.activeBlock && this.data.activeBlock.align) || 'left';
     const charCount = Array.isArray(line.chars) ? line.chars.length : 0;
-    const endCompensation = charCount ? Math.max(layout.fontSize * 0.08, 3) : 0;
+    // 光标在行末时，紧贴最后一个字符右侧，仅保留微小视觉间距（4-8rpx）
+    const endCompensation = charCount ? Math.max(layout.fontSize * 0.18, 5) : 0;
     let offsetX = layout.padX || 0;
     if (align === 'center') offsetX = (layout.padX || 0) + Math.max(((layout.usable || 0) - Number(line.width || 0)) / 2, 0);
     if (align === 'right') offsetX = (layout.padX || 0) + Math.max((layout.usable || 0) - Number(line.width || 0), 0);
     const maxX = (layout.padX || 0) + (layout.usable || 0);
-    const measuredEndX = offsetX + Number(line.width || 0) + endCompensation;
-    const iosEndX = offsetX + Number(line.width || 0) + Math.max(layout.fontSize * 2.2, 42);
-    const endX = Math.min(maxX, this.data.isIOS ? Math.max(measuredEndX, iosEndX) : measuredEndX);
+    // iOS 和 Android 统一使用紧凑定位，不再额外偏移
+    const endX = Math.min(maxX, offsetX + Number(line.width || 0) + endCompensation);
     return {
       x: typeof x === 'number' ? x : endX,
       y: Number(line.y || 0),
@@ -1615,8 +1842,11 @@ getPreviewBackground(bg) {
     const layout = this.getSelectionLayout(value, blockOverride);
     const max = value.length;
     const index = Math.max(0, Math.min(Number(cursor || 0), max));
+    // 优先使用 offsets 中精确计算的字符位置
     let pos = layout.offsets[index];
-    if (index === max && layout.lines.length) {
+    // 只有当 offsets 中没有该位置时，才 fallback 到行末估算
+    // （例如文本以 \n 结尾时 offsets 可能缺少末尾位置）
+    if (!pos && index === max && layout.lines.length) {
       pos = this.getLineCaretPosition(layout, layout.lines.length - 1, undefined, blockOverride);
     }
     if (!pos) {
@@ -1826,11 +2056,17 @@ getPreviewBackground(bg) {
 
   clearTextSelectionAndEditing(e) {
     if (e && typeof e.stopPropagation === 'function') e.stopPropagation();
-    if (!this.data.inlineEditing && !this.data.selectionModeActive && !this.data.activeBlockId) return;
+    // 同时取消二维码选中态
+    var needClearQr = this.data.qrcodeActive;
+    if (!this.data.inlineEditing && !this.data.selectionModeActive && !this.data.activeBlockId && !needClearQr) return;
     this.editorCtx = null;
     this._manualTextSelection = null;
     this._selectionDrag = null;
     this._textSelectDrag = null;
+    // 只退出编辑模式（隐藏键盘/光标/工具栏），保留 activeBlockId 选中状态
+    // 这样用户再次点击文字框可以立即继续编辑
+    const hadTyping = this._typingHistoryStarted;
+    if (hadTyping) this._typingHistoryStarted = false;
     this.setData({
       inlineEditing: false,
       textInputFocus: false,
@@ -1841,12 +2077,13 @@ getPreviewBackground(bg) {
       selectionRects: [],
       selectionHint: '',
       caretVisible: false,
-      activeBlockId: '',
-      activeBlock: {},
-      activePlainText: '',
-      selectionStart: 0,
-      selectionEnd: 0
-    }, () => this.schedulePreviewRender(0));
+      qrcodeActive: false
+      // 注意：不再清空 activeBlockId / activeBlock / activePlainText
+      // 保留选中状态让用户能随时回到编辑
+    }, () => {
+      this.schedulePreviewRender(0);
+      if (hadTyping) this._saveHistory(this.data.design);
+    });
   },
 
   onSelectionHandleStart(e) {
@@ -2307,19 +2544,25 @@ getPreviewBackground(bg) {
         this.exitSelectionMode();
       }
       const caretState = this.getCaretState(cursorOffset, text, { ...block, _previewScale: getPreviewScales(this.data.design) });
+      // 先取消焦点，再重新设置光标位置并聚焦（确保换行能在正确位置插入）
       this.setData({
         selectionStart: cursorOffset,
         selectionEnd: cursorOffset,
-        textInputFocus: true,
+        textInputFocus: false,
         caretVisible: true,
         showPasteTip: true,
         ...caretState
+      }, () => {
+        setTimeout(() => {
+          this.setData({ textInputFocus: true });
+        }, 30);
       });
       return;
     }
 
     const caretState = this.getCaretState(cursorOffset, text, { ...(block || {}), _previewScale: getPreviewScales(this.data.design) });
 
+    // 先设置所有状态（textInputFocus: false），延迟聚焦确保光标位置正确
     this.setData({
       activeBlockId: id,
       activeBlock: block || {},
@@ -2328,14 +2571,19 @@ getPreviewBackground(bg) {
       selectionPreviewNodes: [],
       selectionFlowNodes: [],
       selectionRects: [],
-      textInputFocus: true,
+      textInputFocus: false,
       inlineEditing: true,
       selectionStart: cursorOffset,
       selectionEnd: cursorOffset,
       ...caretState,
       ...getTextPanelState(block, this.data)
+    }, () => {
+      // 延迟聚焦：确保 textarea 渲染完成后用正确的 selectionStart/End 定位光标
+      setTimeout(() => {
+        this.setData({ textInputFocus: true });
+        this.openFormatMenu();
+      }, 30);
     });
-    this.openFormatMenu();
   },
 
   // 根据页面点击坐标计算字符偏移量
@@ -2417,6 +2665,18 @@ getPreviewBackground(bg) {
       return;
     }
 
+    // 如果 touchend 已经处理了本次点击的光标定位（设置了 _skipNextEditorTap），跳过
+    if (this._skipNextEditorTap) {
+      this._skipNextEditorTap = false;
+      return;
+    }
+
+    // 检查是否为 touchend 刚处理过的纯点击（300ms 内的同位置触摸）
+    if (lastTouch && lastTouch.id === id && lastTouch.isTap && (Date.now() - Number(lastTouch.time || 0)) < 300) {
+      // touchend 已处理，跳过
+      return;
+    }
+
     this.enterEditMode(id, block, tapPageX, tapPageY);
   },
 
@@ -2432,19 +2692,30 @@ getPreviewBackground(bg) {
     const touch = (e.touches && e.touches[0]) || null;
     if (!touch) return;
 
+    // 计算触摸起始点的字符偏移，作为拖拽选择的锚点
+    const block = this.data.activeBlock || {};
+    const startPageX = typeof touch.pageX === 'number' ? touch.pageX : touch.clientX;
+    const startPageY = typeof touch.pageY === 'number' ? touch.pageY : touch.clientY;
+    let anchorOffset = this.data.selectionEnd || 0;
+    const hitOffset = this.getCharOffsetFromPagePoint(block, startPageX, startPageY);
+    if (typeof hitOffset === 'number' && hitOffset >= 0) {
+      anchorOffset = hitOffset;
+    }
+
     this._textSelectDrag = {
       startX: touch.clientX,
       startY: touch.clientY,
       startTime: Date.now(),
       active: false, // 标记是否已进入拖拽选择（移动超过阈值后才算）
-      pageX: touch.pageX || touch.clientX,
-      pageY: touch.pageY || touch.clientY
+      pageX: startPageX,
+      pageY: startPageY,
+      startOffset: anchorOffset // 用触摸点的字符位置作为选择锚点
     };
     this._lastTextTouchPoint = {
       id,
       time: Date.now(),
-      pageX: typeof touch.pageX === 'number' ? touch.pageX : touch.clientX,
-      pageY: typeof touch.pageY === 'number' ? touch.pageY : touch.clientY
+      pageX: startPageX,
+      pageY: startPageY
     };
   },
 
@@ -2465,9 +2736,9 @@ getPreviewBackground(bg) {
     const dy = Math.abs(touch.clientY - drag.startY);
 
     // 移动超过 6px 阈值才视为拖拽选择（避免误触）
+    // startOffset 已在 touchstart 中通过触摸点坐标计算，这里不再覆盖
     if (!drag.active && (dx > 6 || dy > 6)) {
       drag.active = true;
-      drag.startOffset = this.data.selectionEnd || this.data.selectionEnd || 0;
     }
 
     if (!drag.active) return;
@@ -2501,7 +2772,7 @@ getPreviewBackground(bg) {
 
   /**
    * 文字块上的 touchend：结束拖拽选择
-   * 如果没有产生拖拽（只是点击），则将光标移到点击位置
+   * 如果没有产生拖拽（只是点击），则用精确的触摸坐标定位光标
    */
   onTextBlockTouchEnd(e) {
     if (!this.data.inlineEditing || !this._textSelectDrag) return;
@@ -2509,8 +2780,56 @@ getPreviewBackground(bg) {
     const drag = this._textSelectDrag;
     this._textSelectDrag = null;
 
-    // 如果不是拖拽（只是轻点），不做额外处理——editBlockText 已经处理了光标定位
-    // 如果是拖拽但没产生有效选区，确保退出选择模式并显示光标
+    // 记录本次触摸的最终位置（用于 editBlockText 回退使用）
+    const touches = e.changedTouches || e.touches || [];
+    if (touches.length > 0) {
+      this._lastTextTouchPoint = {
+        id: this.data.activeBlockId,
+        time: Date.now(),
+        pageX: typeof touches[0].pageX === 'number' ? touches[0].pageX : touches[0].clientX,
+        pageY: typeof touches[0].pageY === 'number' ? touches[0].pageY : touches[0].clientY,
+        isTap: !drag.active  // 标记这是否为一次纯点击（非拖拽）
+      };
+    }
+
+    if (!drag.active) {
+      // === 纯点击：用触摸坐标精确定位光标 ===
+      const block = this.data.activeBlock || {};
+      const text = this.data.activePlainText || '';
+      let cursorOffset = text.length;
+      if (touches.length > 0) {
+        const pageX = typeof touches[0].pageX === 'number' ? touches[0].pageX : touches[0].clientX;
+        const pageY = typeof touches[0].pageY === 'number' ? touches[0].pageY : touches[0].clientY;
+        const hitOffset = this.getCharOffsetFromPagePoint(block, pageX, pageY);
+        if (typeof hitOffset === 'number' && hitOffset >= 0) {
+          cursorOffset = hitOffset;
+        }
+      }
+      // 如果之前在选择模式，先退出
+      if (this.data.selectionModeActive) {
+        this.exitSelectionMode();
+      }
+      const caretState = this.getCaretState(cursorOffset, text, { ...block, _previewScale: getPreviewScales(this.data.design) });
+      // 先取消焦点，再重新设置光标位置并聚焦（确保 selection 生效）
+      this.setData({
+        selectionStart: cursorOffset,
+        selectionEnd: cursorOffset,
+        textInputFocus: false,
+        caretVisible: true,
+        showPasteTip: true,
+        ...caretState
+      }, () => {
+        // 延迟重新聚焦，确保 textarea 用新的 selectionStart/End 定位光标
+        setTimeout(() => {
+          this.setData({ textInputFocus: true });
+        }, 30);
+      });
+      // 阻止后续 tap 事件重复触发 editBlockText
+      this._skipNextEditorTap = true;
+      return;
+    }
+
+    // 是拖拽但没产生有效选区，确保退出选择模式并显示光标
     if (drag.active && !this.data.selectionModeActive) {
       this.openFormatMenu();
     }
@@ -3042,19 +3361,22 @@ getPreviewBackground(bg) {
       this._pendingFontSelectionRange = null;
     }
 
-    // 先加载字体，完成后再应用格式并渲染画布，确保 Canvas 能使用新字体
+    // 立即应用字体到画布（不等待字体文件加载），实现快速响应
+    if (hasSel) {
+      this.applyFormatToSelection(fontAttrs, fontAttrs);
+    } else {
+      this.applyFormatToAllText(fontAttrs, fontAttrs);
+    }
+    this.schedulePreviewRender(0);
+
+    // 后台异步加载字体文件，完成后刷新画布以正确渲染自定义字体
     this.loadPreviewFont(font).then(loaded => {
-      if (hasSel) {
-        this.applyFormatToSelection(fontAttrs, fontAttrs);
-      } else {
-        this.applyFormatToAllText(fontAttrs, fontAttrs);
-      }
-      this._saveHistory(this.data.design);
       this.schedulePreviewRender(0);
       if (font.fontUrl && !loaded) {
         wx.showToast({ title: '字体加载失败，已保留样式设置', icon: 'none' });
       }
     });
+    this._saveHistory(this.data.design);
   },
 
   loadPreviewFont(font) {
@@ -3527,20 +3849,27 @@ getPreviewBackground(bg) {
       delta: { ops: [{ insert: '', attributes: { size: DEFAULT_TEXT_FONT_SIZE, color: '#6B4F39' } }] }
     };
     design.blocks.push(block);
+    // 直接用 setDesign 更新设计（包含新文字框），然后立即进入编辑模式
     this.setDesign(design, block.id);
+    // setDesign 会重置 inlineEditing=false，所以在其 setData 回调后重新进入编辑模式
+    this._pendingNewBlockId = block.id;
+  },
+
+  /**
+   * 在 setDesign 的 setData 完成后，检查是否有待进入编辑的新文字框。
+   * 由 onReady / setData 回调中触发，确保新文字框能立即进入可编辑状态。
+   */
+  enterPendingNewBlock() {
+    const pendingId = this._pendingNewBlockId;
+    if (!pendingId) return;
+    this._pendingNewBlockId = null;
+    const block = (this.data.design.blocks || []).find(item => item.id === pendingId);
+    if (!block) return;
+    // 延迟一帧确保 setDesign 的渲染已完成
     setTimeout(() => {
-      this.setData({
-        activeBlockId: block.id,
-        activeBlock: block,
-        activePlainText: '',
-        inputText: '',
-        textInputFocus: true,
-        inlineEditing: true,
-        selectionStart: 0,
-        selectionEnd: 0,
-        ...getTextPanelState(block, this.data)
-      });
-    }, 80);
+      this.enterEditMode(pendingId, block);
+      this.openFormatMenu();
+    }, 50);
   },
 
   chooseBackground() {
@@ -3663,17 +3992,154 @@ getPreviewBackground(bg) {
         const file = res.tempFiles && res.tempFiles[0];
         if (!file) return;
         const design = clone(this.data.design);
-        design.qrcode = { ...(design.qrcode || {}), visible: true, src: file.tempFilePath };
+        const size = design.size || { width: 750, height: 1000 };
+        const defaultSize = 110;
+        // 默认位置：右下角，留出边距
+        const defaultX = Number(size.width || 750) - defaultSize - 40;
+        const defaultY = Number(size.height || 1000) - defaultSize - 40;
+        design.qrcode = {
+          visible: true,
+          src: file.tempFilePath,
+          x: Math.round(defaultX),
+          y: Math.round(defaultY),
+          size: defaultSize
+        };
+        this.setData({ qrcodeActive: true });
         this.setDesign(design, this.data.activeBlockId);
       }
     });
   },
 
   deleteQrCode() {
+    if (typeof e !== 'undefined' && e && typeof e.stopPropagation === 'function') e.stopPropagation();
     const design = clone(this.data.design);
     design.qrcode = { ...(design.qrcode || {}), visible: false, src: '' };
-    this.setData({ design: hydrateDesign(design) }, () => this.schedulePreviewRender(0));
+    this.setData({ design: hydrateDesign(design), qrcodeActive: false }, () => this.schedulePreviewRender(0));
+    this._saveHistory(design);
     wx.showToast({ title: '已删除二维码', icon: 'none' });
+  },
+
+  // ==================== 二维码交互：拖拽 / 缩放 / 复制 / 更换 ====================
+
+  /** 点击二维码：确保激活选中态 */
+  onQrTap(e) {
+    if (e && typeof e.stopPropagation === 'function') e.stopPropagation();
+    // 阻止冒泡到 poster-stage 的 clearTextSelectionAndEditing
+    // 点击时始终激活选中态（显示操作按钮、缩放手柄）
+    if (!this.data.qrcodeActive) {
+      this.setData({ qrcodeActive: true });
+    }
+  },
+
+  /** 二维码触摸开始：立即激活选中态 + 记录起始位置 */
+  onQrTouchStart(e) {
+    if (e && typeof e.stopPropagation === 'function') e.stopPropagation();
+    // 手指碰到二维码就立即激活选中态，显示操作按钮和缩放手柄
+    if (!this.data.qrcodeActive) {
+      this.setData({ qrcodeActive: true });
+    }
+  },
+
+  /** 二维码拖拽移动：实时更新位置 + 保持选中态 */
+  onQrMove(e) {
+    if (!e.detail || !e.detail.source || e.detail.source !== 'touch') return;
+    var qr = this.data.design.qrcode;
+    if (!qr || !qr.visible) return;
+    // 将 movable-view 的 px 坐标转换为设计坐标（750rpx 基准）
+    try {
+      var info = wx.getSystemInfoSync();
+      var rpxPerPx = 750 / (info.windowWidth || 750);
+      var newX = Math.round(e.detail.x * rpxPerPx);
+      var newY = Math.round(e.detail.y * rpxPerPx);
+      var newSize = Math.round(Number(qr.size || 110) * PREVIEW_SCALE);
+      // 拖拽时保持选中态，确保操作按钮和缩放手柄可见
+      var updateData = {
+        qrPreviewX: e.detail.x,
+        qrPreviewY: e.detail.y,
+        qrPreviewSize: newSize
+      };
+      if (!this.data.qrcodeActive) {
+        updateData.qrcodeActive = true;
+      }
+      this.setData(updateData);
+      // 同步到 design
+      var design = clone(this.data.design);
+      if (design.qrcode) {
+        design.qrcode.x = newX;
+        design.qrcode.y = newY;
+        this.setData({ 'design.qrcode': design.qrcode });
+        this.schedulePreviewRender(16);
+      }
+    } catch (err) {}
+  },
+
+  /** 二维码缩放开始 */
+  onQrResizeStart(e) {
+    if (e && typeof e.stopPropagation === 'function') e.stopPropagation();
+    var touch = e.touches && e.touches[0];
+    if (!touch) return;
+    this._qrResizeStartSize = Number(this.data.qrPreviewSize || 88);
+    this._qrResizeStartX = touch.clientX;
+    this._qrResizeStartY = touch.clientY;
+    this._qrBaseSize = Number((this.data.design.qrcode && this.data.design.qrcode.size) || 110);
+  },
+
+  /** 二维码缩放中 */
+  onQrResizeMove(e) {
+    if (e && typeof e.stopPropagation === 'function') e.stopPropagation();
+    var touch = e.touches && e.touches[0];
+    if (!touch || this._qrResizeStartSize == null) return;
+    var dx = touch.clientX - this._qrResizeStartX;
+    var dy = touch.clientY - this._qrResizeStartY;
+    var delta = Math.max(dx, dy);
+    // 每移动 2px 对应 1rpx 预览大小变化，限制范围 40~240rpx
+    var newPreviewSize = Math.max(40, Math.min(240, this._qrResizeStartSize + delta * 0.5));
+    // 将预览尺寸反算回设计尺寸
+    var newDesignSize = Math.max(40, Math.min(300, Math.round(newPreviewSize / PREVIEW_SCALE)));
+    this.setData({ qrPreviewSize: newPreviewSize });
+    // 同步到 design
+    var design = clone(this.data.design);
+    if (design.qrcode) {
+      design.qrcode.size = newDesignSize;
+      this.setData({ 'design.qrcode': design.qrcode });
+      this.schedulePreviewRender(16);
+    }
+  },
+
+  /** 二维码缩放结束 */
+  onQrResizeEnd() {
+    if (this._qrResizeStartSize != null) {
+      var design = clone(this.data.design);
+      this._saveHistory(design);
+    }
+    this._qrResizeStartSize = null;
+    this._qrResizeStartX = null;
+    this._qrResizeStartY = null;
+    this._qrBaseSize = null;
+  },
+
+  /** 复制二维码（创建一个新的图片块） */
+  copyQrCode(e) {
+    if (e && typeof e.stopPropagation === 'function') e.stopPropagation();
+    var qr = this.data.design.qrcode;
+    if (!qr || !qr.src || !qr.visible) return;
+    // 复制就是再插入一次相同的图片作为新的二维码
+    var design = clone(this.data.design);
+    var size = design.size || { width: 750, height: 1000 };
+    var copySize = Number(qr.size || 110);
+    var copyX = Math.max(10, Number(qr.x || 0) - copySize - 20);
+    var copyY = Math.max(10, Number(qr.y || 0));
+    design.qrcode = {
+      visible: true,
+      src: qr.src,
+      x: Math.round(copyX),
+      y: Math.round(copyY),
+      size: copySize
+    };
+    this.setData({ qrcodeActive: true });
+    this.setDesign(design, this.data.activeBlockId);
+    this._saveHistory(design);
+    wx.showToast({ title: '已复制', icon: 'none' });
   },
 
   setBackgroundType(e) {

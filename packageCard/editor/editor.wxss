@@ -84,10 +84,9 @@
   z-index: 3;
 }
 
-/* 背景编辑模式下：文字框可见，但触摸优先给背景图拖动 */
+/* 背景编辑模式下：文字框仍可正常交互，不再禁用 pointer-events */
 .poster-stage.bg-editing .movable-area {
   display: block;
-  pointer-events: none;
   z-index: 10;
 }
 
@@ -395,15 +394,21 @@
   box-sizing: border-box;
 }
 
-.text-block.vertical .placeholder-text,
-.text-block.vertical .stage-editor,
+/* 竖排文字：使用 flex 分列布局（从右到左），不再依赖 writing-mode */
 .text-block.vertical .block-rich-text {
-  writing-mode: vertical-rl;
-  text-orientation: upright;
+  /* rich-text 节点由 buildVerticalPreviewNodes 控制，使用 flex row-reverse 分列 */
+  display: flex;
+  flex-direction: row-reverse;
+  justify-content: flex-start;
+  align-items: flex-start;
+  height: 100%;
 }
 
+/* 竖排模式下的 placeholder 和 textarea：保持 CSS 竖排（编辑时回退到原生支持） */
 .text-block.vertical .placeholder-text,
 .text-block.vertical .stage-editor {
+  writing-mode: vertical-rl;
+  text-orientation: upright;
   line-height: 1.45;
 }
 
@@ -799,27 +804,116 @@
   display: none;
 }
 
-.qr-wrap {
-  position: absolute;
-  right: 64rpx;
-  bottom: 64rpx;
-  z-index: 3;
+/* ===== 二维码：可拖拽 + 可缩放 + 透明背景 ===== */
+.qr-movable {
+  width: 120rpx;
+  height: 120rpx;
+  z-index: 5;
+  background: transparent !important;
 }
 
-.qr-preview {
-  width: 104rpx;
-  height: 104rpx;
+.qr-movable.qr-active {
+  z-index: 16;
+}
+
+.qr-inner {
+  position: relative;
+  width: 100%;
+  height: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: transparent;
+}
+
+.qr-preview-img {
+  width: 100%;
+  height: 100%;
   border-radius: 6rpx;
+  /* 默认无背景，透明 */
+  background: transparent;
 }
 
-.qr-delete {
+/* 选中态：显示虚线边框 */
+.qr-movable.qr-active .qr-inner {
+  border: 2rpx dashed rgba(218, 165, 32, 0.6);
+  border-radius: 8rpx;
+  box-sizing: border-box;
+}
+
+/* 二维码操作按钮（复制/更换/删除） */
+.qr-actions {
   position: absolute;
-  top: -16rpx;
-  right: -16rpx;
-  width: 40rpx;
-  height: 40rpx;
-  font-size: 22rpx;
-  line-height: 40rpx;
+  left: 50%;
+  top: -56rpx;
+  display: flex;
+  gap: 10rpx;
+  transform: translateX(-50%);
+  z-index: 18;
+}
+
+.qr-action-btn {
+  width: 44rpx;
+  height: 44rpx;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #6D5138;
+  background: rgba(255, 253, 247, 0.96);
+  border-radius: 50%;
+  box-shadow: 0 4rpx 14rpx rgba(109, 79, 48, 0.18);
+  font-size: 26rpx;
+  font-weight: 900;
+  line-height: 1;
+}
+
+.qr-action-btn:active {
+  transform: scale(0.9);
+}
+
+.qr-action-btn.qr-del {
+  color: #C62828;
+  background: #FFF5F2;
+}
+
+/* 二维码缩放手柄（右下角） */
+.qr-resize-handle {
+  position: absolute;
+  right: -12rpx;
+  bottom: -12rpx;
+  width: 32rpx;
+  height: 32rpx;
+  background: #FFFFFF;
+  border: 3rpx solid #F1B62D;
+  border-radius: 8rpx;
+  z-index: 17;
+  box-shadow: 0 3rpx 10rpx rgba(139, 105, 20, 0.18);
+  box-sizing: border-box;
+}
+
+.qr-resize-handle::before,
+.qr-resize-handle::after {
+  content: '';
+  position: absolute;
+  background: #F1B62D;
+}
+
+.qr-resize-handle::before {
+  right: 8rpx;
+  top: 50%;
+  transform: translateY(-50%);
+  width: 10rpx;
+  height: 3rpx;
+  border-radius: 2rpx;
+}
+
+.qr-resize-handle::after {
+  bottom: 8rpx;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 3rpx;
+  height: 10rpx;
+  border-radius: 2rpx;
 }
 
 .editor-card {
@@ -1085,7 +1179,7 @@
 .font-btn {
   min-width: 0;
   height: 74rpx;
-  padding: 7rpx 6rpx;
+  padding: 0;
   margin: 0;
   border-radius: 10rpx;
   color: #6D5138;
@@ -1095,13 +1189,20 @@
   font-size: 24rpx;
   font-weight: 700;
   letter-spacing: 0;
-  line-height: 1.15;
+  line-height: normal;
   box-sizing: border-box;
+  /* 使用 flex 确保子元素垂直水平居中 */
   display: flex;
   flex-direction: column;
-  gap: 4rpx;
   align-items: center;
   justify-content: center;
+  text-align: center;
+  /* 重置 button 默认样式干扰 */
+  overflow: hidden;
+}
+
+.font-btn::after {
+  display: none;
 }
 
 .font-btn.active {
@@ -1115,7 +1216,8 @@
   display: block;
   font-size: 25rpx;
   font-weight: 800;
-  line-height: 1.12;
+  line-height: 1.2;
+  text-align: center;
 }
 
 .font-btn-mood {
@@ -1124,10 +1226,12 @@
   color: #A08365;
   font-size: 17rpx;
   font-weight: 500;
-  line-height: 1.1;
+  line-height: 1.3;
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
+  text-align: center;
+  margin-top: 4rpx;
 }
 
 .font-btn.active .font-btn-mood {
