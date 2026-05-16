@@ -58,14 +58,15 @@
           catchtouchmove="onTextBlockTouchMove"
           catchtouchend="onTextBlockTouchEnd"
         >
-          <!-- 始终使用 canvas 渲染导出效果（与最终图片一致） -->
-          <rich-text wx:if="{{!useCanvasPreview || liveTextBlockId === item.id || realtimePreviewBlockId === item.id}}" class="block-rich-text" node="{{nodeVersion}}" nodes="{{item.previewNodes}}"></rich-text>
+          <!-- 非 canvas 模式才使用 rich-text；canvas 模式统一走导出 renderer，避免编辑态和导出排版不一致 -->
+          <rich-text wx:if="{{!useCanvasPreview}}" class="block-rich-text" node="{{nodeVersion}}" nodes="{{item.previewNodes}}"></rich-text>
           <view wx:if="{{!activePlainText}}" class="placeholder-text">{{item.placeholder || '输入文字...'}}</view>
 
           <!-- 编辑模式：textarea 在底层接收输入，rich-text 覆盖显示预览 -->
           <textarea
             wx:if="{{inlineEditing && activeBlockId === item.id}}"
             class="stage-editor"
+            data-id="{{item.id}}"
             value="{{activePlainText}}"
             placeholder=""
             focus="{{textInputFocus}}"
@@ -78,6 +79,9 @@
             cursor-spacing="24"
             bindinput="onActiveTextInput"
             bindblur="finishInlineEditing"
+            catchtouchstart="onTextBlockTouchStart"
+            catchtouchmove="onTextBlockTouchMove"
+            catchtouchend="onTextBlockTouchEnd"
           ></textarea>
           <view
             wx:if="{{inlineEditing && activeBlockId === item.id && caretVisible && !selectionModeActive}}"
@@ -89,6 +93,7 @@
             class="edit-block-actions"
             catchtouchstart="keepInlineEditing"
           >
+            <view class="edit-block-action move" data-id="{{item.id}}" catchtouchstart="onEditBlockMoveStart" catchtouchmove="onEditBlockMove" catchtouchend="onEditBlockMoveEnd">✥</view>
             <view class="edit-block-action copy" data-id="{{item.id}}" catchtouchstart="keepInlineEditing" catchtap="copyActiveBlock" catchtouchend="copyActiveBlock">⧉</view>
             <view class="edit-block-action delete" data-id="{{item.id}}" catchtouchstart="keepInlineEditing" catchtap="deleteActiveBlock" catchtouchend="deleteActiveBlock">×</view>
           </view>
@@ -167,31 +172,30 @@
         </view>
         <!-- 二维码：可拖拽 + 可缩放 + 透明背景（必须在 movable-area 内） -->
         <!-- useCanvasPreview 时隐藏 image（canvas 已绘制），只用透明热区做交互；非 canvas 模式才显示 image -->
-        <movable-view
-          wx:if="{{design.qrcode.visible && design.qrcode.src}}"
-          class="qr-movable {{qrcodeActive ? 'qr-active' : ''}}"
-          x="{{qrPreviewX}}"
-          y="{{qrPreviewY}}"
-          direction="all"
-          inertia="true"
-          damping="6"
-          friction="4"
-          bindchange="onQrMove"
-          bindtouchstart="onQrTouchStart"
+        <view
+          wx:for="{{qrItems}}"
+          wx:key="id"
+          wx:if="{{item.visible !== false && item.src}}"
+          class="qr-movable {{qrcodeActive && activeQrId === item.id ? 'qr-active' : ''}}"
+          data-id="{{item.id}}"
+          style="left: {{item.previewX}}rpx; top: {{item.previewY}}rpx; width: {{item.previewSize}}rpx; height: {{item.previewSize}}rpx;"
+          catchtouchstart="onQrTouchStart"
+          catchtouchmove="onQrDragMove"
+          catchtouchend="onQrDragEnd"
           catchtap="onQrTap"
         >
-          <view class="qr-inner" style="width: {{qrPreviewSize}}rpx; height: {{qrPreviewSize}}rpx;">
-            <image wx:if="{{!useCanvasPreview}}" class="qr-preview-img" src="{{design.qrcode.src}}" mode="aspectFit"></image>
+          <view class="qr-inner" style="width: {{item.previewSize}}rpx; height: {{item.previewSize}}rpx;">
+            <image wx:if="{{!useCanvasPreview}}" class="qr-preview-img" src="{{item.src}}" mode="aspectFit"></image>
             <!-- 选中时显示操作按钮 -->
-            <view wx:if="{{qrcodeActive}}" class="qr-actions">
+            <view wx:if="{{qrcodeActive && activeQrId === item.id}}" class="qr-actions">
               <view class="qr-action-btn qr-copy" catchtouchend="copyQrCode" catchtap="copyQrCode">⧉</view>
               <view class="qr-action-btn qr-change" catchtouchend="chooseQrCode" catchtap="chooseQrCode">↻</view>
               <view class="qr-action-btn qr-del" catchtouchend="deleteQrCode" catchtap="deleteQrCode">×</view>
             </view>
             <!-- 缩放手柄（右下角） -->
-            <view wx:if="{{qrcodeActive}}" class="qr-resize-handle" catchtouchstart="onQrResizeStart" catchtouchmove="onQrResizeMove" catchtouchend="onQrResizeEnd"></view>
+            <view wx:if="{{qrcodeActive && activeQrId === item.id}}" class="qr-resize-handle" catchtouchstart="onQrResizeStart" catchtouchmove="onQrResizeMove" catchtouchend="onQrResizeEnd"></view>
           </view>
-        </movable-view>
+        </view>
       </movable-area>
     </view>
   </view>

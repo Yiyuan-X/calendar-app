@@ -20,6 +20,7 @@ const DEFAULT_TEXT_BOX_WIDTH = 420;
 const DEFAULT_TEXT_BOX_HEIGHT = 140;
 const DEFAULT_TEXT_BOX_Y = 280;
 const DEFAULT_TEXT_FONT_SIZE = 38;
+const FIRST_PASTE_TEXT_FONT_SIZE = 44;
 const FONT_CDN = 'https://cdn.jsdelivr.net/fontsource/fonts';
 const CUSTOM_FONT_ASSET_BASE = '/fonts/open';
 const EMPTY_TEXT_PLACEHOLDER = '输入文字...';
@@ -314,6 +315,76 @@ function getDevicePortraitSize() {
 function getCenteredBlockX(design, width) {
   const canvasWidth = Number((design && design.size && design.size.width) || 750);
   return Math.max(0, Math.round((canvasWidth - Number(width || DEFAULT_TEXT_BOX_WIDTH)) / 2));
+}
+
+function getCanvasBounds(design) {
+  return {
+    width: Number((design && design.size && design.size.width) || 750),
+    height: Number((design && design.size && design.size.height) || 1000)
+  };
+}
+
+function getBlockRect(block) {
+  const width = Number((block && block.width) || DEFAULT_TEXT_BOX_WIDTH);
+  const height = Math.max(Number((block && block.manualHeight) || 0), getBlockTextHeight(block));
+  return {
+    x: Number((block && block.x) || 0),
+    y: Number((block && block.y) || 0),
+    width,
+    height
+  };
+}
+
+function rectsOverlap(a, b, gap) {
+  const padding = Number(gap || 0);
+  return !(
+    a.x + a.width + padding <= b.x ||
+    b.x + b.width + padding <= a.x ||
+    a.y + a.height + padding <= b.y ||
+    b.y + b.height + padding <= a.y
+  );
+}
+
+function findOpenTextBlockPosition(design, width, height) {
+  const bounds = getCanvasBounds(design);
+  const boxWidth = Math.min(Number(width || DEFAULT_TEXT_BOX_WIDTH), bounds.width);
+  const boxHeight = Math.min(Number(height || DEFAULT_TEXT_BOX_HEIGHT), bounds.height);
+  const maxX = Math.max(bounds.width - boxWidth, 0);
+  const maxY = Math.max(bounds.height - boxHeight, 0);
+  const centerX = Math.max(0, Math.min(maxX, getCenteredBlockX(design, boxWidth)));
+  const preferredY = Math.max(48, Math.min(maxY, Math.round(bounds.height * 0.28)));
+  const existingRects = ((design && design.blocks) || [])
+    .filter(item => item && item.type === 'text')
+    .map(getBlockRect);
+  const stepY = Math.max(72, Math.round(boxHeight * 0.72));
+  const xCandidates = Array.from(new Set([
+    centerX,
+    Math.max(24, Math.min(maxX, centerX - 120)),
+    Math.max(24, Math.min(maxX, centerX + 120)),
+    48,
+    Math.max(48, maxX - 48)
+  ])).filter(x => x >= 0 && x <= maxX);
+  const yCandidates = [];
+  for (let offset = 0; offset <= bounds.height; offset += stepY) {
+    yCandidates.push(preferredY + offset);
+    if (offset) yCandidates.push(preferredY - offset);
+  }
+
+  for (let yi = 0; yi < yCandidates.length; yi++) {
+    const y = Math.max(24, Math.min(maxY, yCandidates[yi]));
+    for (let xi = 0; xi < xCandidates.length; xi++) {
+      const rect = { x: xCandidates[xi], y, width: boxWidth, height: boxHeight };
+      if (!existingRects.some(item => rectsOverlap(rect, item, 24))) {
+        return { x: rect.x, y: rect.y };
+      }
+    }
+  }
+
+  const count = existingRects.length;
+  return {
+    x: Math.max(0, Math.min(maxX, centerX + ((count % 3) - 1) * 64)),
+    y: Math.max(0, Math.min(maxY, preferredY + count * 48))
+  };
 }
 
 function getBackgroundImageLayout(bg, design) {
@@ -898,15 +969,39 @@ function hydrateDesign(design) {
   });
   // 计算二维码预览坐标（用于 movable-view 定位）
   var qr = copyDesign.qrcode;
+  const qrItems = [];
   if (qr && qr.visible && qr.src) {
     copyDesign._qrPreviewX = Math.round((qr.x || 0) * previewScale.x);
     copyDesign._qrPreviewY = Math.round((qr.y || 0) * previewScale.y);
     copyDesign._qrPreviewSize = Math.round((qr.size || 110) * previewScale.x);
+    qrItems.push({
+      ...qr,
+      id: qr.id || 'qrcode_main',
+      _main: true,
+      previewX: copyDesign._qrPreviewX,
+      previewY: copyDesign._qrPreviewY,
+      previewSize: copyDesign._qrPreviewSize
+    });
   } else {
     copyDesign._qrPreviewX = 0;
     copyDesign._qrPreviewY = 0;
     copyDesign._qrPreviewSize = 88;
   }
+  copyDesign.qrcodes = (copyDesign.qrcodes || []).map((item, index) => {
+    const previewX = Math.round((item.x || 0) * previewScale.x);
+    const previewY = Math.round((item.y || 0) * previewScale.y);
+    const previewSize = Math.round((item.size || 110) * previewScale.x);
+    const qrItem = {
+      ...item,
+      id: item.id || `qrcode_copy_${index}`,
+      previewX,
+      previewY,
+      previewSize
+    };
+    if (qrItem.visible !== false && qrItem.src) qrItems.push(qrItem);
+    return qrItem;
+  });
+  copyDesign.qrItems = qrItems;
   return copyDesign;
 }
 
@@ -944,6 +1039,15 @@ function normalizeHistoryDesign(design) {
   delete copyDesign._qrPreviewX;
   delete copyDesign._qrPreviewY;
   delete copyDesign._qrPreviewSize;
+  delete copyDesign.qrItems;
+  copyDesign.qrcodes = (copyDesign.qrcodes || []).map(item => {
+    const qr = { ...item };
+    delete qr.previewX;
+    delete qr.previewY;
+    delete qr.previewSize;
+    delete qr._main;
+    return qr;
+  });
   copyDesign.blocks = (copyDesign.blocks || []).map(block => {
     const item = { ...block };
     Object.keys(item).forEach(key => {
@@ -1041,6 +1145,8 @@ Page({
   draftListCount: 0,
   // 二维码交互状态
   qrcodeActive: false,
+  activeQrId: '',
+  qrItems: [],
   qrPreviewX: 0,
   qrPreviewY: 0,
   qrPreviewSize: 88
@@ -1168,8 +1274,7 @@ Page({
     try {
       await renderer.drawPosterToCanvas(this, '#previewCanvas', this.data.design, {
         scale: 1,
-        dpr: 1,
-        hiddenBlockIds: this.data.inlineEditing && this.data.activeBlockId ? [this.data.activeBlockId] : []
+        dpr: 1
       });
     } catch (e) {
       console.warn('预览画布渲染失败', e);
@@ -1181,9 +1286,7 @@ Page({
         this.renderPreviewCanvas();
       } else {
         const updates = {};
-        if (this.data.inlineEditing && this.data.activeBlockId && this.data.liveTextBlockId !== this.data.activeBlockId) {
-          updates.liveTextBlockId = this.data.activeBlockId;
-        }
+        if (this.data.liveTextBlockId) updates.liveTextBlockId = '';
         if (this.data.realtimePreviewBlockId) {
           updates.realtimePreviewBlockId = '';
         }
@@ -1234,6 +1337,7 @@ Page({
         design.templateId = query.templateId || design.id;
         design.id = '';
         this._currentDraftId = '';
+        this._pendingNewBlockId = (design.blocks && design.blocks[0] && design.blocks[0].id) || '';
         this.setDesign(design, (design.blocks && design.blocks[0] && design.blocks[0].id) || '');
       }
     }
@@ -1256,7 +1360,9 @@ Page({
 
   // 放弃草稿，使用新建设计
   dismissDraftModal() {
-    this.setData({ showDraftModal: false });
+    const firstBlockId = (this.data.design.blocks && this.data.design.blocks[0] && this.data.design.blocks[0].id) || '';
+    this._pendingNewBlockId = firstBlockId;
+    this.setData({ showDraftModal: false }, () => this.enterPendingNewBlock());
   },
 
   // ==================== 草稿列表管理 ====================
@@ -1397,7 +1503,8 @@ Page({
       // 二维码预览坐标（从 hydrateDesign 计算）
       qrPreviewX: hydrated._qrPreviewX || 0,
       qrPreviewY: hydrated._qrPreviewY || 0,
-      qrPreviewSize: hydrated._qrPreviewSize || 88
+      qrPreviewSize: hydrated._qrPreviewSize || 88,
+      qrItems: hydrated.qrItems || []
     }, () => {
       this.schedulePreviewRender(0);
       // 如果有待进入编辑的新文字框，在渲染完成后立即激活
@@ -2149,6 +2256,9 @@ getPreviewBackground(bg) {
     this._manualTextSelection = null;
     this._selectionDrag = null;
     this._textSelectDrag = null;
+    this._switchBlockTouch = null;
+    this._skipNextEditorTap = false;
+    this._lastTextTouchPoint = null;
     // 只退出编辑模式（隐藏键盘/光标/工具栏），保留 activeBlockId 选中状态
     // 这样用户再次点击文字框可以立即继续编辑
     const hadTyping = this._typingHistoryStarted;
@@ -2163,7 +2273,8 @@ getPreviewBackground(bg) {
       selectionRects: [],
       selectionHint: '',
       caretVisible: false,
-      qrcodeActive: false
+      qrcodeActive: false,
+      activeQrId: ''
       // 注意：不再清空 activeBlockId / activeBlock / activePlainText
       // 保留选中状态让用户能随时回到编辑
     }, () => {
@@ -2243,7 +2354,14 @@ getPreviewBackground(bg) {
     // 粘贴时：用完整文本创建干净的单 op delta，避免多 op 重叠
     const block = this.data.activeBlock || {};
     const firstAttrs = block.delta && block.delta.ops && block.delta.ops[0] ? (block.delta.ops[0].attributes || {}) : {};
-    const delta = { ops: [{ insert: text, attributes: firstAttrs }] };
+    const pasteAttrs = wasEmptyText
+      ? {
+          ...firstAttrs,
+          size: Math.max(parseInt(firstAttrs.size || firstAttrs.fontSize || 0, 10) || 0, FIRST_PASTE_TEXT_FONT_SIZE),
+          fontSize: Math.max(parseInt(firstAttrs.size || firstAttrs.fontSize || 0, 10) || 0, FIRST_PASTE_TEXT_FONT_SIZE)
+        }
+      : firstAttrs;
+    const delta = { ops: [{ insert: text, attributes: pasteAttrs }] };
     const design = clone(this.data.design);
     const blockIndex = (design.blocks || []).findIndex(item => item && item.id === this.data.activeBlockId);
     if (blockIndex < 0) return;
@@ -2273,7 +2391,7 @@ getPreviewBackground(bg) {
       showPasteTip: true,
       selectionHint: '',
       nodeVersion: newNodeVer,
-      liveTextBlockId: wasEmptyText ? this.data.activeBlockId : this.data.liveTextBlockId,
+      liveTextBlockId: '',
       ...getTextPanelState(activeBlock, this.data),
       ...caretState
     }, () => {
@@ -2558,6 +2676,7 @@ getPreviewBackground(bg) {
   _doFinishInlineEditing() {
     this.editorCtx = null;
     this._manualTextSelection = null;
+    this._switchBlockTouch = null;
     this.setData({
       inlineEditing: false,
       textInputFocus: false,
@@ -2787,14 +2906,16 @@ getPreviewBackground(bg) {
       return;
     }
 
-    // 如果 touchend 已经处理了本次点击的光标定位（设置了 _skipNextEditorTap），跳过
-    if (this._skipNextEditorTap) {
+    // 如果编辑态 touchend 已经处理了本次点击的光标定位，跳过重复 tap。
+    // 非编辑态点击文字框时不能吞掉，否则用户无法重新进入编辑。
+    if (this._skipNextEditorTap && this.data.inlineEditing && this.data.activeBlockId === id) {
       this._skipNextEditorTap = false;
       return;
     }
+    if (!this.data.inlineEditing) this._skipNextEditorTap = false;
 
-    // 检查是否为 touchend 刚处理过的纯点击（300ms 内的同位置触摸）
-    if (lastTouch && lastTouch.id === id && lastTouch.isTap && (Date.now() - Number(lastTouch.time || 0)) < 300) {
+    // 检查是否为编辑态 touchend 刚处理过的纯点击（300ms 内的同位置触摸）
+    if (this.data.inlineEditing && lastTouch && lastTouch.id === id && lastTouch.isTap && (Date.now() - Number(lastTouch.time || 0)) < 300) {
       // touchend 已处理，跳过
       return;
     }
@@ -2807,19 +2928,29 @@ getPreviewBackground(bg) {
    * 编辑模式下触发，用于实现触摸式光标移动和文字选择
    */
   onTextBlockTouchStart(e) {
-    if (!this.data.inlineEditing) return;
+    if (!this.data.inlineEditing) {
+      return this.onBlockTouchStart(e);
+    }
     const id = e.currentTarget.dataset.id;
-    if (id !== this.data.activeBlockId) return;
-
     const touch = (e.touches && e.touches[0]) || null;
     if (!touch) return;
+    if (id !== this.data.activeBlockId) {
+      this._ignoreNextEditorBlur = true;
+      this._switchBlockTouch = {
+        id,
+        startX: touch.clientX,
+        startY: touch.clientY,
+        moved: false
+      };
+      return;
+    }
+    const activeBlock = this.data.activeBlock || {};
 
     // 计算触摸起始点的字符偏移
-    const block = this.data.activeBlock || {};
     const startPageX = typeof touch.pageX === 'number' ? touch.pageX : touch.clientX;
     const startPageY = typeof touch.pageY === 'number' ? touch.pageY : touch.clientY;
     let anchorOffset = this.data.selectionEnd || 0;
-    const hitOffset = this.getCharOffsetFromPagePoint(block, startPageX, startPageY);
+    const hitOffset = this.getCharOffsetFromPagePoint(activeBlock, startPageX, startPageY);
     if (typeof hitOffset === 'number' && hitOffset >= 0) {
       anchorOffset = hitOffset;
     }
@@ -2847,7 +2978,11 @@ getPreviewBackground(bg) {
       pageX: startPageX,
       pageY: startPageY,
       startOffset: anchorOffset,
-      lockedAnchor: lockedAnchor // 锁定的选择锚点（用于已有选区时的扩展操作）
+      lockedAnchor: lockedAnchor, // 锁定的选择锚点（用于已有选区时的扩展操作）
+      moveMode: false,
+      blockId: id,
+      startPreviewX: Number(activeBlock.previewX || 0),
+      startPreviewY: Number(activeBlock.previewY || 0)
     };
     this._lastTextTouchPoint = {
       id,
@@ -2862,7 +2997,19 @@ getPreviewBackground(bg) {
    * 实时更新选区范围（从起始字符位置到当前手指位置的字符）
    */
   onTextBlockTouchMove(e) {
-    if (!this.data.inlineEditing || !this._textSelectDrag) return;
+    if (!this.data.inlineEditing) {
+      return this.onBlockMoveByResize(e);
+    }
+    if (this._switchBlockTouch) {
+      const touch = e.touches && e.touches[0];
+      if (touch) {
+        const dx = Math.abs(touch.clientX - this._switchBlockTouch.startX);
+        const dy = Math.abs(touch.clientY - this._switchBlockTouch.startY);
+        if (dx > 6 || dy > 6) this._switchBlockTouch.moved = true;
+      }
+      return;
+    }
+    if (!this._textSelectDrag) return;
     const id = e.currentTarget.dataset.id;
     if (id !== this.data.activeBlockId) return;
 
@@ -2872,6 +3019,20 @@ getPreviewBackground(bg) {
     const drag = this._textSelectDrag;
     const dx = Math.abs(touch.clientX - drag.startX);
     const dy = Math.abs(touch.clientY - drag.startY);
+
+    if (!drag.moveMode && !this.data.selectionModeActive && (dx > 10 || dy > 10)) {
+      drag.active = true;
+      drag.moveMode = true;
+      this._ignoreNextEditorBlur = true;
+      this._manualTextSelection = null;
+      this.exitSelectionMode();
+      this.setData({ textInputFocus: false, caretVisible: false, showPasteTip: true });
+    }
+
+    if (drag.moveMode) {
+      this.moveActiveTextBlockByDrag(drag, touch);
+      return;
+    }
 
     // 降低阈值到 3px，让选择响应更灵敏（原 6px 太迟钝）
     if (!drag.active && (dx > 3 || dy > 3)) {
@@ -2917,7 +3078,22 @@ getPreviewBackground(bg) {
    * 如果没有产生拖拽（只是点击），则用精确的触摸坐标定位光标
    */
   onTextBlockTouchEnd(e) {
-    if (!this.data.inlineEditing || !this._textSelectDrag) return;
+    if (!this.data.inlineEditing) {
+      return this.onBlockTouchEnd(e);
+    }
+    if (this._switchBlockTouch) {
+      const state = this._switchBlockTouch;
+      this._switchBlockTouch = null;
+      if (!state.moved) {
+        const block = (this.data.design.blocks || []).find(item => item.id === state.id);
+        if (block) {
+          this._skipNextEditorTap = true;
+          this.enterEditMode(state.id, block);
+        }
+      }
+      return;
+    }
+    if (!this._textSelectDrag) return;
 
     const drag = this._textSelectDrag;
     this._textSelectDrag = null;
@@ -2930,8 +3106,20 @@ getPreviewBackground(bg) {
         time: Date.now(),
         pageX: typeof touches[0].pageX === 'number' ? touches[0].pageX : touches[0].clientX,
         pageY: typeof touches[0].pageY === 'number' ? touches[0].pageY : touches[0].clientY,
-        isTap: !drag.active  // 标记这是否为一次纯点击（非拖拽）
+        isTap: !drag.active && !drag.moveMode  // 标记这是否为一次纯点击（非拖拽）
       };
+    }
+
+    if (drag.moveMode) {
+      this._saveHistory(this.data.design);
+      this.schedulePreviewRender(0);
+      setTimeout(() => {
+        if (this.data.inlineEditing && this.data.activeBlockId === drag.blockId) {
+          this.setData({ textInputFocus: !this.data.isIOS, showPasteTip: true });
+        }
+      }, 40);
+      this._skipNextEditorTap = true;
+      return;
     }
 
     if (!drag.active) {
@@ -2975,6 +3163,32 @@ getPreviewBackground(bg) {
     if (drag.active && !this.data.selectionModeActive) {
       this.openFormatMenu();
     }
+  },
+
+  moveActiveTextBlockByDrag(drag, touch) {
+    if (!drag || !touch) return;
+    const id = drag.blockId || this.data.activeBlockId;
+    const rpxPerPx = this.getRpxPerPx();
+    const dx = (touch.clientX - drag.startX) * rpxPerPx;
+    const dy = (touch.clientY - drag.startY) * rpxPerPx;
+    const previewScale = getPreviewScales(this.data.design);
+    const stage = getPreviewStageSize(this.data.design);
+    const blocks = (this.data.design.blocks || []).map(block => {
+      if (block.id !== id) return block;
+      const maxX = stage.width - Number(block.previewWidth || 0);
+      const maxY = stage.height - Number(block.previewHeight || 0);
+      const previewX = Math.max(0, Math.min(maxX, Math.round(Number(drag.startPreviewX || 0) + dx)));
+      const previewY = Math.max(0, Math.min(maxY, Math.round(Number(drag.startPreviewY || 0) + dy)));
+      return {
+        ...block,
+        previewX,
+        previewY,
+        x: Math.round(previewX / previewScale.x),
+        y: Math.round(previewY / previewScale.y)
+      };
+    });
+    const activeBlock = blocks.find(item => item.id === id) || this.data.activeBlock;
+    this.setData({ 'design.blocks': blocks, activeBlock }, () => this.schedulePreviewRender(0));
   },
 
   updateActiveBlock(patch, options) {
@@ -3117,6 +3331,78 @@ getPreviewBackground(bg) {
       design.blocks[index].y = Math.round((block.previewY || 0) / previewScale.y);
       this.setDesign(design, id);
     }
+  },
+
+  onEditBlockMoveStart(e) {
+    if (e && typeof e.stopPropagation === 'function') e.stopPropagation();
+    const id = e.currentTarget.dataset.id || this.data.activeBlockId;
+    const block = (this.data.design.blocks || []).find(item => item.id === id);
+    const touch = e.touches && e.touches[0];
+    if (!block || !touch) return;
+    this._ignoreNextEditorBlur = true;
+    this._editBlockMove = {
+      id,
+      startX: touch.clientX,
+      startY: touch.clientY,
+      startPreviewX: Number(block.previewX || 0),
+      startPreviewY: Number(block.previewY || 0),
+      moved: false
+    };
+    this.setData({
+      activeBlockId: id,
+      activeBlock: block,
+      textInputFocus: false,
+      caretVisible: false,
+      showPasteTip: true,
+      ...getTextPanelState(block, this.data)
+    });
+  },
+
+  onEditBlockMove(e) {
+    if (e && typeof e.stopPropagation === 'function') e.stopPropagation();
+    const state = this._editBlockMove;
+    const touch = e.touches && e.touches[0];
+    if (!state || !touch) return;
+    const rpxPerPx = this.getRpxPerPx();
+    const id = state.id;
+    const dx = (touch.clientX - state.startX) * rpxPerPx;
+    const dy = (touch.clientY - state.startY) * rpxPerPx;
+    if (Math.abs(dx) > 2 || Math.abs(dy) > 2) state.moved = true;
+
+    const previewScale = getPreviewScales(this.data.design);
+    const stage = getPreviewStageSize(this.data.design);
+    const blocks = (this.data.design.blocks || []).map(block => {
+      if (block.id !== id) return block;
+      const maxX = stage.width - Number(block.previewWidth || 0);
+      const maxY = stage.height - Number(block.previewHeight || 0);
+      const previewX = Math.max(0, Math.min(maxX, Math.round(state.startPreviewX + dx)));
+      const previewY = Math.max(0, Math.min(maxY, Math.round(state.startPreviewY + dy)));
+      return {
+        ...block,
+        previewX,
+        previewY,
+        x: Math.round(previewX / previewScale.x),
+        y: Math.round(previewY / previewScale.y)
+      };
+    });
+    const activeBlock = blocks.find(item => item.id === id) || this.data.activeBlock;
+    this.setData({ 'design.blocks': blocks, activeBlock }, () => this.schedulePreviewRender(0));
+  },
+
+  onEditBlockMoveEnd(e) {
+    if (e && typeof e.stopPropagation === 'function') e.stopPropagation();
+    const state = this._editBlockMove;
+    this._editBlockMove = null;
+    if (!state) return;
+    if (state.moved) {
+      this._saveHistory(this.data.design);
+      this.schedulePreviewRender(0);
+    }
+    setTimeout(() => {
+      if (this.data.inlineEditing && this.data.activeBlockId === state.id) {
+        this.setData({ textInputFocus: !this.data.isIOS, showPasteTip: true });
+      }
+    }, 40);
   },
 
   startBlockPinchResize(block, touches) {
@@ -3275,7 +3561,7 @@ getPreviewBackground(bg) {
   /**
    * 将属性应用到当前文字框的全部文字（所有 ops），用于排列面板的全局操作。
    */
-  applyFormatToAllText(attrs, blockPatch) {
+  applyFormatToAllText(attrs, blockPatch, options) {
     const block = this.data.activeBlock || {};
     if (!block.delta || !block.delta.ops) return;
     const range = this.getActiveTextSelectionRange(this.data.activePlainText || deltaToText(block.delta));
@@ -3288,7 +3574,7 @@ getPreviewBackground(bg) {
     if (this.editorCtx && this.data.inlineEditing && !this.data.selectionModeActive) {
       this.editorCtx.setContents({ delta: newDelta });
     }
-    this.updateActiveBlock({ ...(blockPatch || {}), delta: newDelta }, { silentEditor: true });
+    this.updateActiveBlock({ ...(blockPatch || {}), delta: newDelta }, { silentEditor: true, renderDelay: options && options.renderDelay });
     if (hasSelection) {
       this.refreshSelectionPreview(newDelta, range.start, range.end, undefined, blockPatch);
     }
@@ -3339,7 +3625,7 @@ getPreviewBackground(bg) {
     if (hasTextSelection(range.start, range.end)) {
       this.applyFormatToSelection({ size: fontSize, fontSize });
     } else {
-      this.applyFormatToAllText({ size: fontSize, fontSize });
+      this.applyFormatToAllText({ size: fontSize, fontSize }, null, { renderDelay: 0 });
     }
     if (e && e.type === 'change') this._saveHistory(this.data.design);
   },
@@ -3527,7 +3813,7 @@ getPreviewBackground(bg) {
     }
     if (this.data.inlineEditing && this.data.activeBlockId) {
       this.setData({
-        liveTextBlockId: this.data.activeBlockId,
+        liveTextBlockId: '',
         textInputFocus: false,
         showPasteTip: true
       });
@@ -3995,15 +4281,12 @@ getPreviewBackground(bg) {
   addTextBlock() {
     this._ignoreNextEditorBlur = true;
     const design = clone(this.data.design);
-    const textBlockCount = (design.blocks || []).filter(item => item.type === 'text').length;
-    const baseY = DEFAULT_TEXT_BOX_Y;
-    const stepY = 128;
-    const nextY = Math.min(baseY + textBlockCount * stepY, 640);
+    const position = findOpenTextBlockPosition(design, DEFAULT_TEXT_BOX_WIDTH, DEFAULT_TEXT_BOX_HEIGHT);
     const block = {
       id: `text_${Date.now()}`,
       type: 'text',
-      x: getCenteredBlockX(design, DEFAULT_TEXT_BOX_WIDTH),
-      y: nextY,
+      x: position.x,
+      y: position.y,
       width: DEFAULT_TEXT_BOX_WIDTH,
       height: DEFAULT_TEXT_BOX_HEIGHT,
       manualHeight: DEFAULT_TEXT_BOX_HEIGHT,
@@ -4245,17 +4528,40 @@ getPreviewBackground(bg) {
           y: Math.round(defaultY),
           size: defaultSize
         };
-        this.setData({ qrcodeActive: true });
+        this.setData({ qrcodeActive: true, activeQrId: 'qrcode_main' });
         this.setDesign(design, this.data.activeBlockId);
       }
     });
   },
 
-  deleteQrCode() {
+  getQrLayerById(design, id) {
+    const targetId = id || this.data.activeQrId || 'qrcode_main';
+    if (targetId === 'qrcode_main') return design.qrcode || null;
+    return (design.qrcodes || []).find(item => item && item.id === targetId) || null;
+  },
+
+  updateQrLayerById(design, id, patch) {
+    const targetId = id || this.data.activeQrId || 'qrcode_main';
+    if (targetId === 'qrcode_main') {
+      design.qrcode = { ...(design.qrcode || {}), ...(patch || {}) };
+      return;
+    }
+    design.qrcodes = (design.qrcodes || []).map(item => (
+      item && item.id === targetId ? { ...item, ...(patch || {}) } : item
+    ));
+  },
+
+  deleteQrCode(e) {
     if (typeof e !== 'undefined' && e && typeof e.stopPropagation === 'function') e.stopPropagation();
     const design = clone(this.data.design);
-    design.qrcode = { ...(design.qrcode || {}), visible: false, src: '' };
-    this.setData({ design: hydrateDesign(design), qrcodeActive: false }, () => this.schedulePreviewRender(0));
+    const targetId = this.data.activeQrId || 'qrcode_main';
+    if (targetId === 'qrcode_main') {
+      design.qrcode = { ...(design.qrcode || {}), visible: false, src: '' };
+    } else {
+      design.qrcodes = (design.qrcodes || []).filter(item => item && item.id !== targetId);
+    }
+    const hydrated = hydrateDesign(design);
+    this.setData({ design: hydrated, qrItems: hydrated.qrItems || [], qrcodeActive: false, activeQrId: '' }, () => this.schedulePreviewRender(0));
     this._saveHistory(design);
     wx.showToast({ title: '已删除二维码', icon: 'none' });
   },
@@ -4265,19 +4571,72 @@ getPreviewBackground(bg) {
   /** 点击二维码：确保激活选中态 */
   onQrTap(e) {
     if (e && typeof e.stopPropagation === 'function') e.stopPropagation();
+    const id = e.currentTarget && e.currentTarget.dataset && e.currentTarget.dataset.id || 'qrcode_main';
     // 阻止冒泡到 poster-stage 的 clearTextSelectionAndEditing
     // 点击时始终激活选中态（显示操作按钮、缩放手柄）
-    if (!this.data.qrcodeActive) {
-      this.setData({ qrcodeActive: true });
-    }
+    this.setData({ qrcodeActive: true, activeQrId: id });
   },
 
   /** 二维码触摸开始：立即激活选中态 + 记录起始位置 */
   onQrTouchStart(e) {
     if (e && typeof e.stopPropagation === 'function') e.stopPropagation();
+    const id = e.currentTarget && e.currentTarget.dataset && e.currentTarget.dataset.id || 'qrcode_main';
+    const qr = this.getQrLayerById(this.data.design, id);
     // 手指碰到二维码就立即激活选中态，显示操作按钮和缩放手柄
-    if (!this.data.qrcodeActive) {
-      this.setData({ qrcodeActive: true });
+    this.setData({ qrcodeActive: true, activeQrId: id });
+    const touch = e.touches && e.touches[0];
+    if (!touch || !qr) return;
+    const scale = getPreviewScales(this.data.design);
+    this._qrDragState = {
+      id,
+      startX: touch.clientX,
+      startY: touch.clientY,
+      startPreviewX: Math.round(Number(qr.x || 0) * scale.x),
+      startPreviewY: Math.round(Number(qr.y || 0) * scale.y),
+      moved: false
+    };
+  },
+
+  onQrDragMove(e) {
+    if (e && typeof e.stopPropagation === 'function') e.stopPropagation();
+    const state = this._qrDragState;
+    const touch = e.touches && e.touches[0];
+    const qr = this.getQrLayerById(this.data.design, state && state.id);
+    if (!state || !touch || !qr || !qr.visible) return;
+
+    const rpxPerPx = this.getRpxPerPx();
+    const dx = (touch.clientX - state.startX) * rpxPerPx;
+    const dy = (touch.clientY - state.startY) * rpxPerPx;
+    if (Math.abs(dx) > 2 || Math.abs(dy) > 2) state.moved = true;
+
+    const stage = getPreviewStageSize(this.data.design);
+    const previewSize = Number(this.data.qrPreviewSize || Math.round(Number(qr.size || 110) * getPreviewScales(this.data.design).x));
+    const previewX = Math.max(0, Math.min(Math.max(stage.width - previewSize, 0), Math.round(state.startPreviewX + dx)));
+    const previewY = Math.max(0, Math.min(Math.max(stage.height - previewSize, 0), Math.round(state.startPreviewY + dy)));
+    const previewScale = getPreviewScales(this.data.design);
+    const design = clone(this.data.design);
+    this.updateQrLayerById(design, state.id, {
+      x: Math.round(previewX / previewScale.x),
+      y: Math.round(previewY / previewScale.y)
+    });
+    const hydrated = hydrateDesign(design);
+    this.setData({
+      design: hydrated,
+      qrItems: hydrated.qrItems || [],
+      qrPreviewX: previewX,
+      qrPreviewY: previewY,
+      qrcodeActive: true,
+      activeQrId: state.id
+    }, () => this.schedulePreviewRender(0));
+  },
+
+  onQrDragEnd(e) {
+    if (e && typeof e.stopPropagation === 'function') e.stopPropagation();
+    const state = this._qrDragState;
+    this._qrDragState = null;
+    if (state && state.moved) {
+      this._saveHistory(this.data.design);
+      this.schedulePreviewRender(0);
     }
   },
 
@@ -4319,10 +4678,14 @@ getPreviewBackground(bg) {
     if (e && typeof e.stopPropagation === 'function') e.stopPropagation();
     var touch = e.touches && e.touches[0];
     if (!touch) return;
-    this._qrResizeStartSize = Number(this.data.qrPreviewSize || 88);
+    const id = this.data.activeQrId || (e.currentTarget && e.currentTarget.dataset && e.currentTarget.dataset.id) || 'qrcode_main';
+    const qr = this.getQrLayerById(this.data.design, id) || {};
+    const scale = getPreviewScales(this.data.design);
+    this._qrResizeId = id;
+    this._qrResizeStartSize = Math.round(Number(qr.size || 110) * scale.x);
     this._qrResizeStartX = touch.clientX;
     this._qrResizeStartY = touch.clientY;
-    this._qrBaseSize = Number((this.data.design.qrcode && this.data.design.qrcode.size) || 110);
+    this._qrBaseSize = Number(qr.size || 110);
   },
 
   /** 二维码缩放中 */
@@ -4336,15 +4699,13 @@ getPreviewBackground(bg) {
     // 每移动 2px 对应 1rpx 预览大小变化，限制范围 40~240rpx
     var newPreviewSize = Math.max(40, Math.min(240, this._qrResizeStartSize + delta * 0.5));
     // 将预览尺寸反算回设计尺寸
-    var newDesignSize = Math.max(40, Math.min(300, Math.round(newPreviewSize / PREVIEW_SCALE)));
-    this.setData({ qrPreviewSize: newPreviewSize });
+    var newDesignSize = Math.max(40, Math.min(300, Math.round(newPreviewSize / getPreviewScales(this.data.design).x)));
     // 同步到 design
     var design = clone(this.data.design);
-    if (design.qrcode) {
-      design.qrcode.size = newDesignSize;
-      this.setData({ 'design.qrcode': design.qrcode });
-      this.schedulePreviewRender(16);
-    }
+    this.updateQrLayerById(design, this._qrResizeId, { size: newDesignSize });
+    const hydrated = hydrateDesign(design);
+    this.setData({ design: hydrated, qrItems: hydrated.qrItems || [], qrPreviewSize: newPreviewSize });
+    this.schedulePreviewRender(16);
   },
 
   /** 二维码缩放结束 */
@@ -4357,27 +4718,33 @@ getPreviewBackground(bg) {
     this._qrResizeStartX = null;
     this._qrResizeStartY = null;
     this._qrBaseSize = null;
+    this._qrResizeId = null;
   },
 
   /** 复制二维码（创建一个新的图片块） */
   copyQrCode(e) {
     if (e && typeof e.stopPropagation === 'function') e.stopPropagation();
-    var qr = this.data.design.qrcode;
+    if (this.shouldSkipFormatAction('copyQrCode')) return;
+    var qr = this.getQrLayerById(this.data.design, this.data.activeQrId || 'qrcode_main');
     if (!qr || !qr.src || !qr.visible) return;
-    // 复制就是再插入一次相同的图片作为新的二维码
     var design = clone(this.data.design);
     var size = design.size || { width: 750, height: 1000 };
     var copySize = Number(qr.size || 110);
-    var copyX = Math.max(10, Number(qr.x || 0) - copySize - 20);
-    var copyY = Math.max(10, Number(qr.y || 0));
-    design.qrcode = {
+    var maxX = Math.max(Number(size.width || 750) - copySize, 0);
+    var maxY = Math.max(Number(size.height || 1000) - copySize, 0);
+    var copyX = Math.min(maxX, Math.max(10, Number(qr.x || 0) - copySize - 20));
+    if (Math.abs(copyX - Number(qr.x || 0)) < 8) copyX = Math.min(maxX, Number(qr.x || 0) + copySize + 20);
+    var copyY = Math.min(maxY, Math.max(10, Number(qr.y || 0)));
+    const copied = {
+      id: `qrcode_${Date.now()}`,
       visible: true,
       src: qr.src,
       x: Math.round(copyX),
       y: Math.round(copyY),
       size: copySize
     };
-    this.setData({ qrcodeActive: true });
+    design.qrcodes = [...(design.qrcodes || []), copied];
+    this.setData({ qrcodeActive: true, activeQrId: copied.id });
     this.setDesign(design, this.data.activeBlockId);
     this._saveHistory(design);
     wx.showToast({ title: '已复制', icon: 'none' });

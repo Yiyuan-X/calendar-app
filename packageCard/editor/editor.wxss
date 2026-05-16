@@ -478,6 +478,7 @@
   box-sizing: border-box;
   z-index: 5;
   outline: none;
+  pointer-events: none;
 }
 
 .custom-caret {
@@ -525,6 +526,11 @@
 .edit-block-action.delete {
   color: #C62828;
   background: #FFF5F2;
+}
+
+.edit-block-action.move {
+  color: #8B6914;
+  background: #FFF3D6;
 }
 
 .edit-block-action:active {
@@ -818,14 +824,13 @@
 
 /* ===== 二维码：可拖拽 + 可缩放 + 透明背景 ===== */
 .qr-movable {
-  width: 120rpx;
-  height: 120rpx;
-  z-index: 5;
+  position: absolute;
+  z-index: 20;
   background: transparent !important;
 }
 
 .qr-movable.qr-active {
-  z-index: 16;
+  z-index: 30;
 }
 
 .qr-inner {

@@ -742,6 +742,9 @@ async function drawPosterToCanvas(page, selector, sourceDesign, options) {
     if (block.type === 'text') drawTextBlock(ctx, block, design);
   });
   await drawImageLayer(node, ctx, design.qrcode);
+  for (const qr of (design.qrcodes || [])) {
+    await drawImageLayer(node, ctx, qr);
+  }
   ctx.restore();
   return { node, width, height, scale };
 }
