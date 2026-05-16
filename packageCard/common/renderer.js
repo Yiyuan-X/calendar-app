@@ -9,7 +9,9 @@ const imagePathCache = {};
 const fontLoadCache = {};
 
 function getDpr(exportScale) {
-  return Math.max(1, Number(exportScale || 2));
+  // 导出分辨率：限制最大 1.5x，避免超大 canvas 导致生成缓慢
+  // scale=2 的旧行为会产出 4x 像素（dpr=2 × destWidth=2x），现优化为 2.25x
+  return Math.min(Math.max(1, Number(exportScale || 1.5)), 2);
 }
 
 function pickFont(style, design) {
@@ -46,6 +48,8 @@ function deltaText(delta) {
 }
 
 function isVerticalTextBlock(block) {
+  if (block && block.textDirection === 'horizontal') return false;
+  if (block && block.textDirection === 'vertical') return !!deltaText(block && block.delta).trim();
   return Number((block && block.width) || 500) <= VERTICAL_WIDTH_THRESHOLD && !!deltaText(block && block.delta).trim();
 }
 
@@ -126,6 +130,7 @@ function drawVerticalTextBlock(ctx, block, design) {
   const lineHeight = Number(block.lineHeight || 1.6);
   const blockLetterSpacing = Number(block.letterSpacing || 0);
   const rotation = Number(block.rotation || 0);
+  const verticalAlign = block.verticalAlign || 'top';
   let x = sourceX;
   let y = sourceY;
 
@@ -142,14 +147,8 @@ function drawVerticalTextBlock(ctx, block, design) {
     return Math.max(max, parseInt(attrs.size || attrs.fontSize || 30, 10) || 30);
   }, 30);
   const columnWidth = Math.max(maxFontSize * 1.2, 28);
-  let cursorX = x + maxWidth - columnWidth;
-  let cursorY = y;
-
-  function nextColumn() {
-    cursorX -= columnWidth;
-    cursorY = y;
-  }
-
+  const columns = [[]];
+  let currentHeight = 0;
   ops.forEach(op => {
     const style = {
       fontFamily: block.fontFamily,
@@ -163,13 +162,30 @@ function drawVerticalTextBlock(ctx, block, design) {
     for (let i = 0; i < text.length; i++) {
       const glyph = text[i];
       if (glyph === '\n') {
-        nextColumn();
+        columns.push([]);
+        currentHeight = 0;
         continue;
       }
-      if (cursorY + stepY > y + boxHeight && cursorY > y) nextColumn();
-      drawVerticalGlyph(ctx, glyph, style, block, design, cursorX, cursorY, columnWidth);
-      cursorY += stepY;
+      if (currentHeight + stepY > boxHeight && currentHeight > 0) {
+        columns.push([]);
+        currentHeight = 0;
+      }
+      columns[columns.length - 1].push({ glyph, style, stepY });
+      currentHeight += stepY;
     }
+  });
+
+  const visibleColumns = columns.filter(column => column.length);
+  visibleColumns.forEach((column, columnIndex) => {
+    const cursorX = x + maxWidth - columnWidth * (columnIndex + 1);
+    const columnHeight = column.reduce((sum, item) => sum + item.stepY, 0);
+    let cursorY = y;
+    if (verticalAlign === 'middle') cursorY = y + Math.max((boxHeight - columnHeight) / 2, 0);
+    if (verticalAlign === 'bottom') cursorY = y + Math.max(boxHeight - columnHeight, 0);
+    column.forEach(item => {
+      drawVerticalGlyph(ctx, item.glyph, item.style, block, design, cursorX, cursorY, columnWidth);
+      cursorY += item.stepY;
+    });
   });
 
   ctx.shadowColor = 'transparent';
@@ -244,6 +260,7 @@ function drawTextBlock(ctx, block, design) {
   const contentHeight = lineHeights.reduce((sum, item) => sum + item, 0);
   const boxHeight = Number(block.height || contentHeight || 1);
   const rotation = Number(block.rotation || 0);
+  const verticalAlign = block.verticalAlign || 'top';
   let x = sourceX;
   let y = sourceY;
 
@@ -253,6 +270,12 @@ function drawTextBlock(ctx, block, design) {
     ctx.rotate(rotation * Math.PI / 180);
     x = -maxWidth / 2;
     y = -boxHeight / 2;
+  }
+
+  if (verticalAlign === 'middle') {
+    y += Math.max((boxHeight - contentHeight) / 2, 0);
+  } else if (verticalAlign === 'bottom') {
+    y += Math.max(boxHeight - contentHeight, 0);
   }
 
   // ===== 绘制每一行文字 =====
@@ -543,15 +566,23 @@ async function preloadFont(design) {
       resolve();
       return;
     }
+    // 字体加载设置 8 秒超时，超时后不阻塞渲染（用系统字体降级）
+    const timer = setTimeout(() => {
+      resolve();
+    }, 8000);
     wx.loadFontFace({
       family: font.family,
       source: `url("${font.url}")`,
-      global: false,
+      global: true,
       success: () => {
         fontLoadCache[key] = true;
+        clearTimeout(timer);
         resolve();
       },
-      fail: resolve
+      fail: () => {
+        clearTimeout(timer);
+        resolve();
+      }
     });
   })));
   design.fontFamily = design.fontFamily || 'CardSerif';

@@ -1,6 +1,6 @@
 <view class="editor-page">
     <view class="stage-wrap">
-    <view class="poster-stage {{activePanel === 'background' && previewBackgroundImage ? 'bg-editing' : ''}}" style="width: {{previewStageWidth}}rpx; height: {{previewStageHeight}}rpx; background: {{previewBackground}};">
+    <view class="poster-stage {{activePanel === 'background' && previewBackgroundImage ? 'bg-editing' : ''}}" style="width: {{previewStageWidth}}rpx; height: {{previewStageHeight}}rpx; background: {{previewBackground}};" bindtap="clearTextSelectionAndEditing">
       <canvas type="2d" id="previewCanvas" class="preview-canvas" style="width: {{previewStageWidth}}rpx; height: {{previewStageHeight}}rpx;"></canvas>
       <view class="bg-image-container" wx:if="{{previewBackgroundImage && !useCanvasPreview}}" bindtouchstart="onBgTouchStart" bindtouchmove="onBgTouchMove" bindtouchend="onBgTouchEnd">
         <image
@@ -29,6 +29,7 @@
           class="text-block-wrapper"
           style="position: absolute; left: {{item.previewX}}rpx; top: {{item.previewY}}rpx;"
           data-id="{{item.id}}"
+          catchtap="editBlockText"
           bindlongpress="editBlockText"
           catchtouchstart="onBlockTouchStart"
           catchtouchmove="onBlockMoveByResize"
@@ -39,6 +40,9 @@
           style="width: {{item.previewWidth}}rpx; {{inlineEditing && activeBlockId === item.id ? item.editingHeightStyle : item.previewHeightStyle}} text-align: {{item.align}}; line-height: {{item.lineHeight}}; {{item.previewFontSizeStyle}} {{item.previewLetterSpacingStyle}} {{item.previewFontFamilyStyle}} {{item.previewTransformStyle}}"
           data-id="{{item.id}}"
           catchtap="editBlockText"
+          catchtouchstart="onTextBlockTouchStart"
+          catchtouchmove="onTextBlockTouchMove"
+          catchtouchend="onTextBlockTouchEnd"
         >
           <!-- 始终使用 canvas 渲染导出效果（与最终图片一致） -->
           <rich-text wx:if="{{!useCanvasPreview}}" class="block-rich-text" node="{{nodeVersion}}" nodes="{{item.previewNodes}}"></rich-text>
@@ -71,8 +75,8 @@
             class="edit-block-actions"
             catchtouchstart="keepInlineEditing"
           >
-            <view class="edit-block-action copy" catchtouchend="copyActiveBlock">⧉</view>
-            <view class="edit-block-action delete" catchtouchend="deleteActiveBlock">×</view>
+            <view class="edit-block-action copy" data-id="{{item.id}}" catchtouchstart="keepInlineEditing" catchtap="copyActiveBlock" catchtouchend="copyActiveBlock">⧉</view>
+            <view class="edit-block-action delete" data-id="{{item.id}}" catchtouchstart="keepInlineEditing" catchtap="deleteActiveBlock" catchtouchend="deleteActiveBlock">×</view>
           </view>
           <view
             wx:if="{{selectionModeActive && activeBlockId === item.id}}"
@@ -104,7 +108,7 @@
           <!-- 编辑工具栏 -->
           <view wx:if="{{inlineEditing && activeBlockId === item.id && showPasteTip}}" class="paste-tip" catchtouchstart="keepInlineEditing">
             <view class="paste-menu-btn" catchtouchend="pasteClipboardToActiveText">粘贴</view>
-            <view class="paste-menu-btn danger" catchtap="deleteSelectedText">删除</view>
+            <view class="paste-menu-btn danger" catchtap="deleteSelectedText" catchtouchend="deleteSelectedText">删除</view>
             <view class="paste-menu-btn" catchtouchend="selectCurrentLineText">选择</view>
             <view class="paste-menu-btn" catchtouchend="selectAllActiveText">全选</view>
             <view class="paste-menu-btn strong {{formats.bold ? 'on' : ''}}" catchtouchend="toggleSelectedBold">B</view>
@@ -112,7 +116,6 @@
             <view class="paste-menu-btn strong" catchtouchend="increaseSelectedFontSize">A+</view>
             <view class="paste-menu-btn" catchtouchend="showFontPanelForSelection">字体</view>
             <view class="paste-menu-btn" catchtouchend="showColorPanelForSelection">颜色</view>
-            <view class="paste-menu-btn done" catchtap="finishInlineEditingFromMenu">完成</view>
           </view>
           <view wx:if="{{inlineEditing && activeBlockId === item.id && selectionHint}}" class="paste-menu-hint">{{selectionHint}}</view>
         </view>
@@ -184,13 +187,45 @@
           <button class="bg-btn" data-type="blur" bindtap="setBackgroundType">毛玻璃</button>
         </view>
         <view class="size-row">
-          <button
+          <view
             class="size-btn {{activeCanvasSizeId === item.id ? 'active' : ''}}"
             wx:for="{{canvasSizeOptions}}"
             wx:key="id"
             data-id="{{item.id}}"
             bindtap="setCanvasSize"
-          >{{item.name}}</button>
+          >{{item.name}}</view>
+          <view
+            class="size-btn {{activeCanvasSizeId === 'custom' ? 'active' : ''}} custom-size-btn"
+            bindtap="toggleCustomSizeInput"
+          >自定义</view>
+        </view>
+        <!-- 自定义尺寸输入 -->
+        <view wx:if="{{showCustomSizeInput}}" class="custom-size-row">
+          <view class="custom-size-field">
+            <text class="custom-size-label">宽</text>
+            <input
+              class="custom-size-input"
+              type="number"
+              placeholder="750"
+              value="{{customWidth}}"
+              bindinput="onCustomWidthInput"
+              confirm-type="next"
+            />
+          </view>
+          <text class="custom-size-times">×</text>
+          <view class="custom-size-field">
+            <text class="custom-size-label">高</text>
+            <input
+              class="custom-size-input"
+              type="number"
+              placeholder="1000"
+              value="{{customHeight}}"
+              bindinput="onCustomHeightInput"
+              confirm-type="done"
+              bindconfirm="confirmCustomSize"
+            />
+          </view>
+          <button class="custom-size-confirm" bindtap="confirmCustomSize">确定</button>
         </view>
         <view wx:if="{{showSolidPalette}}" class="bg-palette">
           <view
@@ -212,7 +247,7 @@
               wx:for="{{fonts}}"
               wx:key="id"
               data-id="{{item.id}}"
-              bindtap="setFontFamily"
+              catchtouchend="setFontFamily"
             >
               <text class="font-btn-name">{{item.name}}</text>
               <text class="font-btn-mood">{{item.mood || item.scene || ''}}</text>
@@ -285,7 +320,7 @@
         <!-- 阴影：开关 + 颜色选择 + 强度 -->
         <view wx:elif="{{activeStyleTool === 'shadow'}}">
           <view class="tool-strip">
-            <button class="circle-tool {{activeBlock.shadow ? 'on' : ''}}" catchtap="toggleShadow">
+            <button class="circle-tool {{activeBlock.shadow ? 'on' : ''}}" catchtap="toggleShadow" catchtouchend="toggleShadow">
               <image wx:if="{{activeBlock.shadow}}" class="tool-check-icon" src="/images/icons/check-white.svg" mode="aspectFit"></image>
               <text wx:else>◐</text>
             </button>
@@ -310,25 +345,25 @@
           <button class="format-key {{formats.italic ? 'on' : ''}}" data-name="italic" bindtap="format">I</button>
           <button class="format-key {{formats.underline ? 'on' : ''}}" data-name="underline" bindtap="format">U</button>
         </view>
-        <!-- 对齐：左 / 中 / 右 / 两端对齐 / 分散对齐 / 无缩进 -->
+        <!-- 对齐：左 / 中 / 右 + 垂直上 / 中 / 下 -->
         <view class="align-row layout-align-row">
-          <button class="align-key {{activeBlock.align === 'left' ? 'on' : ''}}" data-align="left" bindtap="setAlign">
+          <button class="align-key {{activeBlock.textDirection !== 'vertical' && activeBlock.align === 'left' ? 'on' : ''}}" data-align="left" bindtap="setAlign">
             <view class="align-icon"><view class="bar"></view><view class="bar"></view><view class="bar short"></view></view>
           </button>
-          <button class="align-key {{activeBlock.align === 'center' ? 'on' : ''}}" data-align="center" bindtap="setAlign">
+          <button class="align-key {{activeBlock.textDirection !== 'vertical' && activeBlock.align === 'center' ? 'on' : ''}}" data-align="center" bindtap="setAlign">
             <view class="align-icon center"><view class="bar"></view><view class="bar"></view><view class="bar short"></view></view>
           </button>
-          <button class="align-key {{activeBlock.align === 'right' ? 'on' : ''}}" data-align="right" bindtap="setAlign">
+          <button class="align-key {{activeBlock.textDirection !== 'vertical' && activeBlock.align === 'right' ? 'on' : ''}}" data-align="right" bindtap="setAlign">
             <view class="align-icon right"><view class="bar"></view><view class="bar"></view><view class="bar short"></view></view>
           </button>
-          <button class="align-key {{activeBlock.align === 'justify' ? 'on' : ''}}" data-align="justify" bindtap="setAlign">
-            <view class="align-icon justify"><view class="bar full"></view><view class="bar full"></view><view class="bar short full"></view></view>
+          <button class="align-key {{activeBlock.textDirection === 'vertical' && (!activeBlock.verticalAlign || activeBlock.verticalAlign === 'top') ? 'on' : ''}}" data-vertical-align="top" data-valign="top" bindtap="setVerticalAlign">
+            <view class="valign-icon top"><view class="v-guide"></view><view class="v-block"></view></view>
           </button>
-          <button class="align-key {{activeBlock.align === 'distribute' ? 'on' : ''}}" data-align="distribute" bindtap="setAlign">
-            <view class="align-icon distribute"><view class="bar edge"></view><view class="bar mid"></view><view class="bar short edge"></view></view>
+          <button class="align-key {{activeBlock.textDirection === 'vertical' && activeBlock.verticalAlign === 'middle' ? 'on' : ''}}" data-vertical-align="middle" data-valign="middle" bindtap="setVerticalAlign">
+            <view class="valign-icon middle"><view class="v-guide"></view><view class="v-block"></view></view>
           </button>
-          <button class="align-key {{activeBlock.align === 'none' ? 'on' : ''}}" data-align="none" bindtap="setAlign">
-            <view class="align-icon no-indent"><view class="bar"></view><view class="bar indent"></view><view class="bar short indent"></view></view>
+          <button class="align-key {{activeBlock.textDirection === 'vertical' && activeBlock.verticalAlign === 'bottom' ? 'on' : ''}}" data-vertical-align="bottom" data-valign="bottom" bindtap="setVerticalAlign">
+            <view class="valign-icon bottom"><view class="v-guide"></view><view class="v-block"></view></view>
           </button>
         </view>
         <!-- 大小 slider -->
@@ -356,12 +391,64 @@
     </view>
 
     <view class="bottom-actions safe-area-bottom">
+      <view class="draft-entry" bindtap="openDraftList">
+        <text class="draft-entry-icon">📋</text>
+        <text class="draft-entry-text">我的草稿</text>
+        <text wx:if="{{draftListCount > 0}}" class="draft-entry-count">{{draftListCount}}</text>
+      </view>
       <button class="action ghost" bindtap="saveDraft">存草稿</button>
       <button class="action primary" bindtap="goExport">导出分享图</button>
     </view>
   </view>
 
   <canvas type="2d" id="exportCanvas" class="hidden-canvas"></canvas>
+
+  <!-- 草稿恢复弹窗 -->
+  <view wx:if="{{showDraftModal}}" class="draft-modal-mask" catchtouchend="dismissDraftModal">
+    <view class="draft-modal" catchtouchend>
+      <view class="draft-modal-header">
+        <text class="draft-modal-icon">📝</text>
+        <text class="draft-modal-title">发现上次未完成的草稿</text>
+      </view>
+      <text class="draft-modal-name">"{{latestDraftName}}"</text>
+      <view class="draft-modal-actions">
+        <button class="draft-modal-btn resume" catchtouchend="resumeLatestDraft">继续编辑</button>
+        <button class="draft-modal-btn new" catchtouchend="dismissDraftModal">新建卡片</button>
+      </view>
+    </view>
+  </view>
+
+  <!-- 草稿列表面板 -->
+  <view wx:if="{{showDraftList}}" class="draft-list-mask" bindtap="closeDraftList">
+    <view class="draft-list-panel" catchtap stopPropagation>
+      <view class="draft-list-header">
+        <text class="draft-list-title">我的草稿（{{draftListCount}}）</text>
+        <view class="draft-list-close" bindtap="closeDraftList">✕</view>
+      </view>
+      <scroll-view class="draft-list-scroll" scroll-y enhanced show-scrollbar="{{false}}">
+        <view wx:if="{{!draftList.length}}" class="draft-list-empty">
+          <text class="draft-list-empty-icon">📭</text>
+          <text class="draft-list-empty-text">暂无草稿</text>
+          <text class="draft-list-empty-hint">编辑卡片后点「存草稿」即可保存</text>
+        </view>
+        <view
+          wx:for="{{draftList}}"
+          wx:key="id"
+          class="draft-item"
+          data-id="{{item.id}}"
+          bindtap="openDraftFromList"
+        >
+          <view class="draft-item-info">
+            <text class="draft-item-name">{{item.name}}</text>
+            <text class="draft-item-time">{{item.timeLabel}}</text>
+          </view>
+          <view class="draft-item-actions">
+            <view class="draft-item-delete" data-id="{{item.id}}" catchtap="deleteDraftFromList">删除</view>
+          </view>
+        </view>
+      </scroll-view>
+    </view>
+  </view>
 
   <!-- 颜色选择器弹窗 -->
   <view wx:if="{{showColorPicker}}" class="color-picker-mask" catchtap="closeColorPicker">
@@ -371,10 +458,10 @@
         <view class="color-picker-preview" style="background: {{colorPickerPreview}};"></view>
       </view>
       <view class="color-picker-body">
-        <view class="cp-sv-panel" style="background: linear-gradient(to bottom, {{colorPickerHuePure}}, #000000), linear-gradient(to right, #FFF, transparent);" bindtouchstart="onSvPanelTouchStart" bindtouchmove="onSvPanelTouchEnd" bindtouchend="onSvPanelTouchEnd">
+        <view class="cp-sv-panel" style="background: linear-gradient(to bottom, {{colorPickerHuePure}}, #000000), linear-gradient(to right, #FFF, transparent);" bindtouchstart="onSvPanelTouchStart" bindtouchmove="onSvPanelTouchMove" bindtouchend="onSvPanelTouchEnd">
           <view class="cp-sv-cursor" style="left: {{colorPickerSvX}}px; top: {{colorPickerSvY}}px;"></view>
         </view>
-        <view class="cp-hue-bar" bindtouchstart="onHueBarTouchStart" bindtouchmove="onHueBarTouchEnd" bindtouchend="onHueBarTouchEnd">
+        <view class="cp-hue-bar" bindtouchstart="onHueBarTouchStart" bindtouchmove="onHueBarTouchMove" bindtouchend="onHueBarTouchEnd">
           <view class="cp-hue-cursor" style="top: {{colorPickerHueY}}px;"></view>
         </view>
       </view>

@@ -560,7 +560,8 @@ Page({
 
       const canvas = res[0].node;
       const ctx = canvas.getContext('2d');
-      const dpr = wx.getSystemInfoSync().pixelRatio;
+      // 固定 1.5x 分辨率，加快生成速度
+      const dpr = 1.5;
 
       const W = 500;
       const H = 760;  // 紧凑高度，减少底部空白
@@ -755,10 +756,10 @@ Page({
               canvas: canvas,
               width: W,
               height: H,
-              destWidth: W * 2,
-              destHeight: H * 2,
+              destWidth: W * 1.5,
+              destHeight: H * 1.5,
               fileType: 'jpg',
-              quality: 0.95,
+              quality: 0.92,
               success: function(saveRes) {
                 analytics.track('poster_generate', {
                   page: 'chanting'
@@ -772,7 +773,7 @@ Page({
                 callback({ success: false });
               }
             });
-          }, 150);
+          }, 50);
         });
 
       } catch (e) {

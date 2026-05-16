@@ -19,40 +19,58 @@ const MAX_TEXT_BOX_HEIGHT = PREVIEW_STAGE_HEIGHT_RPX - 40;  // 保留底部边�
 const DEFAULT_TEXT_BOX_WIDTH = 420;
 const DEFAULT_TEXT_BOX_HEIGHT = 140;
 const DEFAULT_TEXT_BOX_Y = 280;
+const DEFAULT_TEXT_FONT_SIZE = 33;
 const FONT_CDN = 'https://cdn.jsdelivr.net/fontsource/fonts';
 const CUSTOM_FONT_ASSET_BASE = '/fonts/open';
 const EMPTY_TEXT_PLACEHOLDER = '输入文字...';
 const SELECTION_HIGHLIGHT_COLOR = 'rgba(255, 211, 78, 0.56)';
 const FONT_USAGE_KEY = 'card_tool_font_usage';
+const FONT_USAGE_SORT_THRESHOLD = 3;
 const FONT_CATALOG = [
   { id: 'system', name: '系统', family: 'PingFang SC, Noto Sans SC, sans-serif', previewFamily: 'PingFang SC, Noto Sans SC, sans-serif', token: 'ui', mood: '清晰', scene: '默认界面' },
-  { id: 'zen', name: '禅意', sourceName: 'LXGW WenKai', family: 'CardLXGWWenKai', previewFamily: 'CardLXGWWenKai, Kaiti SC, serif', fontUrl: `${CUSTOM_FONT_ASSET_BASE}/lxgw-wenkai.ttf`, token: 'zen', mood: '温润克制', scene: '修心、日签、正文' },
-  { id: 'soft-round', name: '温柔', sourceName: '猫啃网糖圆体', family: 'CardMaoKenTangYuan', previewFamily: 'CardMaoKenTangYuan, PingFang SC, sans-serif', fontUrl: `${CUSTOM_FONT_ASSET_BASE}/maoken-tangyuan.ttf`, token: 'soft', mood: '自然童真', scene: '治愈、女性向、温柔文案' },
-  { id: 'sutra', name: '经书', sourceName: '汇文明朝体', family: 'CardHuiwenMincho', previewFamily: 'CardHuiwenMincho, Source Han Serif SC, Songti SC, serif', fontUrl: `${CUSTOM_FONT_ASSET_BASE}/huiwen-mincho.ttf`, token: 'sutra', mood: '佛经古籍', scene: '经文、节气、古风排版' },
-  { id: 'serif-advanced', name: '高级', sourceName: 'Source Han Serif SC', family: 'CardSourceHanSerifSC', previewFamily: 'CardSourceHanSerifSC, Songti SC, serif', fontUrl: `${CUSTOM_FONT_ASSET_BASE}/source-han-serif-sc.ttf`, token: 'serif', mood: '东方高级', scene: '长文、高级正文' },
-  { id: 'minimal', name: '极简', sourceName: 'LXGW Neo XiHei', family: 'CardLXGWNeoXiHei', previewFamily: 'CardLXGWNeoXiHei, PingFang SC, sans-serif', fontUrl: `${CUSTOM_FONT_ASSET_BASE}/lxgw-neo-xihei.ttf`, token: 'minimal', mood: '清净现代', scene: '极简禅意、现代卡片' },
-  { id: 'writer', name: '文人', sourceName: '江西拙楷', family: 'CardJiangXiZhuoKai', previewFamily: 'CardJiangXiZhuoKai, Kaiti SC, serif', fontUrl: `${CUSTOM_FONT_ASSET_BASE}/jiangxi-zhuokai.ttf`, token: 'poetry', mood: '碑帖手写', scene: '修心金句、文人风' },
-  { id: 'poetry', name: '诗意', sourceName: '演示秋鸿楷', family: 'CardQiuHongKai', previewFamily: 'CardQiuHongKai, Kaiti SC, serif', fontUrl: `${CUSTOM_FONT_ASSET_BASE}/yanshi-qiuhongkai.ttf`, token: 'poetry', mood: '自然行草', scene: '金句、手写卡片' },
-  { id: 'spring-kai', name: '春风', sourceName: '演示春风楷', family: 'CardChunFengKai', previewFamily: 'CardChunFengKai, Kaiti SC, serif', fontUrl: `${CUSTOM_FONT_ASSET_BASE}/yanshi-chunfengkai.ttf`, token: 'handwrite', mood: '温柔治愈', scene: '女性向、祝福、柔和标题' },
-  { id: 'landscape', name: '空灵', sourceName: '霞鹜文楷 GB', family: 'CardLXGWWenKaiGB', previewFamily: 'CardLXGWWenKaiGB, Kaiti SC, serif', fontUrl: `${CUSTOM_FONT_ASSET_BASE}/lxgw-wenkai-gb.ttf`, token: 'zen', mood: '安静留白', scene: '山水、空境、留白风' },
-  { id: 'ui-modern', name: '现代', sourceName: 'Smiley Sans', family: 'CardSmileySans', previewFamily: 'CardSmileySans, PingFang SC, sans-serif', fontUrl: `${CUSTOM_FONT_ASSET_BASE}/smiley-sans.ttf`, token: 'ui', mood: '年轻设计', scene: '按钮、导航、Banner' },
-  { id: 'ease-script', name: '佛系', sourceName: '悠哉字体', family: 'CardYouZai', previewFamily: 'CardYouZai, Kaiti SC, cursive', fontUrl: `${CUSTOM_FONT_ASSET_BASE}/youzai.ttf`, token: 'handwrite', mood: '轻松自然', scene: '佛系语录、轻修心' },
-  { id: 'brush-title', name: '拂尘', sourceName: 'Ma Shan Zheng', family: 'CardMaShanZheng', previewFamily: 'CardMaShanZheng, cursive', fontUrl: `${FONT_CDN}/ma-shan-zheng@latest/chinese-simplified-400-normal.woff2`, token: 'title', mood: '毛笔禅意', scene: '封面、禅意标题' },
-  { id: 'guofeng', name: '国风', sourceName: '演示夏行楷', family: 'CardXiaXingKai', previewFamily: 'CardXiaXingKai, Kaiti SC, cursive', fontUrl: `${CUSTOM_FONT_ASSET_BASE}/yanshi-xiaxingkai.ttf`, token: 'title', mood: '行楷海报', scene: '海报、签名、标题' },
-  { id: 'clear-kai', name: '清楷', sourceName: 'Klee One', family: 'CardKleeOne', previewFamily: 'CardKleeOne, Kaiti SC, serif', fontUrl: `${CUSTOM_FONT_ASSET_BASE}/klee-one.ttf`, token: 'zen', mood: '清秀纸笔', scene: '短句、便签、修心旁注' },
-  { id: 'round-zen', name: '圆融', sourceName: 'Zen Maru Gothic', family: 'CardZenMaruGothic', previewFamily: 'CardZenMaruGothic, PingFang SC, sans-serif', fontUrl: `${CUSTOM_FONT_ASSET_BASE}/zen-maru-gothic.ttf`, token: 'soft', mood: '圆润安定', scene: '温柔标题、祝福卡片' },
-  { id: 'old-book', name: '书卷', sourceName: 'I.Ming', family: 'CardIMing', previewFamily: 'CardIMing, Songti SC, serif', fontUrl: `${CUSTOM_FONT_ASSET_BASE}/iming.ttf`, token: 'sutra', mood: '旧书刻本', scene: '古籍、经文、注疏' },
-  { id: 'temple-serif', name: '寺院', sourceName: 'Kaisei Tokumin', family: 'CardKaiseiTokumin', previewFamily: 'CardKaiseiTokumin, Songti SC, serif', fontUrl: `${CUSTOM_FONT_ASSET_BASE}/kaisei-tokumin.ttf`, token: 'serif', mood: '端正典雅', scene: '节气标题、仪式感正文' },
-  { id: 'glow-sans', name: '素净', sourceName: 'Glow Sans', family: 'CardGlowSans', previewFamily: 'CardGlowSans, PingFang SC, sans-serif', fontUrl: `${CUSTOM_FONT_ASSET_BASE}/glow-sans.ttf`, token: 'ui', mood: '干净松弛', scene: '现代说明、轻量信息' },
-  { id: 'cw-kai', name: '古楷', sourceName: 'cwTeX Q Kai', family: 'CardCwKai', previewFamily: 'CardCwKai, Kaiti SC, serif', fontUrl: `${CUSTOM_FONT_ASSET_BASE}/cwtex-q-kai.ttf`, token: 'poetry', mood: '古朴楷意', scene: '碑帖感短文、传统题跋' },
-  { id: 'noto-serif', name: '端雅', sourceName: 'Noto Serif SC', family: 'CardNotoSerifSCOpen', previewFamily: 'CardNotoSerifSCOpen, Songti SC, serif', fontUrl: `${CUSTOM_FONT_ASSET_BASE}/noto-serif-sc.ttf`, token: 'serif', mood: '稳重端雅', scene: '通用长文、节气说明' },
-  { id: 'noto-sans', name: '明净', sourceName: 'Noto Sans SC', family: 'CardNotoSansSCOpen', previewFamily: 'CardNotoSansSCOpen, PingFang SC, sans-serif', fontUrl: `${CUSTOM_FONT_ASSET_BASE}/noto-sans-sc.ttf`, token: 'ui', mood: '明净清晰', scene: '信息层级、说明文字' },
-  { id: 'en-zen', name: '禅意英文', sourceName: 'Garamond', family: 'Garamond, "Times New Roman", serif', previewFamily: 'Garamond, "Times New Roman", serif', token: 'serif', mood: '安静古典', scene: '英文日签、短句落款' },
+  { id: 'zen', name: '雅宋', sourceName: '系统宋体', family: 'Songti SC, STSong, Noto Serif SC, serif', previewFamily: 'Songti SC, STSong, Noto Serif SC, serif', token: 'zen', mood: '温润克制', scene: '诗词、日签、正文' },
+  { id: 'soft-round', name: '暖圆', sourceName: 'ZCOOL KuaiLe', family: 'CardMaoKenTangYuan', previewFamily: 'CardMaoKenTangYuan, PingFang SC, sans-serif', fontUrl: `${FONT_CDN}/zcool-kuaile@latest/chinese-simplified-400-normal.woff2`, token: 'soft', mood: '自然圆润', scene: '祝福、手账、轻松文案' },
+  { id: 'sutra', name: '古籍', sourceName: 'Long Cang', family: 'CardHuiwenMincho', previewFamily: 'CardHuiwenMincho, Source Han Serif SC, Songti SC, serif', fontUrl: `${FONT_CDN}/long-cang@latest/chinese-simplified-400-normal.woff2`, token: 'sutra', mood: '典籍古雅', scene: '古文、节气、古风排版' },
+  { id: 'serif-advanced', name: '高级', sourceName: 'Noto Serif SC', family: 'CardSourceHanSerifSC', previewFamily: 'CardSourceHanSerifSC, Songti SC, serif', fontUrl: `${FONT_CDN}/noto-serif-sc@latest/chinese-simplified-400-normal.woff2`, token: 'serif', mood: '东方高级', scene: '长文、高级正文' },
+  { id: 'minimal', name: '极简', sourceName: 'Noto Sans SC', family: 'CardLXGWNeoXiHei', previewFamily: 'CardLXGWNeoXiHei, PingFang SC, sans-serif', fontUrl: `${FONT_CDN}/noto-sans-sc@latest/chinese-simplified-400-normal.woff2`, token: 'minimal', mood: '清爽现代', scene: '极简国风、现代卡片' },
+  { id: 'writer', name: '文人', sourceName: 'Liu Jian Mao Cao', family: 'CardJiangXiZhuoKai', previewFamily: 'CardJiangXiZhuoKai, Kaiti SC, serif', fontUrl: `${FONT_CDN}/liu-jian-mao-cao@latest/chinese-simplified-400-normal.woff2`, token: 'poetry', mood: '碑帖手写', scene: '格言短句、文人风' },
+  { id: 'poetry', name: '诗意', sourceName: 'Zhi Mang Xing', family: 'CardQiuHongKai', previewFamily: 'CardQiuHongKai, Kaiti SC, serif', fontUrl: `${FONT_CDN}/zhi-mang-xing@latest/chinese-simplified-400-normal.woff2`, token: 'poetry', mood: '自然行草', scene: '金句、手写卡片' },
+  { id: 'spring-kai', name: '春风', sourceName: 'ZCOOL XiaoWei', family: 'CardChunFengKai', previewFamily: 'CardChunFengKai, Kaiti SC, serif', fontUrl: `${FONT_CDN}/zcool-xiaowei@latest/chinese-simplified-400-normal.woff2`, token: 'handwrite', mood: '温柔治愈', scene: '女性向、祝福、柔和标题' },
+  { id: 'landscape', name: '空灵', sourceName: 'ZCOOL QingKe HuangYou', family: 'CardLXGWWenKaiGB', previewFamily: 'CardLXGWWenKaiGB, Kaiti SC, serif', fontUrl: `${FONT_CDN}/zcool-qingke-huangyou@latest/chinese-simplified-400-normal.woff2`, token: 'zen', mood: '安静留白', scene: '山水、空境、留白风' },
+  { id: 'ui-modern', name: '现代', sourceName: 'Noto Sans SC', family: 'CardSmileySans', previewFamily: 'CardSmileySans, PingFang SC, sans-serif', fontUrl: `${FONT_CDN}/noto-sans-sc@latest/chinese-simplified-400-normal.woff2`, token: 'ui', mood: '年轻设计', scene: '按钮、导航、Banner' },
+  { id: 'ease-script', name: '闲云', sourceName: 'ZCOOL KuaiLe', family: 'CardYouZai', previewFamily: 'CardYouZai, Kaiti SC, cursive', fontUrl: `${FONT_CDN}/zcool-kuaile@latest/chinese-simplified-400-normal.woff2`, token: 'handwrite', mood: '轻松自然', scene: '闲适语录、手写短句' },
+  { id: 'brush-title', name: '墨韵', sourceName: 'Ma Shan Zheng', family: 'CardMaShanZheng', previewFamily: 'CardMaShanZheng, cursive', fontUrl: `${FONT_CDN}/ma-shan-zheng@latest/chinese-simplified-400-normal.woff2`, token: 'title', mood: '毛笔国风', scene: '封面、国风标题' },
+  { id: 'guofeng', name: '国风', sourceName: 'Long Cang', family: 'CardXiaXingKai', previewFamily: 'CardXiaXingKai, Kaiti SC, cursive', fontUrl: `${FONT_CDN}/long-cang@latest/chinese-simplified-400-normal.woff2`, token: 'title', mood: '行楷海报', scene: '海报、签名、标题' },
+  { id: 'clear-kai', name: '清楷', sourceName: 'Klee One', family: 'CardKleeOne', previewFamily: 'CardKleeOne, Kaiti SC, serif', fontUrl: `${FONT_CDN}/klee-one@latest/japanese-400-normal.woff2`, token: 'zen', mood: '清秀纸笔', scene: '短句、便签、手写旁注' },
+  { id: 'round-zen', name: '圆融', sourceName: 'Zen Maru Gothic', family: 'CardZenMaruGothic', previewFamily: 'CardZenMaruGothic, PingFang SC, sans-serif', fontUrl: `${FONT_CDN}/zen-maru-gothic@latest/japanese-400-normal.woff2`, token: 'soft', mood: '圆润安定', scene: '温柔标题、祝福卡片' },
+  { id: 'old-book', name: '书卷', sourceName: 'Noto Serif SC', family: 'CardIMing', previewFamily: 'CardIMing, Songti SC, serif', fontUrl: `${FONT_CDN}/noto-serif-sc@latest/chinese-simplified-400-normal.woff2`, token: 'sutra', mood: '旧书刻本', scene: '古籍、古文、注疏' },
+  { id: 'temple-serif', name: '唐风', sourceName: 'Kaisei Tokumin', family: 'CardKaiseiTokumin', previewFamily: 'CardKaiseiTokumin, Songti SC, serif', fontUrl: `${FONT_CDN}/kaisei-tokumin@latest/japanese-400-normal.woff2`, token: 'serif', mood: '端正典雅', scene: '节气标题、仪式感正文' },
+  { id: 'glow-sans', name: '素净', sourceName: 'Noto Sans SC', family: 'CardGlowSans', previewFamily: 'CardGlowSans, PingFang SC, sans-serif', fontUrl: `${FONT_CDN}/noto-sans-sc@latest/chinese-simplified-400-normal.woff2`, token: 'ui', mood: '干净松弛', scene: '现代说明、轻量信息' },
+  { id: 'cw-kai', name: '古楷', sourceName: 'ZCOOL XiaoWei', family: 'CardCwKai', previewFamily: 'CardCwKai, Kaiti SC, serif', fontUrl: `${FONT_CDN}/zcool-xiaowei@latest/chinese-simplified-400-normal.woff2`, token: 'poetry', mood: '古朴楷意', scene: '碑帖感短文、传统题跋' },
+  { id: 'noto-serif', name: '端雅', sourceName: 'Noto Serif SC', family: 'CardNotoSerifSCOpen', previewFamily: 'CardNotoSerifSCOpen, Songti SC, serif', fontUrl: `${FONT_CDN}/noto-serif-sc@latest/chinese-simplified-400-normal.woff2`, token: 'serif', mood: '稳重端雅', scene: '通用长文、节气说明' },
+  { id: 'noto-sans', name: '明净', sourceName: 'Noto Sans SC', family: 'CardNotoSansSCOpen', previewFamily: 'CardNotoSansSCOpen, PingFang SC, sans-serif', fontUrl: `${FONT_CDN}/noto-sans-sc@latest/chinese-simplified-400-normal.woff2`, token: 'ui', mood: '明净清晰', scene: '信息层级、说明文字' },
+  { id: 'en-zen', name: '古典英文', sourceName: 'Garamond', family: 'Garamond, "Times New Roman", serif', previewFamily: 'Garamond, "Times New Roman", serif', token: 'serif', mood: '安静古典', scene: '英文日签、短句落款' },
   { id: 'en-magazine', name: '高级杂志', sourceName: 'Playfair Display', family: '"Playfair Display", Georgia, serif', previewFamily: '"Playfair Display", Georgia, serif', token: 'title', mood: '优雅杂志', scene: '英文标题、封面' },
   { id: 'en-minimal', name: '极简海报', sourceName: 'Inter', family: 'Inter, Arial, sans-serif', previewFamily: 'Inter, Arial, sans-serif', token: 'ui', mood: '现代留白', scene: '极简英文、辅助信息' },
   { id: 'en-oriental', name: '东方文艺', sourceName: 'Cormorant Garamond', family: '"Cormorant Garamond", Garamond, serif', previewFamily: '"Cormorant Garamond", Garamond, serif', token: 'poetry', mood: '文艺纤细', scene: '诗句、英文副标题' },
-  { id: 'en-cultivate', name: '修心英文', sourceName: 'Times', family: '"Times New Roman", Times, serif', previewFamily: '"Times New Roman", Times, serif', token: 'serif', mood: '经典克制', scene: '修心英文、正文' },
-  { id: 'en-landscape', name: '山水英文', sourceName: 'Didot', family: 'Didot, "Bodoni 72", "Bodoni MT", serif', previewFamily: 'Didot, "Bodoni 72", "Bodoni MT", serif', token: 'title', mood: '纤细空灵', scene: '山水封面、留白标题' }
+  { id: 'en-cultivate', name: '人文英文', sourceName: 'Times', family: '"Times New Roman", Times, serif', previewFamily: '"Times New Roman", Times, serif', token: 'serif', mood: '经典克制', scene: '人文英文、正文' },
+  { id: 'en-landscape', name: '山水英文', sourceName: 'Didot', family: 'Didot, "Bodoni 72", "Bodoni MT", serif', previewFamily: 'Didot, "Bodoni 72", "Bodoni MT", serif', token: 'title', mood: '纤细空灵', scene: '山水封面、留白标题' },
+
+  // ===== 隐藏字体：原风险字体，不在前端显示，仅用于旧数据兼容和回退映射 =====
+  { id: 'hanyi-hongyikai', name: '温雅楷书', sourceName: '温雅楷书', family: 'CardLXGWWenKai, Kaiti SC, serif', previewFamily: 'CardLXGWWenKai, Kaiti SC, serif', token: 'zen', mood: '温润克制', scene: '诗词、日签、正文', hidden: true },
+  { id: 'han-shaojie-hongyi-haier', name: '孩儿体', sourceName: '韩绍杰弘一法师孩儿体', family: 'CardMaoKenTangYuan, PingFang SC, sans-serif', previewFamily: 'CardMaoKenTangYuan, PingFang SC, sans-serif', token: 'soft', mood: '自然童真', scene: '治愈、女性向、温柔文案', hidden: true },
+  { id: 'fz-taishan-jingangjing-lishu', name: '泰山隶书', sourceName: '泰山隶书', family: 'CardHuiwenMincho, Source Han Serif SC, Songti SC, serif', previewFamily: 'CardHuiwenMincho, Source Han Serif SC, Songti SC, serif', token: 'sutra', mood: '典籍古雅', scene: '古文、节气、古风排版', hidden: true },
+  { id: 'yixin-bore-song', name: '典雅宋', sourceName: '典雅宋', family: 'CardSourceHanSerifSC, Songti SC, serif', previewFamily: 'CardSourceHanSerifSC, Songti SC, serif', token: 'serif', mood: '东方高级', scene: '长文、高级正文', hidden: true },
+  { id: 'bore-dakai', name: '大楷', sourceName: '大楷', family: 'CardLXGWNeoXiHei, PingFang SC, sans-serif', previewFamily: 'CardLXGWNeoXiHei, PingFang SC, sans-serif', token: 'minimal', mood: '清爽现代', scene: '极简国风、现代卡片', hidden: true },
+  { id: 'zhendian-kaizong-shengdian', name: '典藏楷书', sourceName: '典藏楷书', family: 'CardJiangXiZhuoKai, Kaiti SC, serif', previewFamily: 'CardJiangXiZhuoKai, Kaiti SC, serif', token: 'poetry', mood: '碑帖手写', scene: '格言短句、文人风', hidden: true },
+  { id: 'fz-badashanren-xingkai', name: '八大山人行楷', sourceName: '方正八大山人行楷', family: 'CardQiuHongKai, Kaiti SC, serif', previewFamily: 'CardQiuHongKai, Kaiti SC, serif', token: 'poetry', mood: '自然行草', scene: '金句、手写卡片', hidden: true },
+  { id: 'hanyi-xianer', name: '弦二体', sourceName: '汉仪弦二体', family: 'CardSmileySans, PingFang SC, sans-serif', previewFamily: 'CardSmileySans, PingFang SC, sans-serif', token: 'ui', mood: '年轻设计', scene: '按钮、导航、Banner', hidden: true },
+  { id: 'fz-zihui-fojun-xingshu', name: '雅逸行书', sourceName: '雅逸行书', family: 'CardYouZai, Kaiti SC, cursive', previewFamily: 'CardYouZai, Kaiti SC, cursive', token: 'handwrite', mood: '轻松自然', scene: '闲适语录、手写短句', hidden: true },
+  { id: 'zhaomengfu-xinjing', name: '赵体小楷', sourceName: '赵体小楷', family: 'CardHuiwenMincho, Source Han Serif SC, Songti SC, serif', previewFamily: 'CardHuiwenMincho, Source Han Serif SC, Songti SC, serif', token: 'sutra', mood: '典籍古雅', scene: '古文、节气、题跋', hidden: true },
+  { id: 'lanmo-runcheng-xingcao', name: '润城行草', sourceName: '蓝墨润城行草', family: 'CardQiuHongKai, Kaiti SC, serif', previewFamily: 'CardQiuHongKai, Kaiti SC, serif', token: 'poetry', mood: '自然行草', scene: '金句、手写卡片', hidden: true },
+  { id: 'shanhai-qingchan', name: '山海清韵', sourceName: '山海清韵', family: 'CardLXGWWenKaiGB, Kaiti SC, serif', previewFamily: 'CardLXGWWenKaiGB, Kaiti SC, serif', token: 'zen', mood: '安静留白', scene: '山水、空境、留白风', hidden: true },
+  { id: 'ziyou-fuchen', name: '墨韵原体', sourceName: '字由墨韵', family: 'CardMaShanZheng, cursive', previewFamily: 'CardMaShanZheng, cursive', token: 'title', mood: '毛笔国风', scene: '封面、国风标题', hidden: true },
+  { id: 'honglei-xingshu', name: '鸿雷行书', sourceName: '鸿雷行书简体', family: 'CardXiaXingKai, Kaiti SC, cursive', previewFamily: 'CardXiaXingKai, Kaiti SC, cursive', token: 'title', mood: '行楷海报', scene: '海报、签名、标题', hidden: true }
 ];
 const FONT_ID_ALIASES = {
   zcoolkuaile: 'soft-round',
@@ -71,20 +89,6 @@ const FONT_ID_ALIASES = {
   lishu: 'sutra',
   yuanti: 'soft-round',
   mingcho: 'serif-advanced',
-  'hanyi-hongyikai': 'zen',
-  'han-shaojie-hongyi-haier': 'soft-round',
-  'fz-taishan-jingangjing-lishu': 'sutra',
-  'yixin-bore-song': 'serif-advanced',
-  'bore-dakai': 'minimal',
-  'zhendian-kaizong-shengdian': 'writer',
-  'fz-badashanren-xingkai': 'poetry',
-  'hanyi-xianer': 'ui-modern',
-  'fz-zihui-fojun-xingshu': 'ease-script',
-  'zhaomengfu-xinjing': 'sutra',
-  'lanmo-runcheng-xingcao': 'poetry',
-  'shanhai-qingchan': 'landscape',
-  'ziyou-fuchen': 'brush-title',
-  'honglei-xingshu': 'guofeng',
   georgia: 'serif-advanced',
   times: 'serif-advanced',
   garamond: 'serif-advanced',
@@ -151,11 +155,18 @@ function writeFontUsage(usage) {
 function getSortedFonts() {
   const usage = readFontUsage();
   return FONT_CATALOG
+    .filter(font => !font.hidden)
     .map((font, index) => ({ ...font, _index: index, _usage: usage[font.id] || {} }))
     .sort((a, b) => {
       if (a.id === 'system') return -1;
       if (b.id === 'system') return 1;
-      const countDiff = Number(b._usage.count || 0) - Number(a._usage.count || 0);
+      const aCount = Number(a._usage.count || 0);
+      const bCount = Number(b._usage.count || 0);
+      const aFrequent = aCount >= FONT_USAGE_SORT_THRESHOLD;
+      const bFrequent = bCount >= FONT_USAGE_SORT_THRESHOLD;
+      if (aFrequent !== bFrequent) return aFrequent ? -1 : 1;
+      if (!aFrequent && !bFrequent) return a._index - b._index;
+      const countDiff = bCount - aCount;
       if (countDiff) return countDiff;
       const timeDiff = Number(b._usage.lastUsed || 0) - Number(a._usage.lastUsed || 0);
       if (timeDiff) return timeDiff;
@@ -522,6 +533,8 @@ function hasTextSelection(start, end) {
 }
 
 function isVerticalTextBlock(block) {
+  if (block && block.textDirection === 'horizontal') return false;
+  if (block && block.textDirection === 'vertical') return !!deltaToText(block && block.delta).trim();
   return Number((block && block.width) || 500) <= VERTICAL_WIDTH_THRESHOLD && !!deltaToText(block && block.delta).trim();
 }
 
@@ -709,6 +722,7 @@ function hydrateDesign(design) {
       previewVerticalClass: isVerticalTextBlock(block) ? 'vertical' : '',
       previewFontSizeStyle: `font-size:${Math.round(getBlockFontSize(block) * textScale)}rpx;`,
       previewLetterSpacingStyle: `letter-spacing:${Math.round(Number(block.letterSpacing || 0) * textScale * 10) / 10}rpx;`,
+      verticalAlign: block.verticalAlign || 'top',
       previewNodes: deltaToNodes(block.delta, previewBlock),
       plainText: deltaToText(block.delta)
     };
@@ -735,8 +749,8 @@ function createBlankDesign(template) {
       lineHeight: 1.6,
       letterSpacing: 1,
       placeholder: EMPTY_TEXT_PLACEHOLDER,
-      placeholderSize: 30,
-      delta: { ops: [{ insert: '', attributes: { size: 30, color: '#6B4F39' } }] }
+      placeholderSize: DEFAULT_TEXT_FONT_SIZE,
+      delta: { ops: [{ insert: '', attributes: { size: DEFAULT_TEXT_FONT_SIZE, color: '#6B4F39' } }] }
     }
   ];
   design.decorations = [];
@@ -796,8 +810,12 @@ Page({
     bgDisplayHeight: PREVIEW_STAGE_HEIGHT_RPX,
     previewStageWidth: PREVIEW_STAGE_RPX,
     previewStageHeight: PREVIEW_STAGE_HEIGHT_RPX,
-    canvasSizeOptions: CANVAS_SIZE_OPTIONS,
-    activeCanvasSizeId: 'portrait',
+  canvasSizeOptions: CANVAS_SIZE_OPTIONS,
+  activeCanvasSizeId: 'portrait',
+  // 自定义尺寸
+  showCustomSizeInput: false,
+  customWidth: '',
+  customHeight: '',
     showColorPicker: false,
     showPasteTip: false,
     selectionHint: '',
@@ -809,8 +827,12 @@ Page({
     colorPickerSvX: 0,
     colorPickerSvY: 0,
   canUndo: false,
-  canRedo: false
-  },
+  canRedo: false,
+  // 草稿列表
+  showDraftList: false,
+  draftList: [],
+  draftListCount: 0
+},
 
   // ==================== 撤销 / 重做 历史栈 ====================
   _history: [],
@@ -929,8 +951,7 @@ Page({
     try {
       await renderer.drawPosterToCanvas(this, '#previewCanvas', this.data.design, {
         scale: 1,
-        dpr: 1,
-        preloadFonts: false
+        dpr: 1
       });
     } catch (e) {
       console.warn('预览画布渲染失败', e);
@@ -943,23 +964,155 @@ Page({
       const platform = String(info.platform || info.system || '').toLowerCase();
       this.setData({ isIOS: platform.indexOf('ios') >= 0 });
     } catch (e) {}
-    this.setData({ fonts: getSortedFonts() });
+    this.setData({
+      fonts: getSortedFonts(),
+      draftListCount: cardStorage.getDraftCount()
+    });
     setTimeout(() => this.preloadVisibleFonts(), 120);
     let design;
     if (query.draftId) {
       const draft = cardStorage.getDraft(query.draftId);
       design = draft && draft.design ? draft.design : templates.getTemplate('solar-term-paper');
       design.id = query.draftId;
+      this.setDesign(design, (design.blocks && design.blocks[0] && design.blocks[0].id) || '');
     } else {
-      design = createBlankDesign(templates.getTemplate(query.templateId || 'solar-term-paper'));
-      design.templateId = query.templateId || design.id;
-      design.id = '';
+      // 没有指定草稿 ID，检查是否有最近的草稿可以继续编辑
+      const latest = cardStorage.getLatestDraft();
+      if (latest && latest.design) {
+        // 先用模板创建设计并渲染，同时弹出选择弹窗
+        design = createBlankDesign(templates.getTemplate(query.templateId || 'solar-term-paper'));
+        design.templateId = query.templateId || design.id;
+        design.id = '';
+        this.setDesign(design, (design.blocks && design.blocks[0] && design.blocks[0].id) || '');
+        // 弹出草稿恢复选择
+        this.setData({
+          showDraftModal: true,
+          latestDraftName: latest.name || '未命名卡片',
+          latestDraftId: latest.id
+        });
+      } else {
+        design = createBlankDesign(templates.getTemplate(query.templateId || 'solar-term-paper'));
+        design.templateId = query.templateId || design.id;
+        design.id = '';
+        this.setDesign(design, (design.blocks && design.blocks[0] && design.blocks[0].id) || '');
+      }
     }
-    this.setDesign(design, (design.blocks && design.blocks[0] && design.blocks[0].id) || '');
+  },
+
+  // 恢复最近草稿
+  resumeLatestDraft() {
+    const draft = cardStorage.getDraft(this.data.latestDraftId);
+    if (draft && draft.design) {
+      const design = draft.design;
+      design.id = draft.id;
+      this.setData({ showDraftModal: false });
+      this.setDesign(design, (design.blocks && design.blocks[0] && design.blocks[0].id) || '');
+    } else {
+      this.setData({ showDraftModal: false });
+      wx.showToast({ title: '草稿已失效', icon: 'none' });
+    }
+  },
+
+  // 放弃草稿，使用新建设计
+  dismissDraftModal() {
+    this.setData({ showDraftModal: false });
+  },
+
+  // ==================== 草稿列表管理 ====================
+
+  /** 打开草稿列表面板 */
+  openDraftList() {
+    const drafts = cardStorage.getDrafts();
+    // 格式化时间显示
+    const list = (drafts || []).map(item => ({
+      ...item,
+      timeLabel: this._formatDraftTime(item.updatedAt || item.createdAt || 0)
+    }));
+    this.setData({
+      showDraftList: true,
+      draftList: list,
+      draftListCount: list.length
+    });
+  },
+
+  /** 关闭草稿列表 */
+  closeDraftList() {
+    this.setData({ showDraftList: false });
+  },
+
+  /** 从列表打开指定草稿 */
+  openDraftFromList(e) {
+    const id = e.currentTarget.dataset.id;
+    if (!id) return;
+    const draft = cardStorage.getDraft(id);
+    if (draft && draft.design) {
+      const design = draft.design;
+      design.id = draft.id;
+      this.setData({ showDraftList: false, inlineEditing: false, textInputFocus: false, caretVisible: false });
+      this.setDesign(design, (design.blocks && design.blocks[0] && design.blocks[0].id) || '');
+    } else {
+      wx.showToast({ title: '草稿已失效', icon: 'none' });
+    }
+  },
+
+  /** 从列表删除指定草稿 */
+  deleteDraftFromList(e) {
+    const id = e.currentTarget.dataset.id;
+    if (!id) return;
+    wx.showModal({
+      title: '确认删除',
+      content: '确定要删除这份草稿吗？删除后无法恢复。',
+      confirmText: '删除',
+      confirmColor: '#C62828',
+      success: (res) => {
+        if (res.confirm) {
+          cardStorage.removeDraft(id);
+          // 刷新列表
+          const drafts = cardStorage.getDrafts();
+          const list = (drafts || []).map(item => ({
+            ...item,
+            timeLabel: this._formatDraftTime(item.updatedAt || item.createdAt || 0)
+          }));
+          this.setData({ draftList: list, draftListCount: list.length });
+          wx.showToast({ title: '已删除', icon: 'none' });
+        }
+      }
+    });
+  },
+
+  /** 格式化草稿时间为可读字符串 */
+  _formatDraftTime(timestamp) {
+    if (!timestamp) return '';
+    const now = Date.now();
+    const diff = now - timestamp;
+    if (diff < 60 * 1000) return '刚刚';
+    if (diff < 3600 * 1000) return Math.floor(diff / 60000) + '分钟前';
+    if (diff < 86400 * 1000) return Math.floor(diff / 3600000) + '小时前';
+    if (diff < 7 * 86400 * 1000) return Math.floor(diff / 86400000) + '天前';
+    const d = new Date(timestamp);
+    return `${d.getMonth() + 1}/${d.getDate()} ${String(d.getHours()).padStart(2,'0')}:${String(d.getMinutes()).padStart(2,'0')}`;
   },
 
   onReady() {
     this.schedulePreviewRender(0);
+    this.cacheStageRect();
+  },
+
+  cacheStageRect() {
+    wx.createSelectorQuery().in(this)
+      .select('.poster-stage')
+      .boundingClientRect(rect => {
+        if (rect) this._stageRect = rect;
+      })
+      .exec();
+  },
+
+  onHide() {
+    this.saveDraft({ silent: true });
+  },
+
+  onUnload() {
+    this.saveDraft({ silent: true });
   },
 
   setDesign(design, activeId) {
@@ -1089,6 +1242,94 @@ getPreviewBackground(bg) {
     this.setDesign(design, this.data.activeBlockId);
   },
 
+  // ==================== 自定义尺寸 ====================
+
+  /** 切换自定义尺寸输入面板 */
+  toggleCustomSizeInput() {
+    const design = this.data.design || {};
+    const size = design.size || {};
+    const w = Number(size.width || 750);
+    const h = Number(size.height || 1000);
+    this.setData({
+      showCustomSizeInput: !this.data.showCustomSizeInput,
+      customWidth: String(w),
+      customHeight: String(h)
+    });
+  },
+
+  /** 自定义宽度输入 */
+  onCustomWidthInput(e) {
+    this.setData({ customWidth: e.detail.value || '' });
+  },
+
+  /** 自定义高度输入 */
+  onCustomHeightInput(e) {
+    this.setData({ customHeight: e.detail.value || '' });
+  },
+
+  /** 确认自定义尺寸：验证 → 按比例同步到画布和导出 */
+  confirmCustomSize() {
+    let w = parseInt(this.data.customWidth, 10);
+    let h = parseInt(this.data.customHeight, 10);
+
+    // 验证输入
+    if (!w || !h || isNaN(w) || isNaN(h)) {
+      wx.showToast({ title: '请输入有效的宽高数值', icon: 'none' });
+      return;
+    }
+    if (w < 100 || h < 100) {
+      wx.showToast({ title: '宽高不能小于 100', icon: 'none' });
+      return;
+    }
+    if (w > 4000 || h > 4000) {
+      wx.showToast({ title: '宽高不能超过 4000', icon: 'none' });
+      return;
+    }
+
+    // 应用自定义尺寸（复用 setCanvasSize 的缩放逻辑）
+    const design = clone(this.data.design);
+    const oldSize = design.size || { width: 750, height: 1000 };
+    const oldWidth = Math.max(Number(oldSize.width || 750), 1);
+    const oldHeight = Math.max(Number(oldSize.height || 1000), 1);
+    const scaleX = w / oldWidth;
+    const scaleY = h / oldHeight;
+
+    design.size = { width: w, height: h, preset: 'custom' };
+    design.blocks = (design.blocks || []).map(block => ({
+      ...block,
+      x: Math.round(Number(block.x || 0) * scaleX),
+      y: Math.round(Number(block.y || 0) * scaleY),
+      width: Math.max(MIN_TEXT_BOX_WIDTH, Math.round(Number(block.width || DEFAULT_TEXT_BOX_WIDTH) * scaleX)),
+      height: block.height ? Math.max(MIN_TEXT_BOX_HEIGHT, Math.round(Number(block.height || DEFAULT_TEXT_BOX_HEIGHT) * scaleY)) : block.height,
+      manualHeight: block.manualHeight ? Math.max(MIN_TEXT_BOX_HEIGHT, Math.round(Number(block.manualHeight || DEFAULT_TEXT_BOX_HEIGHT) * scaleY)) : block.manualHeight
+    }));
+    if (design.qrcode) {
+      design.qrcode = {
+        ...design.qrcode,
+        x: Math.round(Number(design.qrcode.x || 0) * scaleX),
+        y: Math.round(Number(design.qrcode.y || 0) * scaleY),
+        size: Math.max(40, Math.round(Number(design.qrcode.size || 110) * Math.min(scaleX, scaleY)))
+      };
+    }
+    design.decorations = (design.decorations || []).map(item => ({
+      ...item,
+      x: Math.round(Number(item.x || 0) * scaleX),
+      y: Math.round(Number(item.y || 0) * scaleY),
+      width: item.width ? Math.round(Number(item.width || 0) * scaleX) : item.width
+    }));
+    if (design.background) {
+      design.background.offsetX = 0;
+      design.background.offsetY = 0;
+    }
+
+    this.setData({
+      showCustomSizeInput: false,
+      activeCanvasSizeId: 'custom'
+    });
+    this.setDesign(design, this.data.activeBlockId);
+    wx.showToast({ title: `${w}×${h}`, icon: 'none', duration: 800 });
+  },
+
   onActiveTextInput(e) {
     this._manualTextSelection = null;
     this.exitSelectionMode();
@@ -1131,9 +1372,8 @@ getPreviewBackground(bg) {
     });
   },
 
-  // textarea 获得焦点时：自动全选 + 弹出工具栏
+  // textarea 获得焦点时：保持当前光标位置，弹出工具栏
   onTextareaFocus(e) {
-    const text = this.data.activePlainText || '';
     const pendingSelection = this._pendingTextareaSelection;
     if (pendingSelection) {
       this._pendingTextareaSelection = null;
@@ -1148,16 +1388,13 @@ getPreviewBackground(bg) {
       }, 80);
       return;
     }
-    // 延迟设置选区，等 textarea 完成聚焦
+    // 保持当前光标/选区位置（不再自动全选），弹出格式工具栏
     setTimeout(() => {
       this.setData({
         textInputFocus: true,
-        showPasteTip: true,
-        selectionStart: 0,
-        selectionEnd: text.length,
-        selectionHint: text ? '已全选' : ''
+        showPasteTip: true
       });
-    }, 150);
+    }, 80);
   },
 
   onStageEditorTap() {
@@ -1261,6 +1498,35 @@ getPreviewBackground(bg) {
     return fontSize * 0.58;
   },
 
+  getSelectionStyledChars(text, block) {
+    const value = String(text || '');
+    const chars = [];
+    const ops = block && block.delta && Array.isArray(block.delta.ops) ? block.delta.ops : [];
+    const fallbackAttrs = getFirstTextAttrs(block);
+    const previewScale = block && block._previewScale ? block._previewScale : getPreviewScales(this.data.design);
+    const scaleX = Number(previewScale.x || PREVIEW_SCALE);
+    let offset = 0;
+    const pushChar = (ch, attrs) => {
+      if (offset >= value.length) return;
+      const rawSize = parseInt(attrs.size || attrs.fontSize || fallbackAttrs.size || fallbackAttrs.fontSize || 30, 10) || 30;
+      const fontSize = Math.max(Math.round(rawSize * scaleX), 12);
+      const letterSpacing = Number(attrs.letterSpacing || (block && block.letterSpacing) || 0) * scaleX;
+      chars[offset] = {
+        ch,
+        fontSize,
+        letterSpacing,
+        width: Math.max(this.estimateSelectionCharWidth(ch, fontSize) * (attrs.bold ? 1.08 : 1) + Math.max(letterSpacing, 0), 1)
+      };
+      offset += 1;
+    };
+    ops.forEach(op => {
+      const attrs = { ...(op.attributes || {}) };
+      String(op.insert || '').split('').forEach(ch => pushChar(ch, attrs));
+    });
+    while (offset < value.length) pushChar(value[offset], fallbackAttrs || {});
+    return chars;
+  },
+
   getSelectionLayout(text, blockOverride) {
     const block = blockOverride || this.data.activeBlock || {};
     const width = Math.max(Number(block.previewWidth || Math.round(Number(block.width || DEFAULT_TEXT_BOX_WIDTH) * PREVIEW_SCALE)) || 0, 120);
@@ -1269,40 +1535,47 @@ getPreviewBackground(bg) {
     const usable = Math.max(width - padX * 2, 40);
     const fontSize = Math.max(Math.round(getBlockFontSize(block) * getPreviewScales(this.data.design).x), 12);
     const lineHeight = Math.max(fontSize * Number(block.lineHeight || 1.6), fontSize + 6);
-    const letterSpacing = Number(block.letterSpacing || 0) * getPreviewScales(this.data.design).x;
     const align = block.align || 'left';
     const value = String(text || '');
+    const styledChars = this.getSelectionStyledChars(value, block);
     const lines = [];
-    let current = { chars: [], width: 0, startIndex: 0 };
+    let current = { chars: [], width: 0, startIndex: 0, fontSize, lineHeight };
     for (let i = 0; i < value.length; i++) {
       const ch = value[i];
       if (ch === '\n') {
         lines.push(current);
-        current = { chars: [], width: 0, startIndex: i + 1 };
+        current = { chars: [], width: 0, startIndex: i + 1, fontSize, lineHeight };
         continue;
       }
-      const chWidth = Math.max(this.estimateSelectionCharWidth(ch, fontSize) + Math.max(letterSpacing, 0), 1);
+      const styled = styledChars[i] || { fontSize, width: this.estimateSelectionCharWidth(ch, fontSize) };
+      const chWidth = Math.max(Number(styled.width || 0), 1);
       if (current.chars.length && current.width + chWidth > usable) {
         lines.push(current);
-        current = { chars: [], width: 0, startIndex: i };
+        current = { chars: [], width: 0, startIndex: i, fontSize, lineHeight };
       }
-      current.chars.push({ index: i, width: chWidth });
+      current.fontSize = Math.max(Number(current.fontSize || fontSize), Number(styled.fontSize || fontSize));
+      current.lineHeight = Math.max(Number(current.lineHeight || lineHeight), Number(styled.fontSize || fontSize) * Number(block.lineHeight || 1.6), Number(styled.fontSize || fontSize) + 6);
+      current.chars.push({ index: i, width: chWidth, fontSize: styled.fontSize || fontSize });
       current.width += chWidth;
     }
     if (current.chars.length || !lines.length || value.endsWith('\n')) lines.push(current);
 
     const offsets = [];
+    let y = padY;
     lines.forEach((item, line) => {
       let offsetX = padX;
       if (align === 'center') offsetX = padX + Math.max((usable - item.width) / 2, 0);
       if (align === 'right') offsetX = padX + Math.max(usable - item.width, 0);
       let x = offsetX;
-      const y = padY + line * lineHeight;
-      offsets[item.startIndex] = { index: item.startIndex, x, y, line };
+      const itemLineHeight = Math.max(Number(item.lineHeight || lineHeight), lineHeight);
+      offsets[item.startIndex] = { index: item.startIndex, x, y, line, fontSize: item.fontSize || fontSize, lineHeight: itemLineHeight };
       item.chars.forEach(ch => {
         x += ch.width;
-        offsets[ch.index + 1] = { index: ch.index + 1, x, y, line };
+        offsets[ch.index + 1] = { index: ch.index + 1, x, y, line, fontSize: item.fontSize || fontSize, lineHeight: itemLineHeight };
       });
+      item.y = y;
+      item.lineHeight = itemLineHeight;
+      y += itemLineHeight;
     });
 
     return {
@@ -1312,8 +1585,7 @@ getPreviewBackground(bg) {
       padY,
       usable,
       fontSize,
-      lineHeight,
-      letterSpacing
+      lineHeight
     };
   },
 
@@ -1331,8 +1603,10 @@ getPreviewBackground(bg) {
     const endX = Math.min(maxX, this.data.isIOS ? Math.max(measuredEndX, iosEndX) : measuredEndX);
     return {
       x: typeof x === 'number' ? x : endX,
-      y: (layout.padY || 0) + Math.max(0, Number(lineIndex || 0)) * layout.lineHeight,
-      line: Number(lineIndex || 0)
+      y: Number(line.y || 0),
+      line: Number(lineIndex || 0),
+      fontSize: Number(line.fontSize || layout.fontSize),
+      lineHeight: Number(line.lineHeight || layout.lineHeight)
     };
   },
 
@@ -1354,8 +1628,10 @@ getPreviewBackground(bg) {
       }
     }
     pos = pos || layout.offsets[0] || { x: layout.padX || 0, y: 0, line: 0 };
-    const top = Math.round(Number(pos.y || 0) + Math.max((layout.lineHeight - layout.fontSize) / 2, 0));
-    const height = Math.max(Math.round(layout.fontSize + 8), 20);
+    const posFontSize = Number(pos.fontSize || layout.fontSize);
+    const posLineHeight = Number(pos.lineHeight || layout.lineHeight);
+    const top = Math.round(Number(pos.y || 0) + Math.max((posLineHeight - posFontSize) / 2, 0));
+    const height = Math.max(Math.round(posFontSize + 8), 20);
     return {
       caretVisible: true,
       caretX: Math.round(Number(pos.x || 0)),
@@ -1375,8 +1651,8 @@ getPreviewBackground(bg) {
     return {
       startX: Math.round(startPos.x),
       endX: Math.round(endPos.x),
-      startY: Math.round(startPos.y + layout.fontSize + 4),
-      endY: Math.round(endPos.y + layout.fontSize + 4),
+      startY: Math.round(startPos.y + Number(startPos.fontSize || layout.fontSize) + 4),
+      endY: Math.round(endPos.y + Number(endPos.fontSize || layout.fontSize) + 4),
       startLine: startPos.line || 0,
       endLine: endPos.line || 0
     };
@@ -1394,17 +1670,19 @@ getPreviewBackground(bg) {
       const to = layout.offsets[i + 1];
       if (!from || !to) continue;
       const line = from.line || 0;
-      if (!lines[line]) lines[line] = { left: from.x, right: to.x, y: from.y };
+      if (!lines[line]) lines[line] = { left: from.x, right: to.x, y: from.y, fontSize: from.fontSize || layout.fontSize, lineHeight: from.lineHeight || layout.lineHeight };
       lines[line].left = Math.min(lines[line].left, from.x);
       lines[line].right = Math.max(lines[line].right, to.x);
       lines[line].y = from.y;
+      lines[line].fontSize = Math.max(Number(lines[line].fontSize || layout.fontSize), Number(from.fontSize || layout.fontSize), Number(to.fontSize || layout.fontSize));
+      lines[line].lineHeight = Math.max(Number(lines[line].lineHeight || layout.lineHeight), Number(from.lineHeight || layout.lineHeight), Number(to.lineHeight || layout.lineHeight));
     }
     Object.keys(lines).forEach(key => {
       const item = lines[key];
       const left = Math.round(item.left);
-      const top = Math.round(item.y + Math.max((layout.lineHeight - layout.fontSize) / 2, 0));
+      const top = Math.round(item.y + Math.max((Number(item.lineHeight || layout.lineHeight) - Number(item.fontSize || layout.fontSize)) / 2, 0));
       const width = Math.max(Math.round(item.right - item.left), 4);
-      const height = Math.max(Math.round(layout.fontSize + 6), 18);
+      const height = Math.max(Math.round(Number(item.fontSize || layout.fontSize) + 6), 18);
       rects.push({
         style: `left:${left}rpx;top:${top}rpx;width:${width}rpx;height:${height}rpx;`
       });
@@ -1427,6 +1705,26 @@ getPreviewBackground(bg) {
       }
     });
     return Math.max(0, Math.min(best.index || 0, text.length));
+  },
+
+  getSelectionIndexFromPagePoint(pageX, pageY, blockOverride) {
+    const block = blockOverride || this.data.activeBlock || {};
+    const text = this.data.activePlainText || deltaToText(block && block.delta);
+    if (!text) return 0;
+    const stageRect = this._stageRect;
+    if (!stageRect) return Math.max(0, Math.min(Number(this.data.selectionEnd || 0), text.length));
+
+    const rpxPerPx = this.getRpxPerPx();
+    const scales = getPreviewScales(this.data.design);
+    const blockWithScale = { ...block, _previewScale: scales };
+    const pointX = typeof pageX === 'number' ? pageX : 0;
+    const pointY = typeof pageY === 'number' ? pageY : 0;
+    const localX = (pointX - stageRect.left) * rpxPerPx - Number(block.previewX || 0);
+    const localY = (pointY - stageRect.top) * rpxPerPx - Number(block.previewY || 0);
+    const layout = this.getSelectionLayout(text, blockWithScale);
+    const lineCount = Math.max(layout.lines.length, 1);
+    const targetLine = Math.max(0, Math.min(Math.floor(localY / layout.lineHeight), lineCount - 1));
+    return this.getSelectionIndexFromPoint(localX, targetLine);
   },
 
   getRpxPerPx() {
@@ -1526,6 +1824,31 @@ getPreviewBackground(bg) {
     });
   },
 
+  clearTextSelectionAndEditing(e) {
+    if (e && typeof e.stopPropagation === 'function') e.stopPropagation();
+    if (!this.data.inlineEditing && !this.data.selectionModeActive && !this.data.activeBlockId) return;
+    this.editorCtx = null;
+    this._manualTextSelection = null;
+    this._selectionDrag = null;
+    this._textSelectDrag = null;
+    this.setData({
+      inlineEditing: false,
+      textInputFocus: false,
+      showPasteTip: false,
+      selectionModeActive: false,
+      selectionPreviewNodes: [],
+      selectionFlowNodes: [],
+      selectionRects: [],
+      selectionHint: '',
+      caretVisible: false,
+      activeBlockId: '',
+      activeBlock: {},
+      activePlainText: '',
+      selectionStart: 0,
+      selectionEnd: 0
+    }, () => this.schedulePreviewRender(0));
+  },
+
   onSelectionHandleStart(e) {
     const handle = (e.currentTarget && e.currentTarget.dataset && e.currentTarget.dataset.handle) || 'end';
     const touch = e.touches && e.touches[0];
@@ -1540,6 +1863,7 @@ getPreviewBackground(bg) {
     this._selectionDrag = {
       handle,
       startClientX: touch.clientX,
+      startClientY: touch.clientY,
       startIndex: handle === 'start' ? Number(this.data.selectionStart || 0) : Number(this.data.selectionEnd || 0),
       line: handle === 'start' ? currentPos.startLine : currentPos.endLine,
       width
@@ -1559,13 +1883,19 @@ getPreviewBackground(bg) {
     );
     const baseX = drag.handle === 'start' ? currentPos.startX : currentPos.endX;
     const dxRpx = (touch.clientX - drag.startClientX) * this.getRpxPerPx();
-    const index = this.getSelectionIndexFromPoint(baseX + dxRpx, drag.line);
+    const dyPx = Math.abs(touch.clientY - Number(drag.startClientY || touch.clientY));
+    const dxPx = Math.abs(touch.clientX - Number(drag.startClientX || touch.clientX));
+    const pageX = typeof touch.pageX === 'number' ? touch.pageX : touch.clientX;
+    const pageY = typeof touch.pageY === 'number' ? touch.pageY : touch.clientY;
+    const index = dyPx > 4 || dxPx > 4
+      ? this.getSelectionIndexFromPagePoint(pageX, pageY)
+      : this.getSelectionIndexFromPoint(baseX + dxRpx, drag.line);
     let start = Number(this.data.selectionStart || 0);
     let end = Number(this.data.selectionEnd || 0);
     if (drag.handle === 'start') start = Math.min(index, end - 1);
     else end = Math.max(index, start + 1);
     this.enterSelectionMode(start, end, `已选中 ${Math.max(end - start, 0)} 个字`);
-    this._selectionDrag = { ...drag, startClientX: touch.clientX };
+    this._selectionDrag = { ...drag, startClientX: touch.clientX, startClientY: touch.clientY };
   },
 
   onSelectionHandleEnd() {
@@ -1650,9 +1980,8 @@ getPreviewBackground(bg) {
       ? this.data.selectionEnd
       : (typeof this.data.selectionStart === 'number' ? this.data.selectionStart : text.length);
     const cursor = Math.max(0, Math.min(rawCursor, text.length));
-    const selectionLength = Math.min(4, text.length);
-    const start = Math.min(cursor, Math.max(0, text.length - selectionLength));
-    const end = Math.min(text.length, start + selectionLength);
+    const start = cursor >= text.length ? Math.max(0, text.length - 1) : cursor;
+    const end = Math.min(text.length, start + 1);
     const selectedText = text.slice(start, end);
     const hint = end > start ? `已选中 ${end - start} 个字：${selectedText}` : '';
     this.enterSelectionMode(start, end, hint);
@@ -1685,28 +2014,67 @@ getPreviewBackground(bg) {
     });
   },
 
-  deleteSelectedText() {
-    if (this.shouldSkipFormatAction('delete')) return;
+  deleteSelectedText(e) {
+    if (e && typeof e.stopPropagation === 'function') e.stopPropagation();
+    if (this.shouldSkipFormatAction('deleteText')) return;
+    // 防止 blur 事件抢先退出编辑模式
+    this._ignoreNextEditorBlur = true;
     const current = this.data.activePlainText || '';
+    if (!current) return;
     const range = this.getActiveTextSelectionRange(current);
     let start = range.start;
     let end = range.end;
-    if (start === end && start > 0) start -= 1;
-    const text = current.slice(0, start) + current.slice(end);
-    const attrs = getAttrsAtOffset(this.data.activeBlock && this.data.activeBlock.delta, start) || getFirstTextAttrs(this.data.activeBlock || {});
+    const isFullSelection = (end - start >= current.length);
+    let text;
+    // 全选状态：清空全部文字
+    if (isFullSelection) {
+      text = '';
+      start = 0;
+      end = 0;
+    } else if (start === end) {
+      // 无选区：删除光标前 1 个字符
+      if (start > 0) start -= 1;
+      text = current.slice(0, start) + current.slice(end);
+    } else {
+      // 有选区：删除选中部分
+      text = current.slice(0, start) + current.slice(end);
+    }
+    const attrs = getAttrsAtOffset(this.data.activeBlock && this.data.activeBlock.delta, Math.max(0, start)) || getFirstTextAttrs(this.data.activeBlock || {});
     this._manualTextSelection = null;
     this.exitSelectionMode();
+    const cursorPos = Math.max(0, Math.min(start, text.length));
+    const design = clone(this.data.design);
+    const blockIndex = (design.blocks || []).findIndex(item => item && item.id === this.data.activeBlockId);
+    if (blockIndex < 0) return;
+    const block = design.blocks[blockIndex] || {};
+    const delta = { ops: [{ insert: text, attributes: attrs }] };
+    design.blocks[blockIndex] = { ...block, delta };
+    if (design.blocks[blockIndex].type === 'text') {
+      design.blocks[blockIndex].height = getBlockTextHeight(design.blocks[blockIndex]);
+    }
+    const hydrated = hydrateDesign(design);
+    const activeBlock = hydrated.blocks.find(item => item.id === this.data.activeBlockId) || {};
+    const caretState = this.getCaretState(cursorPos, text, { ...activeBlock, delta, _previewScale: getPreviewScales(hydrated) });
     this.setData({
+      design: hydrated,
+      activeBlock,
       activePlainText: text,
       inputText: text,
       textInputFocus: true,
-      selectionStart: start,
-      selectionEnd: start,
-      showPasteTip: true,
-      selectionHint: ''
+      selectionStart: cursorPos,
+      selectionEnd: cursorPos,
+      showPasteTip: !!text,
+      selectionHint: isFullSelection ? '已清空' : '',
+      nodeVersion: (this.data.nodeVersion || 0) + 1,
+      ...getTextPanelState(activeBlock, this.data),
+      ...caretState
+    }, () => {
+      this._saveHistory(this.data.design);
+      this.schedulePreviewRender(0);
     });
-    this.updateActiveBlock({ delta: { ops: [{ insert: text, attributes: attrs }] } }, { silentEditor: true });
-    this._saveHistory(this.data.design);
+    if (isFullSelection) {
+      wx.showToast({ title: '已清空文字', icon: 'none', duration: 600 });
+    }
   },
 
   toggleSelectedBold() {
@@ -1756,6 +2124,11 @@ getPreviewBackground(bg) {
 
   showFontPanelForSelection() {
     if (this.shouldSkipFormatAction('fontPanel')) return;
+    const range = this.getActiveTextSelectionRange(this.data.activePlainText || deltaToText(this.data.activeBlock && this.data.activeBlock.delta));
+    if (hasTextSelection(range.start, range.end)) {
+      this._pendingFontSelectionRange = { start: range.start, end: range.end };
+      this._manualTextSelection = { start: range.start, end: range.end };
+    }
     this.setData({ activePanel: 'font', textInputFocus: false, showPasteTip: true, selectionHint: '' });
     setTimeout(() => this.preloadVisibleFonts(), 80);
   },
@@ -1841,6 +2214,15 @@ getPreviewBackground(bg) {
       this._ignoreNextEditorBlur = false;
       return;
     }
+    // 如果正在等待菜单完成操作（如点击"完成"按钮），延迟退出让菜单先处理
+    if (this._finishingFromMenu) {
+      setTimeout(() => this._doFinishInlineEditing(), 120);
+      return;
+    }
+    this._doFinishInlineEditing();
+  },
+
+  _doFinishInlineEditing() {
     this.editorCtx = null;
     this._manualTextSelection = null;
     this.setData({
@@ -1857,6 +2239,8 @@ getPreviewBackground(bg) {
       this._typingHistoryStarted = false;
       this._saveHistory(this.data.design);
     }
+    // 完成编辑后刷新画布预览
+    this.schedulePreviewRender(0);
   },
 
   keepInlineEditing() {
@@ -1867,9 +2251,13 @@ getPreviewBackground(bg) {
   finishInlineEditingFromMenu() {
     clearTimeout(this._emptyFormatMenuTimer);
     if (this.shouldSkipFormatAction('done')) return;
-    this._ignoreNextEditorBlur = false;
+    // 标记正在从菜单完成，防止 blur 事件抢先退出编辑模式
+    this._finishingFromMenu = true;
+    this._ignoreNextEditorBlur = true;
     this.editorCtx = null;
     this._manualTextSelection = null;
+    const hadTyping = this._typingHistoryStarted;
+    if (hadTyping) this._typingHistoryStarted = false;
     this.setData({
       inlineEditing: false,
       textInputFocus: false,
@@ -1881,10 +2269,12 @@ getPreviewBackground(bg) {
       caretVisible: false,
       selectionHint: ''
     });
-    if (this._typingHistoryStarted) {
-      this._typingHistoryStarted = false;
+    if (hadTyping) {
       this._saveHistory(this.data.design);
     }
+    // 刷新画布预览并清理标记
+    this.schedulePreviewRender(0);
+    setTimeout(() => { this._finishingFromMenu = false; }, 300);
   },
 
   selectBlock(e) {
@@ -1895,15 +2285,40 @@ getPreviewBackground(bg) {
     return this.enterEditMode(id, block);
   },
 
-  enterEditMode(id, block) {
+  enterEditMode(id, block, tapPageX, tapPageY) {
     block = block || (this.data.design.blocks || []).find(item => item.id === id);
     if (!block) return;
     const end = getDeltaLength(block && block.delta);
-
-    // 如果已经是同一个框的编辑模式，不重复处理
-    if (this.data.inlineEditing && this.data.activeBlockId === id) return;
     const text = deltaToText(block && block.delta);
-    const caretState = this.getCaretState(end, text, { ...(block || {}), _previewScale: getPreviewScales(this.data.design) });
+
+    // 根据点击坐标计算光标位置，如果无法定位则默认到末尾
+    let cursorOffset = end;
+    if (typeof tapPageX === 'number' && typeof tapPageY === 'number') {
+      const hitOffset = this.getCharOffsetFromPagePoint(block, tapPageX, tapPageY);
+      if (typeof hitOffset === 'number' && hitOffset >= 0) {
+        cursorOffset = hitOffset;
+      }
+    }
+
+    // 如果已经是同一个框的编辑模式，退出选择模式并移动光标位置
+    if (this.data.inlineEditing && this.data.activeBlockId === id) {
+      // 先退出选择模式（如果有）
+      if (this.data.selectionModeActive) {
+        this.exitSelectionMode();
+      }
+      const caretState = this.getCaretState(cursorOffset, text, { ...block, _previewScale: getPreviewScales(this.data.design) });
+      this.setData({
+        selectionStart: cursorOffset,
+        selectionEnd: cursorOffset,
+        textInputFocus: true,
+        caretVisible: true,
+        showPasteTip: true,
+        ...caretState
+      });
+      return;
+    }
+
+    const caretState = this.getCaretState(cursorOffset, text, { ...(block || {}), _previewScale: getPreviewScales(this.data.design) });
 
     this.setData({
       activeBlockId: id,
@@ -1915,18 +2330,190 @@ getPreviewBackground(bg) {
       selectionRects: [],
       textInputFocus: true,
       inlineEditing: true,
-      selectionStart: end,
-      selectionEnd: end,
+      selectionStart: cursorOffset,
+      selectionEnd: cursorOffset,
       ...caretState,
       ...getTextPanelState(block, this.data)
     });
     this.openFormatMenu();
   },
 
+  // 根据页面点击坐标计算字符偏移量
+  getCharOffsetFromPagePoint(block, pageX, pageY) {
+    try {
+      const rpxPerPx = this.getRpxPerPx();
+      const scales = getPreviewScales(this.data.design);
+      const blockX = Number(block.previewX || 0);
+      const blockY = Number(block.previewY || 0);
+      return this._calcCharOffsetSync(block, pageX, pageY, rpxPerPx, blockX, blockY, scales);
+    } catch (e) {
+      return null;
+    }
+  },
+
+  // 同步计算字符偏移（使用缓存的 stage 位置或近似值）
+  _calcCharOffsetSync(block, pageX, pageY, rpxPerPx, blockX, blockY, scales) {
+    // 获取文字块相对于 stage 的 rpx 偏移
+    const stageRect = this._stageRect;
+    if (!stageRect) return null;
+
+    // 将页面坐标转换为相对于 stage 的 rpx 坐标
+    const relPxX = pageX - stageRect.left;
+    const relPxY = pageY - stageRect.top;
+    const relRpxX = relPxX * rpxPerPx;
+    const relRpxY = relPxY * rpxPerPx;
+
+    // 减去文字块偏移，得到文字块内的坐标
+    const localX = relRpxX - blockX;
+    const localY = relRpxY - blockY;
+
+    // 使用布局信息计算最近字符
+    const text = deltaToText(block && block.delta);
+    const blockWithScale = { ...block, _previewScale: scales };
+    const layout = this.getSelectionLayout(text, blockWithScale);
+    const lineHeight = layout.lineHeight;
+
+    // 计算点击位置所在的行
+    const targetLine = Math.max(0, Math.min(Math.floor(localY / lineHeight), layout.lines.length - 1));
+
+    // 在该行中找最近的字符偏移
+    let best = text.length;
+    let bestDistance = Infinity;
+    layout.offsets.forEach(pos => {
+      if ((pos.line || 0) !== targetLine) return;
+      const distance = Math.abs(Number(pos.x || 0) - localX);
+      if (distance < bestDistance) {
+        bestDistance = distance;
+        best = pos.index || 0;
+      }
+    });
+
+    return Math.max(0, Math.min(best, text.length));
+  },
+
   editBlockText(e) {
     const id = e.currentTarget.dataset.id;
     const block = (this.data.design.blocks || []).find(item => item.id === id);
-    this.enterEditMode(id, block);
+    if (!block) return;
+
+    // 优先使用触摸事件坐标（更精确），其次用 tap 坐标
+    let tapPageX, tapPageY;
+    const touches = e.touches || e.changedTouches || [];
+    if (touches.length > 0) {
+      tapPageX = touches[0].pageX || touches[0].clientX;
+      tapPageY = touches[0].pageY || touches[0].clientY;
+    } else {
+      tapPageX = e.detail && e.detail.x;
+      tapPageY = e.detail && e.detail.y;
+    }
+    const lastTouch = this._lastTextTouchPoint;
+    if ((typeof tapPageX !== 'number' || typeof tapPageY !== 'number') && lastTouch && lastTouch.id === id && Date.now() - Number(lastTouch.time || 0) < 800) {
+      tapPageX = lastTouch.pageX;
+      tapPageY = lastTouch.pageY;
+    }
+
+    // 如果已在编辑模式且是拖拽选择中，不重新进入
+    if (this.data.inlineEditing && this.data.activeBlockId === id && this._textSelectDrag) {
+      return;
+    }
+
+    this.enterEditMode(id, block, tapPageX, tapPageY);
+  },
+
+  /**
+   * 文字块上的 touchstart：记录起始点，用于区分「点击定位」和「拖拽选择」
+   * 编辑模式下触发，用于实现触摸式光标移动和文字选择
+   */
+  onTextBlockTouchStart(e) {
+    if (!this.data.inlineEditing) return;
+    const id = e.currentTarget.dataset.id;
+    if (id !== this.data.activeBlockId) return;
+
+    const touch = (e.touches && e.touches[0]) || null;
+    if (!touch) return;
+
+    this._textSelectDrag = {
+      startX: touch.clientX,
+      startY: touch.clientY,
+      startTime: Date.now(),
+      active: false, // 标记是否已进入拖拽选择（移动超过阈值后才算）
+      pageX: touch.pageX || touch.clientX,
+      pageY: touch.pageY || touch.clientY
+    };
+    this._lastTextTouchPoint = {
+      id,
+      time: Date.now(),
+      pageX: typeof touch.pageX === 'number' ? touch.pageX : touch.clientX,
+      pageY: typeof touch.pageY === 'number' ? touch.pageY : touch.clientY
+    };
+  },
+
+  /**
+   * 文字块上的 touchmove：如果移动超过阈值，进入拖拽选择模式
+   * 实时更新选区范围（从起始字符位置到当前手指位置的字符）
+   */
+  onTextBlockTouchMove(e) {
+    if (!this.data.inlineEditing || !this._textSelectDrag) return;
+    const id = e.currentTarget.dataset.id;
+    if (id !== this.data.activeBlockId) return;
+
+    const touch = (e.touches && e.touches[0]) || null;
+    if (!touch) return;
+
+    const drag = this._textSelectDrag;
+    const dx = Math.abs(touch.clientX - drag.startX);
+    const dy = Math.abs(touch.clientY - drag.startY);
+
+    // 移动超过 6px 阈值才视为拖拽选择（避免误触）
+    if (!drag.active && (dx > 6 || dy > 6)) {
+      drag.active = true;
+      drag.startOffset = this.data.selectionEnd || this.data.selectionEnd || 0;
+    }
+
+    if (!drag.active) return;
+
+    // 用当前触摸位置计算字符偏移，作为选择终点
+    const block = this.data.activeBlock || {};
+    const currentPageX = touch.pageX || touch.clientX;
+    const currentPageY = touch.pageY || touch.clientY;
+    const endOffset = this.getCharOffsetFromPagePoint(block, currentPageX, currentPageY);
+
+    if (typeof endOffset === 'number' && endOffset >= 0) {
+      const start = Math.min(drag.startOffset, endOffset);
+      const end = Math.max(drag.startOffset, endOffset);
+      if (end > start) {
+        this.enterSelectionMode(start, end, `已选中 ${end - start} 个字`);
+      } else {
+        // 拖回起点附近，退回到光标模式
+        this.exitSelectionMode();
+        const caretState = this.getCaretState(endOffset, this.data.activePlainText || '', block);
+        this.setData({
+          selectionStart: endOffset,
+          selectionEnd: endOffset,
+          textInputFocus: true,
+          caretVisible: true,
+          ...caretState
+        });
+        drag.startOffset = endOffset;
+      }
+    }
+  },
+
+  /**
+   * 文字块上的 touchend：结束拖拽选择
+   * 如果没有产生拖拽（只是点击），则将光标移到点击位置
+   */
+  onTextBlockTouchEnd(e) {
+    if (!this.data.inlineEditing || !this._textSelectDrag) return;
+
+    const drag = this._textSelectDrag;
+    this._textSelectDrag = null;
+
+    // 如果不是拖拽（只是轻点），不做额外处理——editBlockText 已经处理了光标定位
+    // 如果是拖拽但没产生有效选区，确保退出选择模式并显示光标
+    if (drag.active && !this.data.selectionModeActive) {
+      this.openFormatMenu();
+    }
   },
 
   updateActiveBlock(patch, options) {
@@ -2360,18 +2947,13 @@ getPreviewBackground(bg) {
     const shadowStrength = Number(e.detail.value || 0);
     const shadow = shadowStrength > 0;
     this.setData({ shadowStrength });
-    const attrs = {
-      shadow,
-      shadowStrength,
-      shadowBlur: Math.round(4 + shadowStrength * 18),
-      shadowOffsetY: Math.round(2 + shadowStrength * 6),
-      shadowColor: this.data.activeShadowColor || 'rgba(72,48,26,0.26)'
-    };
+    const attrs = this.getShadowAttrs(shadow, shadowStrength, this.data.activeShadowColor || 'rgba(72,48,26,0.55)');
     if (this.hasActiveTextSelection()) {
       this.applyFormatToSelection(attrs);
       return;
     }
-    this.updateActiveBlock(attrs, { silentEditor: true });
+    this.updateActiveBlock(attrs, { silentEditor: true, renderDelay: 0 });
+    this.schedulePreviewRender(0);
   },
 
   updateActiveBlockTextAttributes(attrs, blockPatch) {
@@ -2384,18 +2966,55 @@ getPreviewBackground(bg) {
     if (this.editorCtx && this.data.inlineEditing) {
       this.editorCtx.format('align', align);
     }
-    this.updateActiveBlock({ align });
+    this.updateActiveBlock({ align, textDirection: 'horizontal' });
     if (hasTextSelection(range.start, range.end)) {
-      this.refreshSelectionPreview(this.data.activeBlock.delta, range.start, range.end, undefined, { align });
+      this.refreshSelectionPreview(this.data.activeBlock.delta, range.start, range.end, undefined, { align, textDirection: 'horizontal' });
     }
   },
 
+  setVerticalAlign(e) {
+    const dataset = (e.currentTarget && e.currentTarget.dataset) || {};
+    const verticalAlign = dataset.verticalAlign || dataset.verticalalign || dataset.valign || 'top';
+    const allowed = ['top', 'middle', 'bottom'];
+    const next = allowed.indexOf(verticalAlign) >= 0 ? verticalAlign : 'top';
+    const design = clone(this.data.design);
+    const index = (design.blocks || []).findIndex(item => item && item.id === this.data.activeBlockId);
+    if (index < 0) return;
+    design.blocks[index] = {
+      ...design.blocks[index],
+      textDirection: 'vertical',
+      verticalAlign: next
+    };
+    const hydrated = hydrateDesign(design);
+    const activeBlock = hydrated.blocks.find(item => item.id === this.data.activeBlockId) || {};
+    this._manualTextSelection = null;
+    this.setData({
+      design: hydrated,
+      activeBlock,
+      selectionModeActive: false,
+      selectionPreviewNodes: [],
+      selectionFlowNodes: [],
+      selectionRects: [],
+      selectionStart: 0,
+      selectionEnd: 0,
+      caretVisible: false,
+      textInputFocus: false,
+      inlineEditing: false,
+      showPasteTip: false,
+      ...getTextPanelState(activeBlock, this.data)
+    }, () => {
+      this._saveHistory(this.data.design);
+      this.schedulePreviewRender(0);
+    });
+  },
+
   setFontFamily(e) {
+    if (e && typeof e.stopPropagation === 'function') e.stopPropagation();
+    if (this.shouldSkipFormatAction('setFontFamily')) return;
     const fontId = e.currentTarget.dataset.id || 'system';
     const font = findFontById(fontId);
     recordFontUsage(font.id);
-    this.setData({ activeFontId: font.id, fonts: getSortedFonts() });
-    this.loadPreviewFont(font);
+    this.setData({ activeFontId: font.id });
 
     const block = this.data.activeBlock || {};
     if (!block.delta || !block.delta.ops) return;
@@ -2405,31 +3024,54 @@ getPreviewBackground(bg) {
       fontFamily: font.family,
       fontUrl: font.fontUrl || ''
     };
-    const range = this.getActiveTextSelectionRange(this.data.activePlainText || deltaToText(block.delta));
-    if (hasTextSelection(range.start, range.end)) {
-      this.applyFormatToSelection(fontAttrs, fontAttrs);
-      this._saveHistory(this.data.design);
-      return;
+    const text = this.data.activePlainText || deltaToText(block.delta);
+    let range = this.getActiveTextSelectionRange(text);
+    const pending = this._pendingFontSelectionRange;
+    if (!hasTextSelection(range.start, range.end) && pending && hasTextSelection(pending.start, pending.end)) {
+      const max = text.length;
+      range = {
+        start: Math.max(0, Math.min(pending.start, pending.end, max)),
+        end: Math.max(0, Math.min(Math.max(pending.start, pending.end), max))
+      };
+    }
+    const hasSel = hasTextSelection(range.start, range.end);
+    if (hasSel) {
+      this._manualTextSelection = { start: range.start, end: range.end };
+      this._pendingFontSelectionRange = { start: range.start, end: range.end };
+    } else {
+      this._pendingFontSelectionRange = null;
     }
 
-    this.applyFormatToAllText(fontAttrs, fontAttrs);
-    this._saveHistory(this.data.design);
+    // 先加载字体，完成后再应用格式并渲染画布，确保 Canvas 能使用新字体
+    this.loadPreviewFont(font).then(loaded => {
+      if (hasSel) {
+        this.applyFormatToSelection(fontAttrs, fontAttrs);
+      } else {
+        this.applyFormatToAllText(fontAttrs, fontAttrs);
+      }
+      this._saveHistory(this.data.design);
+      this.schedulePreviewRender(0);
+      if (font.fontUrl && !loaded) {
+        wx.showToast({ title: '字体加载失败，已保留样式设置', icon: 'none' });
+      }
+    });
   },
 
   loadPreviewFont(font) {
-    if (!font || !font.fontUrl || this.loadedFonts && this.loadedFonts[font.id]) return Promise.resolve();
+    if (!font || !font.fontUrl) return Promise.resolve(true);
+    if (this.loadedFonts && this.loadedFonts[font.id]) return Promise.resolve(true);
     this.loadedFonts = this.loadedFonts || {};
     return new Promise(resolve => {
       wx.loadFontFace({
         family: font.family,
         source: `url("${font.fontUrl}")`,
-        global: false,
+        global: true,
         success: () => {
           this.loadedFonts[font.id] = true;
           this.setData({ design: hydrateDesign(clone(this.data.design)) }, () => this.schedulePreviewRender(0));
-          resolve();
+          resolve(true);
         },
-        fail: () => resolve()
+        fail: () => resolve(false)
       });
     });
   },
@@ -2443,13 +3085,20 @@ getPreviewBackground(bg) {
 
   setStrokeColor(e) {
     const activeStrokeColor = e.currentTarget.dataset.value || '#FFFFFF';
-    this.setData({ activeStrokeColor });
+    this.applyStrokeColor(activeStrokeColor);
+  },
+
+  applyStrokeColor(color) {
+    const strokeColor = color || '#FFFFFF';
+    this.setData({ activeStrokeColor: strokeColor });
     if (this.hasActiveTextSelection()) {
-      this.applyFormatToSelection({ stroke: true, strokeColor: activeStrokeColor, strokeWidth: 2 });
+      this.applyFormatToSelection({ stroke: true, strokeColor, strokeWidth: 2 });
       this._saveHistory(this.data.design);
       return;
     }
-    this.updateActiveBlock({ stroke: true, strokeColor: activeStrokeColor, strokeWidth: 2 });
+    this.updateActiveBlock({ stroke: true, strokeColor, strokeWidth: 2 }, { silentEditor: true, renderDelay: 0 });
+    this._saveHistory(this.data.design);
+    this.schedulePreviewRender(0);
   },
 
   pickTextColor() {
@@ -2492,21 +3141,16 @@ getPreviewBackground(bg) {
 
   setShadowColor(e) {
     const activeShadowColor = e.currentTarget.dataset.value || 'rgba(72,48,26,0.24)';
-    this.setData({ activeShadowColor: activeShadowColor });
-    const shadowStrength = this.data.shadowStrength || 0.65;
-    const attrs = {
-      shadow: true,
-      shadowColor: activeShadowColor,
-      shadowStrength,
-      shadowBlur: Math.round(4 + shadowStrength * 18),
-      shadowOffsetY: Math.round(2 + shadowStrength * 6)
-    };
+    const attrs = this.getShadowAttrs(true, this.data.shadowStrength || 0.8, activeShadowColor);
+    this.setData({ activeShadowColor, shadowStrength: attrs.shadowStrength });
     if (this.hasActiveTextSelection()) {
       this.applyFormatToSelection(attrs);
       this._saveHistory(this.data.design);
       return;
     }
-    this.updateActiveBlock(attrs, { silentEditor: true });
+    this.updateActiveBlock(attrs, { silentEditor: true, renderDelay: 0 });
+    this._saveHistory(this.data.design);
+    this.schedulePreviewRender(0);
   },
 
   pickShadowColor() {
@@ -2542,7 +3186,7 @@ getPreviewBackground(bg) {
 
   confirmColorPicker() {
     const color = this.data.colorPickerPreview;
-    const target = this._cpTarget;
+    const target = this._cpTarget || this.data.colorPickerTarget;
     recordColorUsage(color);
 
     if (target === 'text') {
@@ -2556,13 +3200,7 @@ getPreviewBackground(bg) {
         if (hasTextSelection(range.start, range.end)) this._saveHistory(this.data.design);
       }
     } else if (target === 'stroke') {
-      this.setData({ activeStrokeColor: color });
-      if (this.hasActiveTextSelection()) {
-        this.applyFormatToSelection({ stroke: true, strokeColor: color, strokeWidth: 2 });
-        this._saveHistory(this.data.design);
-      } else {
-        this.updateActiveBlock({ stroke: true, strokeColor: color, strokeWidth: 2 });
-      }
+      this.applyStrokeColor(color);
     } else if (target === 'bg') {
       this.setData({ activeBackground: color });
       if (this.hasActiveTextSelection()) {
@@ -2574,21 +3212,16 @@ getPreviewBackground(bg) {
       const r = parseInt(color.slice(1, 3), 16);
       const g = parseInt(color.slice(3, 5), 16);
       const b = parseInt(color.slice(5, 7), 16);
-      const rgba = `rgba(${r},${g},${b},0.35)`;
-      this.setData({ activeShadowColor: rgba });
-      const shadowStrength = this.data.shadowStrength || 0.65;
-      const attrs = {
-        shadowColor: rgba,
-        shadow: true,
-        shadowStrength,
-        shadowBlur: Math.round(4 + shadowStrength * 18),
-        shadowOffsetY: Math.round(2 + shadowStrength * 6)
-      };
+      const rgba = `rgba(${r},${g},${b},0.55)`;
+      const attrs = this.getShadowAttrs(true, this.data.shadowStrength || 0.8, rgba);
+      this.setData({ activeShadowColor: rgba, shadowStrength: attrs.shadowStrength });
       if (this.hasActiveTextSelection()) {
         this.applyFormatToSelection(attrs);
         this._saveHistory(this.data.design);
       } else {
-        this.updateActiveBlock(attrs, { silentEditor: true });
+        this.updateActiveBlock(attrs, { silentEditor: true, renderDelay: 0 });
+        this._saveHistory(this.data.design);
+        this.schedulePreviewRender(0);
       }
     } else if (target === 'canvasBg') {
       const design = clone(this.data.design);
@@ -2757,10 +3390,14 @@ getPreviewBackground(bg) {
     return `#${toHex(r)}${toHex(g)}${toHex(b)}`.toUpperCase();
   },
 
-  deleteActiveBlock() {
+  deleteActiveBlock(e) {
+    if (e && typeof e.stopPropagation === 'function') e.stopPropagation();
+    if (this.shouldSkipFormatAction('deleteBlock')) return;
+    this._ignoreNextEditorBlur = true;
     const design = clone(this.data.design);
     const blocks = Array.isArray(design.blocks) ? design.blocks : [];
-    const activeId = this.data.activeBlockId;
+    const eventId = e && e.currentTarget && e.currentTarget.dataset && e.currentTarget.dataset.id;
+    const activeId = eventId || this.data.activeBlockId;
     const index = blocks.findIndex(item => item && item.type === 'text' && item.id === activeId);
     if (index < 0) {
       wx.showToast({ title: '请先选中文字框', icon: 'none' });
@@ -2779,19 +3416,28 @@ getPreviewBackground(bg) {
         selectionStart: 0,
         selectionEnd: 0,
         caretVisible: false
+      }, () => {
+        this._saveHistory(this.data.design);
+        this.schedulePreviewRender(0);
       });
       wx.showToast({ title: '已删除文字框', icon: 'none' });
       return;
     }
     const nextIndex = Math.min(index, blocks.length - 1);
     this.setDesign(design, blocks[nextIndex].id);
+    this._saveHistory(design);
+    this.schedulePreviewRender(0);
     wx.showToast({ title: '已删除文字框', icon: 'none' });
   },
 
-  copyActiveBlock() {
+  copyActiveBlock(e) {
+    if (e && typeof e.stopPropagation === 'function') e.stopPropagation();
+    if (this.shouldSkipFormatAction('copyBlock')) return;
+    this._ignoreNextEditorBlur = true;
     const design = clone(this.data.design);
     const blocks = design.blocks || [];
-    const source = blocks.find(item => item.id === this.data.activeBlockId);
+    const eventId = e && e.currentTarget && e.currentTarget.dataset && e.currentTarget.dataset.id;
+    const source = blocks.find(item => item.id === (eventId || this.data.activeBlockId));
     if (!source) return;
     const copied = {
       ...clone(source),
@@ -2824,27 +3470,37 @@ getPreviewBackground(bg) {
     this.updateActiveBlock({ stroke: !this.data.activeBlock.stroke, strokeColor: this.data.activeStrokeColor || '#FFFFFF', strokeWidth: 2 });
   },
 
-  toggleShadow() {
+  getShadowAttrs(enabled, strength, color) {
+    const shadowStrength = enabled ? Math.max(Number(strength || 0.8), 0.35) : 0;
+    return {
+      shadow: !!enabled,
+      shadowStrength,
+      shadowBlur: enabled ? Math.round(6 + shadowStrength * 24) : 0,
+      shadowOffsetX: enabled ? Math.round(2 + shadowStrength * 4) : 0,
+      shadowOffsetY: enabled ? Math.round(3 + shadowStrength * 8) : 0,
+      shadowColor: color || 'rgba(72,48,26,0.55)'
+    };
+  },
+
+  toggleShadow(e) {
+    if (e && typeof e.stopPropagation === 'function') e.stopPropagation();
+    if (this.shouldSkipFormatAction('shadow')) return;
     const range = this.getActiveTextSelectionRange(this.data.activePlainText || deltaToText(this.data.activeBlock && this.data.activeBlock.delta));
     const currentAttrs = getAttrsAtOffset(this.data.activeBlock && this.data.activeBlock.delta, range.start || 0);
     const selected = hasTextSelection(range.start, range.end);
     const shadow = selected
       ? !(typeof currentAttrs.shadow === 'boolean' ? currentAttrs.shadow : false)
       : !this.data.activeBlock.shadow;
-    const shadowStrength = shadow ? (this.data.shadowStrength || 0.65) : 0;
-    const attrs = {
-      shadow,
-      shadowStrength,
-      shadowBlur: Math.round(4 + shadowStrength * 18),
-      shadowOffsetY: Math.round(2 + shadowStrength * 6),
-      shadowColor: this.data.activeShadowColor || 'rgba(72,48,26,0.26)'
-    };
+    const attrs = this.getShadowAttrs(shadow, this.data.shadowStrength || 0.8, this.data.activeShadowColor || 'rgba(72,48,26,0.55)');
+    this.setData({ shadowStrength: attrs.shadowStrength, activeShadowColor: attrs.shadowColor });
     if (selected) {
       this.applyFormatToSelection(attrs);
       this._saveHistory(this.data.design);
       return;
     }
-    this.updateActiveBlock(attrs);
+    this.updateActiveBlock(attrs, { silentEditor: true, renderDelay: 0 });
+    this._saveHistory(this.data.design);
+    this.schedulePreviewRender(0);
   },
 
   addTextBlock() {
@@ -2867,8 +3523,8 @@ getPreviewBackground(bg) {
       lineHeight: 1.6,
       letterSpacing: 1,
       placeholder: EMPTY_TEXT_PLACEHOLDER,
-      placeholderSize: 30,
-      delta: { ops: [{ insert: '', attributes: { size: 30, color: '#6B4F39' } }] }
+      placeholderSize: DEFAULT_TEXT_FONT_SIZE,
+      delta: { ops: [{ insert: '', attributes: { size: DEFAULT_TEXT_FONT_SIZE, color: '#6B4F39' } }] }
     };
     design.blocks.push(block);
     this.setDesign(design, block.id);
@@ -3080,7 +3736,7 @@ getPreviewBackground(bg) {
 
   saveDraft(options) {
     const saved = cardStorage.saveDraft(clone(this.data.design));
-    this.setData({ 'design.id': saved.id });
+    this.setData({ 'design.id': saved.id, draftListCount: cardStorage.getDraftCount() });
     if (!options || !options.silent) {
       wx.showToast({ title: '已保存草稿', icon: 'success' });
     }
@@ -3116,9 +3772,10 @@ getPreviewBackground(bg) {
     const exportDesign = clone(this.data.design);
     exportDesign.id = saved.id;
     cardStorage.setCurrentExportDesign(exportDesign);
-    wx.showLoading({ title: '导出中...' });
+    wx.showLoading({ title: '生成图片中...' });
     try {
-      const imagePath = await renderer.exportPoster(this, '#exportCanvas', exportDesign, { scale: 2 });
+      // scale=1.5 足够清晰（原 scale=2 会产出 4x 像素，较慢）
+      const imagePath = await renderer.exportPoster(this, '#exportCanvas', exportDesign, { scale: 1.5 });
       wx.hideLoading();
       this.saveImageToAlbum(imagePath);
     } catch (e) {

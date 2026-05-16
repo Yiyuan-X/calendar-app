@@ -12,7 +12,7 @@
     </view>
     <view class="card">
       <text class="item">查看公历、农历、节气、传统节日、纪念日和日常宜忌。</text>
-      <text class="item">点选某一天，可查看当天详情、节气养生、时辰信息和相关提醒。</text>
+      <text class="item">点选某一天，页面会自动滚动到当天黄历详情，方便快速查看节气养生、时辰信息和相关提醒。</text>
       <text class="item">点“给这一天写点什么”可以保存日期备注，也可以设置备注提醒。</text>
       <text class="item">点“设置提醒”可把这一天加入重要日子，支持倒计时和重复提醒。</text>
       <text class="item">黄历页支持生成分享图，适合保存或发给朋友查看当天信息。</text>
@@ -65,6 +65,20 @@
 
   <view class="section">
     <view class="section-head">
+      <image class="section-icon" src="/images/icons/edit.svg" mode="aspectFit"></image>
+      <text class="section-title">禅意做图</text>
+    </view>
+    <view class="card">
+      <text class="item">编辑器提供 20 种气质字体，按禅意、文人、诗意、经书等气质分类，无需懂字体也能选到合适的风格。</text>
+      <text class="item">字体按钮展示字体名称和气质标签，点击即可应用到选中文字或整段正文。</text>
+      <text class="item">选中文字后可加粗、调大小、换字体、改颜色，打造个性化禅意卡片。</text>
+      <text class="item">整体视觉升级为暖色禅意风，米色背景搭配暖金色调，更契合东方美学。</text>
+      <text class="item">退出编辑器时自动保存草稿，下次打开会提示继续上次编辑或新建卡片。</text>
+    </view>
+  </view>
+
+  <view class="section">
+    <view class="section-head">
       <image class="section-icon" src="/images/icons/settings.svg" mode="aspectFit"></image>
       <text class="section-title">设置</text>
     </view>
@@ -98,7 +112,20 @@
       <view class="version-item">
         <text class="version-tag">当前版本</text>
         <view class="version-detail">
-          <text class="item">新增每日一句收藏和“我的金句收藏”。</text>
+          <text class="item">做图编辑器上线 20 种气质字体，按禅意、文人、诗意等气质分类，一键切换风格。</text>
+          <text class="item">整体视觉升级为暖色禅意风，米色背景、暖金色调，更有东方美感。</text>
+          <text class="item">选中文字支持加粗效果，做图排版更有层次。</text>
+          <text class="item">日历点选日期后自动滚动到黄历详情，查看更方便。</text>
+          <text class="item">做图编辑器退出自动保存草稿，下次打开可继续上次编辑。</text>
+        </view>
+      </view>
+
+      <view class="version-divider"></view>
+
+      <view class="version-item">
+        <text class="version-tag">上一版本</text>
+        <view class="version-detail">
+          <text class="item">新增每日一句收藏和"我的金句收藏"。</text>
           <text class="item">新增今日签图，可选择金句、备忘录或今日反省生成图片。</text>
           <text class="item">首页分享改为具体内容资产：今日黄历、金句、纪念日倒计时和本月记录。</text>
           <text class="item">统计页新增轻量成长体系，方便查看连续记录和本月完成情况。</text>

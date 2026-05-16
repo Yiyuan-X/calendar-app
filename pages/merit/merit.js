@@ -1129,7 +1129,8 @@ Page({
 
       var canvas = res[0].node;
       var ctx = canvas.getContext('2d');
-      var dpr = wx.getSystemInfoSync().pixelRatio;
+      // 固定 1.5x 分辨率，加快生成速度
+      var dpr = 1.5;
 
       var W = 500, H = 900;
       canvas.width = W * dpr; canvas.height = H * dpr;
@@ -1263,8 +1264,8 @@ Page({
           setTimeout(function() {
             wx.canvasToTempFilePath({
               canvas: canvas, width: W, height: H,
-              destWidth: W * 2, destHeight: H * 2,
-              fileType: 'jpg', quality: 0.95,
+              destWidth: W * 1.5, destHeight: H * 1.5,
+              fileType: 'jpg', quality: 0.92,
               success: function(saveRes) {
                 analytics.track('poster_generate', {
                   page: 'merit'

@@ -153,8 +153,9 @@
       <image class="action-icon-img action-tab-icon" src="/images/icons/gen-camera.svg" mode="aspectFit"></image>
       <view class="action-info">
         <text class="action-title">禅意做图</text>
-        <text class="action-subtitle">日签 · 节气 · 分享卡片</text>
+        <text class="action-subtitle">{{draftCount ? '有 ' + draftCount + ' 份草稿可继续编辑' : '日签 · 节气 · 分享卡片'}}</text>
       </view>
+      <view wx:if="{{draftCount}}" class="draft-badge">{{draftCount}}</view>
       <text class="action-arrow">›</text>
     </view>
 

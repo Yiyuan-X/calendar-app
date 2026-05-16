@@ -74,12 +74,6 @@
       />
       <text class="combo-unit">组</text>
     </view>
-    <view class="combo-preview">
-      <view class="combo-preview-item" wx:for="{{classicPreview}}" wx:key="key">
-        <text>{{item.name}}</text>
-        <text>{{item.target}}{{item.unit}}</text>
-      </view>
-    </view>
     <view class="c-btn c-btn-yellow" bindtap="onCreateClassicCombo">添加组合</view>
   </view>
 

@@ -638,7 +638,8 @@ Page({
 
       var canvas = res[0].node;
       var ctx = canvas.getContext('2d');
-      var dpr = wx.getSystemInfoSync().pixelRatio;
+      // 固定 1.5x 分辨率，加快生成速度
+      var dpr = 1.5;
 
       // 设置画布尺寸（加大高度以容纳大字体）
       var W = 500;  // 画布宽度
@@ -782,10 +783,10 @@ Page({
               canvas: canvas,
               width: W,
               height: H,
-              destWidth: W * 2,
-              destHeight: H * 2,
+              destWidth: W * 1.5,
+              destHeight: H * 1.5,
               fileType: 'jpg',
-              quality: 0.95,
+              quality: 0.92,
               success: function(saveRes) {
                 analytics.track('poster_generate', {
                   page: 'calendar'
@@ -799,7 +800,7 @@ Page({
                 callback({ success: false });
               }
             });
-          }, 100);
+          }, 50);
         });
 
       } catch (e) {

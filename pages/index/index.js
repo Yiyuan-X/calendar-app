@@ -88,6 +88,7 @@ Page({
       getApp().checkEventReminders();
     }
     this.refreshData();
+    this.setData({ draftCount: this._getDraftCount() });
   },
 
   onPullDownRefresh() {
@@ -747,6 +748,15 @@ Page({
     wx.navigateTo({ url: '/pages/settings/settings' });
   },
 
+  _getDraftCount() {
+    try {
+      const list = wx.getStorageSync('card_tool_drafts');
+      return Array.isArray(list) ? list.length : 0;
+    } catch (e) {
+      return 0;
+    }
+  },
+
   goToCardTool() {
     wx.navigateTo({ url: '/packageCard/editor/editor?templateId=solar-term-paper' });
   },
@@ -992,7 +1002,8 @@ goToMerit() {
 
       var canvas = res[0].node;
       var ctx = canvas.getContext('2d');
-      var dpr = wx.getSystemInfoSync().pixelRatio;
+      // 固定使用 1.5x 分辨率（原 pixelRatio=3 时 canvas 像素过多，导致生成缓慢）
+      var dpr = 1.5;
 
       // 根据是否有节气内容动态调整高度
       var hasSTContent = !!(stName && (stHealth || stPeriod));
@@ -1128,8 +1139,8 @@ goToMerit() {
           setTimeout(function() {
             wx.canvasToTempFilePath({
               canvas: canvas, width: W, height: H,
-              destWidth: W * 2, destHeight: H * 2,
-              fileType: 'jpg', quality: 0.95,
+              destWidth: W * 1.5, destHeight: H * 1.5,
+              fileType: 'jpg', quality: 0.92,
               success: function(saveRes) {
                 analytics.track('poster_generate', {
                   page: 'index',
@@ -1142,7 +1153,7 @@ goToMerit() {
                 wx.hideLoading(); callback({ success: false });
               }
             });
-          }, 100);
+          }, 50);
         });
       } catch (e) {
         console.error('绘制出错:', e); wx.hideLoading(); callback({ success: false });

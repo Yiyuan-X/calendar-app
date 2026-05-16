@@ -843,6 +843,22 @@
   color: #B88655;
 }
 
+.draft-badge {
+  position: absolute;
+  top: 14rpx;
+  right: 52rpx;
+  min-width: 32rpx;
+  height: 32rpx;
+  line-height: 32rpx;
+  text-align: center;
+  font-size: 20rpx;
+  font-weight: 700;
+  color: #FFFFFF;
+  background: #C94B3E;
+  border-radius: 16rpx;
+  padding: 0 8rpx;
+}
+
 .card-tool-action-entry .action-tab-icon {
   opacity: 0.82;
   filter: sepia(0.35) saturate(0.9) hue-rotate(350deg);

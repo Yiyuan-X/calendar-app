@@ -58,6 +58,15 @@ function removeDraft(id) {
   writeList(DRAFT_KEY, getDrafts().filter(item => item.id !== id));
 }
 
+function getLatestDraft() {
+  const list = getDrafts();
+  return list.length ? list[0] : null;
+}
+
+function getDraftCount() {
+  return getDrafts().length;
+}
+
 function getDraftName(design) {
   const firstTextBlock = (design.blocks || []).find(block => block.type === 'text');
   const text = ((firstTextBlock && firstTextBlock.delta && firstTextBlock.delta.ops) || [])
@@ -105,6 +114,8 @@ function sanitizeDesign(design) {
       placeholder: block.placeholder,
       placeholderSize: block.placeholderSize,
       align: block.align,
+      verticalAlign: block.verticalAlign,
+      textDirection: block.textDirection,
       lineHeight: block.lineHeight,
       letterSpacing: block.letterSpacing,
       stroke: !!block.stroke,
@@ -173,6 +184,8 @@ module.exports = {
   DRAFT_LIMIT,
   getDrafts,
   getDraft,
+  getLatestDraft,
+  getDraftCount,
   saveDraft,
   removeDraft,
   clearLegacyWorks,
