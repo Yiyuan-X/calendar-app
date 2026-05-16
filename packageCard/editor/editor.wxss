@@ -1127,6 +1127,25 @@
   margin-top: 10rpx;
 }
 
+.bg-scale-row {
+  display: grid;
+  grid-template-columns: 128rpx minmax(0, 1fr);
+  align-items: center;
+  gap: 12rpx;
+  margin: 8rpx 0 12rpx;
+  padding: 4rpx;
+}
+
+.bg-scale-label {
+  color: #7A5B3D;
+  font-size: 26rpx;
+  font-weight: 700;
+}
+
+.bg-scale-slider {
+  width: 100%;
+}
+
 .tool {
   flex: 1;
   min-width: 0;

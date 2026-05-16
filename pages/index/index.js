@@ -972,6 +972,23 @@ goToMerit() {
 
   noop() {},
 
+  getShareImageCacheKey(options) {
+    options = options || {};
+    var mode = options.mode || 'home';
+    var ti = this.data.todayInfo || {};
+    var signExtra = this._getDailySignExtra(mode);
+    return JSON.stringify({
+      mode: mode,
+      date: ti.dateStr || this.data.todayStr || '',
+      quote: this.data.dailyQuote || '',
+      festivals: (this.data.todayFestivals || []).map(function(item) { return item && item.name; }).join('|'),
+      solarTerm: this.data.todaySolarTermName || this.data.currentSolarTermName || '',
+      solarTermPeriod: this.data.todaySolarTermPeriod || this.data.currentSolarTermPeriod || '',
+      vegTip: this.data.dailyVegetarianTipText || this.data.dailyVegetarianTip || '',
+      extra: signExtra ? signExtra.label + ':' + signExtra.text : ''
+    });
+  },
+
   /** 生成分享海报（首页版 — 含节气卡片 / 今日签内容 + 自定义二维码） */
   generateShareImage(options, callback) {
     if (typeof options === 'function') {
@@ -979,6 +996,30 @@ goToMerit() {
       options = {};
     }
     options = options || {};
+    callback = typeof callback === 'function' ? callback : function() {};
+    var cacheKey = this.getShareImageCacheKey(options);
+    var cached = this._shareImageCache;
+    if (cached && cached.key === cacheKey && cached.tempFilePath) {
+      callback({ success: true, tempFilePath: cached.tempFilePath, cached: true });
+      return;
+    }
+    if (this._shareImageTask && this._shareImageTask.key === cacheKey) {
+      this._shareImageTask.callbacks.push(callback);
+      return;
+    }
+    this._shareImageTask = { key: cacheKey, callbacks: [callback] };
+    var finish = (result) => {
+      var task = this._shareImageTask;
+      if (result && result.success && result.tempFilePath) {
+        this._shareImageCache = { key: cacheKey, tempFilePath: result.tempFilePath, time: Date.now() };
+      }
+      if (task && task.key === cacheKey) {
+        this._shareImageTask = null;
+        (task.callbacks || []).forEach(function(fn) { fn(result); });
+      } else {
+        callback(result);
+      }
+    };
     var that = this;
     var ti = this.data.todayInfo;
     var quote = this.data.dailyQuote || '';
@@ -997,11 +1038,12 @@ goToMerit() {
     var query = wx.createSelectorQuery();
     query.select('#shareCanvas').fields({ node: true, size: true }).exec(function(res) {
       if (!res || !res[0] || !res[0].node) {
-        wx.hideLoading(); callback({ success: false }); return;
+        wx.hideLoading(); finish({ success: false }); return;
       }
 
       var canvas = res[0].node;
       var ctx = canvas.getContext('2d');
+      var W = 500;
       // 固定使用 1.5x 分辨率（原 pixelRatio=3 时 canvas 像素过多，导致生成缓慢）
       var dpr = 1.5;
 
@@ -1146,17 +1188,17 @@ goToMerit() {
                   page: 'index',
                   mode: mode
                 });
-                wx.hideLoading(); callback({ success: true, tempFilePath: saveRes.tempFilePath });
+                wx.hideLoading(); finish({ success: true, tempFilePath: saveRes.tempFilePath });
               },
               fail: function(err) {
                 console.error('canvasToTempFilePath 失败:', err);
-                wx.hideLoading(); callback({ success: false });
+                wx.hideLoading(); finish({ success: false });
               }
             });
           }, 50);
         });
       } catch (e) {
-        console.error('绘制出错:', e); wx.hideLoading(); callback({ success: false });
+        console.error('绘制出错:', e); wx.hideLoading(); finish({ success: false });
       }
     });
   },

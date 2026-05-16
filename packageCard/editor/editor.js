@@ -307,10 +307,14 @@ function getBackgroundImageLayout(bg, design) {
   const sourceWidth = Number((bg && bg.bgWidth) || 0);
   const sourceHeight = Number((bg && bg.bgHeight) || 0);
   const stage = getPreviewStageSize(design);
+  const imageScale = Math.max(0.2, Math.min(Number((bg && bg.scale) || 1), 5));
   if (!sourceWidth || !sourceHeight) {
-    return { width: stage.width, height: stage.height };
+    return {
+      width: Math.max(1, Math.round(stage.width * imageScale)),
+      height: Math.max(1, Math.round(stage.height * imageScale))
+    };
   }
-  const scale = Math.max(stage.width / sourceWidth, stage.height / sourceHeight);
+  const scale = Math.max(stage.width / sourceWidth, stage.height / sourceHeight) * imageScale;
   return {
     width: Math.max(1, Math.round(sourceWidth * scale)),
     height: Math.max(1, Math.round(sourceHeight * scale))
@@ -950,6 +954,7 @@ Page({
     nodeVersion: 0,
     bgOffsetX: 0,
     bgOffsetY: 0,
+    bgScale: 1,
     bgDisplayWidth: PREVIEW_STAGE_RPX,
     bgDisplayHeight: PREVIEW_STAGE_HEIGHT_RPX,
     previewStageWidth: PREVIEW_STAGE_RPX,
@@ -1035,6 +1040,7 @@ Page({
       previewBlurStyle: this.getPreviewBlurStyle(hydrated.background),
       bgOffsetX: (hydrated.background && hydrated.background.offsetX) || 0,
       bgOffsetY: (hydrated.background && hydrated.background.offsetY) || 0,
+      bgScale: (hydrated.background && hydrated.background.scale) || 1,
       bgDisplayWidth: bgLayout.width,
       bgDisplayHeight: bgLayout.height,
       previewStageWidth: stage.width,
@@ -1305,6 +1311,7 @@ Page({
       previewBlurStyle: this.getPreviewBlurStyle(hydrated.background),
       bgOffsetX: (hydrated.background && hydrated.background.offsetX) || 0,
       bgOffsetY: (hydrated.background && hydrated.background.offsetY) || 0,
+      bgScale: (hydrated.background && hydrated.background.scale) || 1,
       bgDisplayWidth: bgLayout.width,
       bgDisplayHeight: bgLayout.height,
       previewStageWidth: stage.width,
@@ -1405,6 +1412,7 @@ getPreviewBackground(bg) {
     if (design.background) {
       design.background.offsetX = 0;
       design.background.offsetY = 0;
+      design.background.scale = design.background.scale || 1;
     }
     this.setDesign(design, this.data.activeBlockId);
   },
@@ -1487,6 +1495,7 @@ getPreviewBackground(bg) {
     if (design.background) {
       design.background.offsetX = 0;
       design.background.offsetY = 0;
+      design.background.scale = design.background.scale || 1;
     }
 
     this.setData({
@@ -2562,6 +2571,13 @@ getPreviewBackground(bg) {
 
     const caretState = this.getCaretState(cursorOffset, text, { ...(block || {}), _previewScale: getPreviewScales(this.data.design) });
 
+    // 如果是从另一个文字框切换过来，先忽略旧 textarea 的 blur 事件
+    // 防止 finishInlineEditing 将 inlineEditing 设为 false 导致新 textarea 无法渲染
+    var isSwitching = this.data.inlineEditing && this.data.activeBlockId !== id;
+    if (isSwitching) {
+      this._ignoreNextEditorBlur = true;
+    }
+
     // 先设置所有状态（textInputFocus: false），延迟聚焦确保光标位置正确
     this.setData({
       activeBlockId: id,
@@ -2616,27 +2632,42 @@ getPreviewBackground(bg) {
     const localY = relRpxY - blockY;
 
     // 使用布局信息计算最近字符
-    const text = deltaToText(block && block.delta);
-    const blockWithScale = { ...block, _previewScale: scales };
-    const layout = this.getSelectionLayout(text, blockWithScale);
-    const lineHeight = layout.lineHeight;
+    var text = deltaToText(block && block.delta);
+    var blockWithScale = { ...block, _previewScale: scales };
+    var layout = this.getSelectionLayout(text, blockWithScale);
+    var lineHeight = layout.lineHeight;
 
     // 计算点击位置所在的行
-    const targetLine = Math.max(0, Math.min(Math.floor(localY / lineHeight), layout.lines.length - 1));
+    var targetLine = Math.max(0, Math.min(Math.floor(localY / lineHeight), layout.lines.length - 1));
 
-    // 在该行中找最近的字符偏移
-    let best = text.length;
-    let bestDistance = Infinity;
-    layout.offsets.forEach(pos => {
-      if ((pos.line || 0) !== targetLine) return;
-      const distance = Math.abs(Number(pos.x || 0) - localX);
-      if (distance < bestDistance) {
-        bestDistance = distance;
-        best = pos.index || 0;
+    // 在该行中找最近的两个相邻字符位置，根据点击在左侧还是右侧决定偏移
+    var bestLeft = 0;      // 点击点左侧最近的字符间隙索引
+    var bestRight = text.length; // 点击点右侧最近的字符间隙索引
+    var leftDist = Infinity;
+    var rightDist = Infinity;
+
+    var offsets = layout.offsets || [];
+    for (var i = 0; i < offsets.length; i++) {
+      var pos = offsets[i];
+      if ((pos.line || 0) !== targetLine) continue;
+      var dist = Number(pos.x || 0) - localX;
+      if (dist <= 0 && -dist < leftDist) {
+        leftDist = -dist;
+        bestLeft = pos.index || 0;
       }
-    });
+      if (dist >= 0 && dist < rightDist) {
+        rightDist = dist;
+        bestRight = pos.index || 0;
+      }
+    }
 
-    return Math.max(0, Math.min(best, text.length));
+    // 如果点击点更靠近某个位置的左侧还是右侧来决定返回哪个索引
+    // 这让拖拽选择时"往左往右"的扩展更精确、更跟手
+    if (leftDist <= rightDist) {
+      return Math.max(0, Math.min(bestLeft, text.length));
+    } else {
+      return Math.max(0, Math.min(bestRight, text.length));
+    }
   },
 
   editBlockText(e) {
@@ -2692,7 +2723,7 @@ getPreviewBackground(bg) {
     const touch = (e.touches && e.touches[0]) || null;
     if (!touch) return;
 
-    // 计算触摸起始点的字符偏移，作为拖拽选择的锚点
+    // 计算触摸起始点的字符偏移
     const block = this.data.activeBlock || {};
     const startPageX = typeof touch.pageX === 'number' ? touch.pageX : touch.clientX;
     const startPageY = typeof touch.pageY === 'number' ? touch.pageY : touch.clientY;
@@ -2702,14 +2733,30 @@ getPreviewBackground(bg) {
       anchorOffset = hitOffset;
     }
 
+    // 如果已有选区且点击点靠近某个端点，则锁定该端点为锚点（支持从已有选区扩展）
+    var lockedAnchor = anchorOffset;
+    if (this.data.selectionModeActive && this._manualTextSelection) {
+      var selStart = this._manualTextSelection.start || 0;
+      var selEnd = this._manualTextSelection.end || 0;
+      var distToStart = Math.abs(anchorOffset - selStart);
+      var distToEnd = Math.abs(anchorOffset - selEnd);
+      // 点击更靠近哪个端点就锁定另一个端点作为锚点
+      if (distToStart <= distToEnd) {
+        lockedAnchor = selEnd; // 点击靠近起点，锚点固定在终点（可向左扩展）
+      } else {
+        lockedAnchor = selStart; // 点击靠近终点，锚点固定在起点（可向右扩展）
+      }
+    }
+
     this._textSelectDrag = {
       startX: touch.clientX,
       startY: touch.clientY,
       startTime: Date.now(),
-      active: false, // 标记是否已进入拖拽选择（移动超过阈值后才算）
+      active: false,
       pageX: startPageX,
       pageY: startPageY,
-      startOffset: anchorOffset // 用触摸点的字符位置作为选择锚点
+      startOffset: anchorOffset,
+      lockedAnchor: lockedAnchor // 锁定的选择锚点（用于已有选区时的扩展操作）
     };
     this._lastTextTouchPoint = {
       id,
@@ -2735,9 +2782,8 @@ getPreviewBackground(bg) {
     const dx = Math.abs(touch.clientX - drag.startX);
     const dy = Math.abs(touch.clientY - drag.startY);
 
-    // 移动超过 6px 阈值才视为拖拽选择（避免误触）
-    // startOffset 已在 touchstart 中通过触摸点坐标计算，这里不再覆盖
-    if (!drag.active && (dx > 6 || dy > 6)) {
+    // 降低阈值到 3px，让选择响应更灵敏（原 6px 太迟钝）
+    if (!drag.active && (dx > 3 || dy > 3)) {
       drag.active = true;
     }
 
@@ -2750,14 +2796,17 @@ getPreviewBackground(bg) {
     const endOffset = this.getCharOffsetFromPagePoint(block, currentPageX, currentPageY);
 
     if (typeof endOffset === 'number' && endOffset >= 0) {
-      const start = Math.min(drag.startOffset, endOffset);
-      const end = Math.max(drag.startOffset, endOffset);
+      // 使用锁定锚点（如果有）来决定选区方向，否则用起始偏移
+      var anchor = (drag.lockedAnchor != null) ? drag.lockedAnchor : drag.startOffset;
+      var start = Math.min(anchor, endOffset);
+      var end = Math.max(anchor, endOffset);
       if (end > start) {
+        // 有效选区：保持键盘隐藏以显示选择高亮
         this.enterSelectionMode(start, end, `已选中 ${end - start} 个字`);
       } else {
-        // 拖回起点附近，退回到光标模式
+        // 拖回锚点附近：退回光标模式
         this.exitSelectionMode();
-        const caretState = this.getCaretState(endOffset, this.data.activePlainText || '', block);
+        var caretState = this.getCaretState(endOffset, this.data.activePlainText || '', block);
         this.setData({
           selectionStart: endOffset,
           selectionEnd: endOffset,
@@ -2765,7 +2814,9 @@ getPreviewBackground(bg) {
           caretVisible: true,
           ...caretState
         });
+        // 更新起始点和锚点（让后续拖拽以新位置为基准）
         drag.startOffset = endOffset;
+        drag.lockedAnchor = endOffset;
       }
     }
   },
@@ -3241,7 +3292,13 @@ getPreviewBackground(bg) {
   applyFormatToSelection(attrs, blockPatch) {
     const block = this.data.activeBlock || {};
     if (!block.delta || !block.delta.ops) return;
-    const range = this.getActiveTextSelectionRange(this.data.activePlainText || deltaToText(block.delta));
+    const text = deltaToText(block.delta);
+    const manual = this._manualTextSelection || this._pendingFontSelectionRange;
+    let range = this.getActiveTextSelectionRange(text);
+    if (!hasTextSelection(range.start, range.end) && manual && hasTextSelection(manual.start, manual.end)) {
+      const max = text.length;
+      range = normalizeRange(manual.start, manual.end, max);
+    }
     const hasSelection = hasTextSelection(range.start, range.end);
     const delta = applyAttrsToDeltaRange(
       clone(block.delta),
@@ -3257,6 +3314,12 @@ getPreviewBackground(bg) {
     }
     this.updateActiveBlock({ ...(!hasSelection ? (blockPatch || {}) : {}), delta }, { silentEditor: true, renderDelay: 0 });
     if (hasSelection) {
+      this.setData({
+        activePlainText: text,
+        inputText: text,
+        selectionStart: range.start,
+        selectionEnd: range.end
+      });
       this.refreshSelectionPreview(delta, range.start, range.end);
     }
     this.schedulePreviewRender(0);
@@ -3343,15 +3406,13 @@ getPreviewBackground(bg) {
       fontFamily: font.family,
       fontUrl: font.fontUrl || ''
     };
-    const text = this.data.activePlainText || deltaToText(block.delta);
+    const text = deltaToText(block.delta);
     let range = this.getActiveTextSelectionRange(text);
     const pending = this._pendingFontSelectionRange;
-    if (!hasTextSelection(range.start, range.end) && pending && hasTextSelection(pending.start, pending.end)) {
+    const manual = this._manualTextSelection || pending;
+    if (!hasTextSelection(range.start, range.end) && manual && hasTextSelection(manual.start, manual.end)) {
       const max = text.length;
-      range = {
-        start: Math.max(0, Math.min(pending.start, pending.end, max)),
-        end: Math.max(0, Math.min(Math.max(pending.start, pending.end), max))
-      };
+      range = normalizeRange(manual.start, manual.end, max);
     }
     const hasSel = hasTextSelection(range.start, range.end);
     if (hasSel) {
@@ -3891,7 +3952,8 @@ getPreviewBackground(bg) {
         if (this.data.activeCanvasSizeId === 'image' && bgWidth && bgHeight) {
           design.size = { ...normalizeAspectSize(bgWidth, bgHeight), preset: 'image' };
         }
-        const layout = getBackgroundImageLayout({ bgWidth, bgHeight }, design);
+        const scale = Number(prevBg.scale || 1);
+        const layout = getBackgroundImageLayout({ bgWidth, bgHeight, scale }, design);
 
         design.background = {
           type: 'image',
@@ -3902,6 +3964,7 @@ getPreviewBackground(bg) {
           baseColor: prevBg.baseColor,
           offsetX: 0,
           offsetY: 0,
+          scale,
           bgWidth,
           bgHeight
         };
@@ -3911,6 +3974,7 @@ getPreviewBackground(bg) {
           previewBackgroundImage: file.tempFilePath,
           bgOffsetX: 0,
           bgOffsetY: 0,
+          bgScale: scale,
           bgDisplayWidth: layout.width,
           bgDisplayHeight: layout.height
         });
@@ -3968,6 +4032,29 @@ getPreviewBackground(bg) {
     this._saveHistory(design);
     this._bgDragStartX = null;
     this._bgDragStartY = null;
+  },
+
+  changeBackgroundScale(e) {
+    const value = Number(e.detail && e.detail.value);
+    const scale = Math.max(0.2, Math.min(value || 1, 3));
+    const design = clone(this.data.design);
+    if (!design.background || design.background.type !== 'image') return;
+    design.background.scale = scale;
+    const layout = getBackgroundImageLayout(design.background, design);
+    const offset = clampBackgroundOffset(this.data.bgOffsetX || 0, this.data.bgOffsetY || 0, layout, design);
+    design.background.offsetX = offset.x;
+    design.background.offsetY = offset.y;
+    this.setData({
+      design,
+      bgScale: scale,
+      bgOffsetX: offset.x,
+      bgOffsetY: offset.y,
+      bgDisplayWidth: layout.width,
+      bgDisplayHeight: layout.height
+    }, () => {
+      this.schedulePreviewRender(0);
+      if (e && e.type === 'change') this._saveHistory(design);
+    });
   },
 
   chooseAvatar() {

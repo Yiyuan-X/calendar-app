@@ -499,11 +499,13 @@ function getBackgroundImageRect(bg, width, height) {
   if (!sourceWidth || !sourceHeight) {
     return { x: 0, y: 0, width, height };
   }
-  const scale = Math.max(width / sourceWidth, height / sourceHeight);
+  const imageScale = Math.max(0.2, Math.min(Number(bg.scale || 1), 5));
+  const scale = Math.max(width / sourceWidth, height / sourceHeight) * imageScale;
   const drawWidth = sourceWidth * scale;
   const drawHeight = sourceHeight * scale;
   const offsetX = Number(bg.offsetX || 0) * width / PREVIEW_STAGE_RPX;
-  const offsetY = Number(bg.offsetY || 0) * height / PREVIEW_STAGE_HEIGHT_RPX;
+  const previewHeight = Math.max(1, Math.round(PREVIEW_STAGE_RPX * height / width));
+  const offsetY = Number(bg.offsetY || 0) * height / previewHeight;
   const x = (width - drawWidth) / 2 + offsetX;
   const y = (height - drawHeight) / 2 + offsetY;
   const cropX = Math.max(0, x);
@@ -529,11 +531,13 @@ async function drawBackground(canvas, ctx, design, width, height) {
       if (!image) throw new Error('background image load failed');
       const sourceWidth = Number(bg.bgWidth || image.width || width);
       const sourceHeight = Number(bg.bgHeight || image.height || height);
-      const scale = Math.max(width / sourceWidth, height / sourceHeight);
+      const imageScale = Math.max(0.2, Math.min(Number(bg.scale || 1), 5));
+      const scale = Math.max(width / sourceWidth, height / sourceHeight) * imageScale;
       const drawWidth = sourceWidth * scale;
       const drawHeight = sourceHeight * scale;
       const offsetX = Number(bg.offsetX || 0) * width / PREVIEW_STAGE_RPX;
-      const offsetY = Number(bg.offsetY || 0) * height / PREVIEW_STAGE_HEIGHT_RPX;
+      const previewHeight = Math.max(1, Math.round(PREVIEW_STAGE_RPX * height / width));
+      const offsetY = Number(bg.offsetY || 0) * height / previewHeight;
       const drawX = (width - drawWidth) / 2 + offsetX;
       const drawY = (height - drawHeight) / 2 + offsetY;
       ctx.drawImage(image, drawX, drawY, drawWidth, drawHeight);

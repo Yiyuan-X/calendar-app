@@ -134,7 +134,12 @@ function sanitizeDesign(design) {
   };
 
   if (result.background && result.background.type === 'image' && isLocalImage(result.background.src)) {
-    result.background = { type: 'solid', color: '#F7F1EA', blur: !!result.background.blur };
+    result.background = {
+      type: 'solid',
+      color: '#F7F1EA',
+      blur: !!result.background.blur,
+      scale: result.background.scale || 1
+    };
   }
 
   const avatar = sanitizeImageConfig(design.avatar);
