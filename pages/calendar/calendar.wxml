@@ -149,7 +149,7 @@
     </view>
 
     <!-- ==================== 黄历资料（完整版） ==================== -->
-    <view class="huangli-card card" wx:if="{{selectedDate}}">
+    <view id="huangli-detail" class="huangli-card card" wx:if="{{selectedDate}}">
 
       <!-- ===== 第一行：农历标题（参考竞品：大字突出） ===== -->
       <view class="hl-top-header">

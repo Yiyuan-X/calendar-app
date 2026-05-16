@@ -67,14 +67,17 @@
             style="left: {{caretX}}rpx; top: {{caretY}}rpx; height: {{caretHeight}}rpx;"
           ></view>
           <view
+            wx:if="{{inlineEditing && activeBlockId === item.id}}"
+            class="edit-block-actions"
+            catchtouchstart="keepInlineEditing"
+          >
+            <view class="edit-block-action copy" catchtouchend="copyActiveBlock">⧉</view>
+            <view class="edit-block-action delete" catchtouchend="deleteActiveBlock">×</view>
+          </view>
+          <view
             wx:if="{{selectionModeActive && activeBlockId === item.id}}"
             class="selection-overlay"
           >
-            <rich-text
-              class="selection-preview-text"
-              node="{{nodeVersion}}"
-              nodes="{{selectionPreviewNodes}}"
-            ></rich-text>
             <view
               wx:for="{{selectionRects}}"
               wx:key="index"
@@ -104,11 +107,11 @@
             <view class="paste-menu-btn danger" catchtap="deleteSelectedText">删除</view>
             <view class="paste-menu-btn" catchtouchend="selectCurrentLineText">选择</view>
             <view class="paste-menu-btn" catchtouchend="selectAllActiveText">全选</view>
-            <view class="paste-menu-btn strong {{formats.bold ? 'on' : ''}}" catchtap="toggleSelectedBold">B</view>
-            <view class="paste-menu-btn" catchtap="decreaseSelectedFontSize">A-</view>
-            <view class="paste-menu-btn strong" catchtap="increaseSelectedFontSize">A+</view>
-            <view class="paste-menu-btn" catchtap="showFontPanelForSelection">字体</view>
-            <view class="paste-menu-btn" catchtap="showColorPanelForSelection">颜色</view>
+            <view class="paste-menu-btn strong {{formats.bold ? 'on' : ''}}" catchtouchend="toggleSelectedBold">B</view>
+            <view class="paste-menu-btn" catchtouchend="decreaseSelectedFontSize">A-</view>
+            <view class="paste-menu-btn strong" catchtouchend="increaseSelectedFontSize">A+</view>
+            <view class="paste-menu-btn" catchtouchend="showFontPanelForSelection">字体</view>
+            <view class="paste-menu-btn" catchtouchend="showColorPanelForSelection">颜色</view>
             <view class="paste-menu-btn done" catchtap="finishInlineEditingFromMenu">完成</view>
           </view>
           <view wx:if="{{inlineEditing && activeBlockId === item.id && selectionHint}}" class="paste-menu-hint">{{selectionHint}}</view>
@@ -210,7 +213,10 @@
               wx:key="id"
               data-id="{{item.id}}"
               bindtap="setFontFamily"
-            >{{item.name}}</button>
+            >
+              <text class="font-btn-name">{{item.name}}</text>
+              <text class="font-btn-mood">{{item.mood || item.scene || ''}}</text>
+            </button>
           </view>
         </scroll-view>
       </view>

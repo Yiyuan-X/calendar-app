@@ -20,64 +20,90 @@ const DEFAULT_TEXT_BOX_WIDTH = 420;
 const DEFAULT_TEXT_BOX_HEIGHT = 140;
 const DEFAULT_TEXT_BOX_Y = 280;
 const FONT_CDN = 'https://cdn.jsdelivr.net/fontsource/fonts';
+const CUSTOM_FONT_ASSET_BASE = '/fonts/open';
 const EMPTY_TEXT_PLACEHOLDER = '输入文字...';
 const SELECTION_HIGHLIGHT_COLOR = 'rgba(255, 211, 78, 0.56)';
 const FONT_USAGE_KEY = 'card_tool_font_usage';
 const FONT_CATALOG = [
-  { id: 'system', name: '系统', family: 'PingFang SC', previewFamily: 'PingFang SC' },
-  { id: 'zcoolkuaile', name: '站酷快乐', family: 'CardZcoolKuaiLe', previewFamily: 'CardZcoolKuaiLe, cursive', fontUrl: `${FONT_CDN}/zcool-kuaile@latest/chinese-simplified-400-normal.woff2` },
-  { id: 'mashanzheng', name: '马善政', family: 'CardMaShanZheng', previewFamily: 'CardMaShanZheng, cursive', fontUrl: `${FONT_CDN}/ma-shan-zheng@latest/chinese-simplified-400-normal.woff2` },
-  { id: 'liujianmaocao', name: '刘建毛草', family: 'CardLiuJianMaoCao', previewFamily: 'CardLiuJianMaoCao, cursive', fontUrl: `${FONT_CDN}/liu-jian-mao-cao@latest/chinese-simplified-400-normal.woff2` },
-  { id: 'zhimangxing', name: '志莽行', family: 'CardZhiMangXing', previewFamily: 'CardZhiMangXing, cursive', fontUrl: `${FONT_CDN}/zhi-mang-xing@latest/chinese-simplified-400-normal.woff2` },
-  { id: 'zcoolxiaowei', name: '站酷小薇', family: 'CardZcoolXiaoWei', previewFamily: 'CardZcoolXiaoWei, serif', fontUrl: `${FONT_CDN}/zcool-xiaowei@latest/chinese-simplified-400-normal.woff2` },
-  { id: 'zcoolqingke', name: '站酷青柠', family: 'CardZcoolQingKe', previewFamily: 'CardZcoolQingKe, serif', fontUrl: `${FONT_CDN}/zcool-qingke-huangyou@latest/chinese-simplified-400-normal.woff2` },
-  { id: 'longcang', name: '龙藏体', family: 'CardLongCang', previewFamily: 'CardLongCang, cursive', fontUrl: `${FONT_CDN}/long-cang@latest/chinese-simplified-400-normal.woff2` },
-  { id: 'xingshu', name: '行书', family: 'Xingkai SC, STXingkai, cursive', previewFamily: 'Xingkai SC, STXingkai, cursive' },
-  { id: 'songti', name: '宋体', family: 'Songti SC, SimSun, serif', previewFamily: 'Songti SC, SimSun, serif' },
-  { id: 'kaiti', name: '楷体', family: 'Kaiti SC, KaiTi, serif', previewFamily: 'Kaiti SC, KaiTi, serif' },
-  { id: 'fangsong', name: '仿宋', family: 'STFangsong, FangSong, serif', previewFamily: 'STFangsong, FangSong, serif' },
-  { id: 'huawenxingkai', name: '华文行楷', family: 'STXingkai, Xingkai SC, cursive', previewFamily: 'STXingkai, Xingkai SC, cursive' },
-  { id: 'zhaixingkai', name: '窄行楷', family: 'ZhanKuXingKai, cursive', previewFamily: 'ZhanKuXingKai, cursive' },
-  { id: 'lishu', name: '隶书', family: 'STLiti, LiSu, serif', previewFamily: 'STLiti, LiSu, serif' },
-  { id: 'yuanti', name: '圆体', family: 'Yuanti SC, YouYuan, sans-serif', previewFamily: 'Yuanti SC, YouYuan, sans-serif' },
-  { id: 'mingcho', name: '思源宋体', family: 'CardNotoSerifSC', previewFamily: 'CardNotoSerifSC, serif', fontUrl: `${FONT_CDN}/noto-serif-sc@latest/chinese-simplified-400-normal.woff2` },
-  { id: 'hanyi-hongyikai', name: '华康弘一楷书', family: '"DFHongYiKaiShu", "华康弘一楷书", "STKaiti", serif', previewFamily: '"DFHongYiKaiShu", "华康弘一楷书", "STKaiti", serif' },
-  { id: 'han-shaojie-hongyi-haier', name: '韩绍杰弘一法师孩儿体', family: '"HanShaoJieHongYiHaiEr", "韩绍杰弘一法师孩儿体", "STKaiti", cursive', previewFamily: '"HanShaoJieHongYiHaiEr", "韩绍杰弘一法师孩儿体", "STKaiti", cursive' },
-  { id: 'fz-taishan-jingangjing-lishu', name: '方正泰山金刚经隶书', family: '"FZTaiShanJinGangJingLiShu", "方正泰山金刚经隶书", "STLiti", serif', previewFamily: '"FZTaiShanJinGangJingLiShu", "方正泰山金刚经隶书", "STLiti", serif' },
-  { id: 'yixin-bore-song', name: '壹心般若宋', family: '"YiXinBanRuoSong", "壹心般若宋", "Songti SC", serif', previewFamily: '"YiXinBanRuoSong", "壹心般若宋", "Songti SC", serif' },
-  { id: 'bore-dakai', name: '般若大楷', family: '"BanRuoDaKai", "般若大楷", "Kaiti SC", serif', previewFamily: '"BanRuoDaKai", "般若大楷", "Kaiti SC", serif' },
-  { id: 'zhendian-kaizong-shengdian', name: '真典楷宗圣典楷书', family: '"ZhenDianKaiZongShengDian", "真典楷宗圣典楷书", "Kaiti SC", serif', previewFamily: '"ZhenDianKaiZongShengDian", "真典楷宗圣典楷书", "Kaiti SC", serif' },
-  { id: 'fz-badashanren-xingkai', name: '方正八大山人行楷', family: '"FZBaDaShanRenXingKai", "方正八大山人行楷", "STXingkai", cursive', previewFamily: '"FZBaDaShanRenXingKai", "方正八大山人行楷", "STXingkai", cursive' },
-  { id: 'hanyi-xianer', name: '汉仪弦二体', family: '"HYXianErTi", "汉仪弦二体", "PingFang SC", sans-serif', previewFamily: '"HYXianErTi", "汉仪弦二体", "PingFang SC", sans-serif' },
-  { id: 'fz-zihui-fojun-xingshu', name: '方正字汇佛君行书', family: '"FZZiHuiFoJunXingShu", "方正字汇佛君行书", "STXingkai", cursive', previewFamily: '"FZZiHuiFoJunXingShu", "方正字汇佛君行书", "STXingkai", cursive' },
-  { id: 'zhaomengfu-xinjing', name: '赵孟頫心经字库', family: '"ZhaoMengFuXinJing", "赵孟頫心经字库", "STKaiti", serif', previewFamily: '"ZhaoMengFuXinJing", "赵孟頫心经字库", "STKaiti", serif' },
-  { id: 'lanmo-runcheng-xingcao', name: '蓝墨润城行草', family: '"LanMoRunChengXingCao", "蓝墨润城行草", "STXingkai", cursive', previewFamily: '"LanMoRunChengXingCao", "蓝墨润城行草", "STXingkai", cursive' },
-  { id: 'shanhai-qingchan', name: '山海清禅', family: '"ShanHaiQingChan", "山海清禅", "Kaiti SC", serif', previewFamily: '"ShanHaiQingChan", "山海清禅", "Kaiti SC", serif' },
-  { id: 'ziyou-fuchen', name: '字由拂尘', family: '"ZiYouFuChen", "字由拂尘", "STXingkai", cursive', previewFamily: '"ZiYouFuChen", "字由拂尘", "STXingkai", cursive' },
-  { id: 'honglei-xingshu', name: '鸿雷行书简体', family: '"HongLeiXingShuJianTi", "鸿雷行书简体", "STXingkai", cursive', previewFamily: '"HongLeiXingShuJianTi", "鸿雷行书简体", "STXingkai", cursive' },
-  { id: 'weibei', name: '魏碑', family: 'STWeibi, Weibei SC, serif', previewFamily: 'STWeibi, Weibei SC, serif' },
-  { id: 'yaoti', name: '姚体', family: 'STYaoti, YaYuan, serif', previewFamily: 'STYaoti, YaYuan, serif' },
-  { id: 'georgia', name: 'Georgia', family: 'Georgia, serif', previewFamily: 'Georgia, serif' },
-  { id: 'times', name: 'Times', family: '"Times New Roman", Times, serif', previewFamily: '"Times New Roman", Times, serif' },
-  { id: 'garamond', name: 'Garamond', family: 'Garamond, "Noto Serif", serif', previewFamily: 'Garamond, "Noto Serif", serif' },
-  { id: 'playfair', name: 'Playfair', family: '"Playfair Display", Georgia, serif', previewFamily: '"Playfair Display", Georgia, serif' },
-  { id: 'cormorant', name: 'Cormorant', family: '"Cormorant Garamond", Garamond, serif', previewFamily: '"Cormorant Garamond", Garamond, serif' },
-  { id: 'bodoni', name: 'Bodoni', family: 'Bodoni MT, "Bodoni Moda", serif', previewFamily: 'Bodoni MT, "Bodoni Moda", serif' },
-  { id: 'didot', name: 'Didot', family: 'Didot, "Didot BT", serif', previewFamily: 'Didot, "Didot BT", serif' }
+  { id: 'system', name: '系统', family: 'PingFang SC, Noto Sans SC, sans-serif', previewFamily: 'PingFang SC, Noto Sans SC, sans-serif', token: 'ui', mood: '清晰', scene: '默认界面' },
+  { id: 'zen', name: '禅意', sourceName: 'LXGW WenKai', family: 'CardLXGWWenKai', previewFamily: 'CardLXGWWenKai, Kaiti SC, serif', fontUrl: `${CUSTOM_FONT_ASSET_BASE}/lxgw-wenkai.ttf`, token: 'zen', mood: '温润克制', scene: '修心、日签、正文' },
+  { id: 'soft-round', name: '温柔', sourceName: '猫啃网糖圆体', family: 'CardMaoKenTangYuan', previewFamily: 'CardMaoKenTangYuan, PingFang SC, sans-serif', fontUrl: `${CUSTOM_FONT_ASSET_BASE}/maoken-tangyuan.ttf`, token: 'soft', mood: '自然童真', scene: '治愈、女性向、温柔文案' },
+  { id: 'sutra', name: '经书', sourceName: '汇文明朝体', family: 'CardHuiwenMincho', previewFamily: 'CardHuiwenMincho, Source Han Serif SC, Songti SC, serif', fontUrl: `${CUSTOM_FONT_ASSET_BASE}/huiwen-mincho.ttf`, token: 'sutra', mood: '佛经古籍', scene: '经文、节气、古风排版' },
+  { id: 'serif-advanced', name: '高级', sourceName: 'Source Han Serif SC', family: 'CardSourceHanSerifSC', previewFamily: 'CardSourceHanSerifSC, Songti SC, serif', fontUrl: `${CUSTOM_FONT_ASSET_BASE}/source-han-serif-sc.ttf`, token: 'serif', mood: '东方高级', scene: '长文、高级正文' },
+  { id: 'minimal', name: '极简', sourceName: 'LXGW Neo XiHei', family: 'CardLXGWNeoXiHei', previewFamily: 'CardLXGWNeoXiHei, PingFang SC, sans-serif', fontUrl: `${CUSTOM_FONT_ASSET_BASE}/lxgw-neo-xihei.ttf`, token: 'minimal', mood: '清净现代', scene: '极简禅意、现代卡片' },
+  { id: 'writer', name: '文人', sourceName: '江西拙楷', family: 'CardJiangXiZhuoKai', previewFamily: 'CardJiangXiZhuoKai, Kaiti SC, serif', fontUrl: `${CUSTOM_FONT_ASSET_BASE}/jiangxi-zhuokai.ttf`, token: 'poetry', mood: '碑帖手写', scene: '修心金句、文人风' },
+  { id: 'poetry', name: '诗意', sourceName: '演示秋鸿楷', family: 'CardQiuHongKai', previewFamily: 'CardQiuHongKai, Kaiti SC, serif', fontUrl: `${CUSTOM_FONT_ASSET_BASE}/yanshi-qiuhongkai.ttf`, token: 'poetry', mood: '自然行草', scene: '金句、手写卡片' },
+  { id: 'spring-kai', name: '春风', sourceName: '演示春风楷', family: 'CardChunFengKai', previewFamily: 'CardChunFengKai, Kaiti SC, serif', fontUrl: `${CUSTOM_FONT_ASSET_BASE}/yanshi-chunfengkai.ttf`, token: 'handwrite', mood: '温柔治愈', scene: '女性向、祝福、柔和标题' },
+  { id: 'landscape', name: '空灵', sourceName: '霞鹜文楷 GB', family: 'CardLXGWWenKaiGB', previewFamily: 'CardLXGWWenKaiGB, Kaiti SC, serif', fontUrl: `${CUSTOM_FONT_ASSET_BASE}/lxgw-wenkai-gb.ttf`, token: 'zen', mood: '安静留白', scene: '山水、空境、留白风' },
+  { id: 'ui-modern', name: '现代', sourceName: 'Smiley Sans', family: 'CardSmileySans', previewFamily: 'CardSmileySans, PingFang SC, sans-serif', fontUrl: `${CUSTOM_FONT_ASSET_BASE}/smiley-sans.ttf`, token: 'ui', mood: '年轻设计', scene: '按钮、导航、Banner' },
+  { id: 'ease-script', name: '佛系', sourceName: '悠哉字体', family: 'CardYouZai', previewFamily: 'CardYouZai, Kaiti SC, cursive', fontUrl: `${CUSTOM_FONT_ASSET_BASE}/youzai.ttf`, token: 'handwrite', mood: '轻松自然', scene: '佛系语录、轻修心' },
+  { id: 'brush-title', name: '拂尘', sourceName: 'Ma Shan Zheng', family: 'CardMaShanZheng', previewFamily: 'CardMaShanZheng, cursive', fontUrl: `${FONT_CDN}/ma-shan-zheng@latest/chinese-simplified-400-normal.woff2`, token: 'title', mood: '毛笔禅意', scene: '封面、禅意标题' },
+  { id: 'guofeng', name: '国风', sourceName: '演示夏行楷', family: 'CardXiaXingKai', previewFamily: 'CardXiaXingKai, Kaiti SC, cursive', fontUrl: `${CUSTOM_FONT_ASSET_BASE}/yanshi-xiaxingkai.ttf`, token: 'title', mood: '行楷海报', scene: '海报、签名、标题' },
+  { id: 'clear-kai', name: '清楷', sourceName: 'Klee One', family: 'CardKleeOne', previewFamily: 'CardKleeOne, Kaiti SC, serif', fontUrl: `${CUSTOM_FONT_ASSET_BASE}/klee-one.ttf`, token: 'zen', mood: '清秀纸笔', scene: '短句、便签、修心旁注' },
+  { id: 'round-zen', name: '圆融', sourceName: 'Zen Maru Gothic', family: 'CardZenMaruGothic', previewFamily: 'CardZenMaruGothic, PingFang SC, sans-serif', fontUrl: `${CUSTOM_FONT_ASSET_BASE}/zen-maru-gothic.ttf`, token: 'soft', mood: '圆润安定', scene: '温柔标题、祝福卡片' },
+  { id: 'old-book', name: '书卷', sourceName: 'I.Ming', family: 'CardIMing', previewFamily: 'CardIMing, Songti SC, serif', fontUrl: `${CUSTOM_FONT_ASSET_BASE}/iming.ttf`, token: 'sutra', mood: '旧书刻本', scene: '古籍、经文、注疏' },
+  { id: 'temple-serif', name: '寺院', sourceName: 'Kaisei Tokumin', family: 'CardKaiseiTokumin', previewFamily: 'CardKaiseiTokumin, Songti SC, serif', fontUrl: `${CUSTOM_FONT_ASSET_BASE}/kaisei-tokumin.ttf`, token: 'serif', mood: '端正典雅', scene: '节气标题、仪式感正文' },
+  { id: 'glow-sans', name: '素净', sourceName: 'Glow Sans', family: 'CardGlowSans', previewFamily: 'CardGlowSans, PingFang SC, sans-serif', fontUrl: `${CUSTOM_FONT_ASSET_BASE}/glow-sans.ttf`, token: 'ui', mood: '干净松弛', scene: '现代说明、轻量信息' },
+  { id: 'cw-kai', name: '古楷', sourceName: 'cwTeX Q Kai', family: 'CardCwKai', previewFamily: 'CardCwKai, Kaiti SC, serif', fontUrl: `${CUSTOM_FONT_ASSET_BASE}/cwtex-q-kai.ttf`, token: 'poetry', mood: '古朴楷意', scene: '碑帖感短文、传统题跋' },
+  { id: 'noto-serif', name: '端雅', sourceName: 'Noto Serif SC', family: 'CardNotoSerifSCOpen', previewFamily: 'CardNotoSerifSCOpen, Songti SC, serif', fontUrl: `${CUSTOM_FONT_ASSET_BASE}/noto-serif-sc.ttf`, token: 'serif', mood: '稳重端雅', scene: '通用长文、节气说明' },
+  { id: 'noto-sans', name: '明净', sourceName: 'Noto Sans SC', family: 'CardNotoSansSCOpen', previewFamily: 'CardNotoSansSCOpen, PingFang SC, sans-serif', fontUrl: `${CUSTOM_FONT_ASSET_BASE}/noto-sans-sc.ttf`, token: 'ui', mood: '明净清晰', scene: '信息层级、说明文字' },
+  { id: 'en-zen', name: '禅意英文', sourceName: 'Garamond', family: 'Garamond, "Times New Roman", serif', previewFamily: 'Garamond, "Times New Roman", serif', token: 'serif', mood: '安静古典', scene: '英文日签、短句落款' },
+  { id: 'en-magazine', name: '高级杂志', sourceName: 'Playfair Display', family: '"Playfair Display", Georgia, serif', previewFamily: '"Playfair Display", Georgia, serif', token: 'title', mood: '优雅杂志', scene: '英文标题、封面' },
+  { id: 'en-minimal', name: '极简海报', sourceName: 'Inter', family: 'Inter, Arial, sans-serif', previewFamily: 'Inter, Arial, sans-serif', token: 'ui', mood: '现代留白', scene: '极简英文、辅助信息' },
+  { id: 'en-oriental', name: '东方文艺', sourceName: 'Cormorant Garamond', family: '"Cormorant Garamond", Garamond, serif', previewFamily: '"Cormorant Garamond", Garamond, serif', token: 'poetry', mood: '文艺纤细', scene: '诗句、英文副标题' },
+  { id: 'en-cultivate', name: '修心英文', sourceName: 'Times', family: '"Times New Roman", Times, serif', previewFamily: '"Times New Roman", Times, serif', token: 'serif', mood: '经典克制', scene: '修心英文、正文' },
+  { id: 'en-landscape', name: '山水英文', sourceName: 'Didot', family: 'Didot, "Bodoni 72", "Bodoni MT", serif', previewFamily: 'Didot, "Bodoni 72", "Bodoni MT", serif', token: 'title', mood: '纤细空灵', scene: '山水封面、留白标题' }
 ];
 const FONT_ID_ALIASES = {
-  foyuan: 'zcoolkuaile',
-  jingjin: 'zcoolkuaile',
-  nuanshou: 'zcoolkuaile',
-  jingxin: 'mashanzheng',
-  shufa: 'mashanzheng',
-  dengying: 'liujianmaocao',
-  caoshu: 'liujianmaocao',
-  fanhuashu: 'zhimangxing',
-  cuishu: 'zhimangxing',
-  xiaowei: 'zcoolxiaowei',
-  qingkai: 'zcoolqingke',
-  houmo: 'longcang'
+  zcoolkuaile: 'soft-round',
+  mashanzheng: 'brush-title',
+  liujianmaocao: 'poetry',
+  zhimangxing: 'ease-script',
+  zcoolxiaowei: 'serif-advanced',
+  zcoolqingke: 'minimal',
+  longcang: 'sutra',
+  xingshu: 'guofeng',
+  songti: 'serif-advanced',
+  kaiti: 'zen',
+  fangsong: 'sutra',
+  huawenxingkai: 'guofeng',
+  zhaixingkai: 'poetry',
+  lishu: 'sutra',
+  yuanti: 'soft-round',
+  mingcho: 'serif-advanced',
+  'hanyi-hongyikai': 'zen',
+  'han-shaojie-hongyi-haier': 'soft-round',
+  'fz-taishan-jingangjing-lishu': 'sutra',
+  'yixin-bore-song': 'serif-advanced',
+  'bore-dakai': 'minimal',
+  'zhendian-kaizong-shengdian': 'writer',
+  'fz-badashanren-xingkai': 'poetry',
+  'hanyi-xianer': 'ui-modern',
+  'fz-zihui-fojun-xingshu': 'ease-script',
+  'zhaomengfu-xinjing': 'sutra',
+  'lanmo-runcheng-xingcao': 'poetry',
+  'shanhai-qingchan': 'landscape',
+  'ziyou-fuchen': 'brush-title',
+  'honglei-xingshu': 'guofeng',
+  georgia: 'serif-advanced',
+  times: 'serif-advanced',
+  garamond: 'serif-advanced',
+  playfair: 'serif-advanced',
+  cormorant: 'serif-advanced',
+  bodoni: 'serif-advanced',
+  didot: 'serif-advanced',
+  foyuan: 'soft-round',
+  jingjin: 'soft-round',
+  nuanshou: 'soft-round',
+  jingxin: 'brush-title',
+  shufa: 'brush-title',
+  dengying: 'poetry',
+  caoshu: 'poetry',
+  fanhuashu: 'ease-script',
+  cuishu: 'ease-script',
+  xiaowei: 'serif-advanced',
+  qingkai: 'minimal',
+  houmo: 'sutra'
 };
 
 function clone(value) {
@@ -1243,6 +1269,7 @@ getPreviewBackground(bg) {
     const usable = Math.max(width - padX * 2, 40);
     const fontSize = Math.max(Math.round(getBlockFontSize(block) * getPreviewScales(this.data.design).x), 12);
     const lineHeight = Math.max(fontSize * Number(block.lineHeight || 1.6), fontSize + 6);
+    const letterSpacing = Number(block.letterSpacing || 0) * getPreviewScales(this.data.design).x;
     const align = block.align || 'left';
     const value = String(text || '');
     const lines = [];
@@ -1254,7 +1281,7 @@ getPreviewBackground(bg) {
         current = { chars: [], width: 0, startIndex: i + 1 };
         continue;
       }
-      const chWidth = Math.max(this.estimateSelectionCharWidth(ch, fontSize), 1);
+      const chWidth = Math.max(this.estimateSelectionCharWidth(ch, fontSize) + Math.max(letterSpacing, 0), 1);
       if (current.chars.length && current.width + chWidth > usable) {
         lines.push(current);
         current = { chars: [], width: 0, startIndex: i };
@@ -1282,9 +1309,30 @@ getPreviewBackground(bg) {
       offsets,
       lines,
       padX,
+      padY,
       usable,
       fontSize,
-      lineHeight
+      lineHeight,
+      letterSpacing
+    };
+  },
+
+  getLineCaretPosition(layout, lineIndex, x, blockOverride) {
+    const line = layout.lines[Math.max(0, Math.min(Number(lineIndex || 0), layout.lines.length - 1))] || { width: 0 };
+    const align = (blockOverride && blockOverride.align) || (this.data.activeBlock && this.data.activeBlock.align) || 'left';
+    const charCount = Array.isArray(line.chars) ? line.chars.length : 0;
+    const endCompensation = charCount ? Math.max(layout.fontSize * 0.08, 3) : 0;
+    let offsetX = layout.padX || 0;
+    if (align === 'center') offsetX = (layout.padX || 0) + Math.max(((layout.usable || 0) - Number(line.width || 0)) / 2, 0);
+    if (align === 'right') offsetX = (layout.padX || 0) + Math.max((layout.usable || 0) - Number(line.width || 0), 0);
+    const maxX = (layout.padX || 0) + (layout.usable || 0);
+    const measuredEndX = offsetX + Number(line.width || 0) + endCompensation;
+    const iosEndX = offsetX + Number(line.width || 0) + Math.max(layout.fontSize * 2.2, 42);
+    const endX = Math.min(maxX, this.data.isIOS ? Math.max(measuredEndX, iosEndX) : measuredEndX);
+    return {
+      x: typeof x === 'number' ? x : endX,
+      y: (layout.padY || 0) + Math.max(0, Number(lineIndex || 0)) * layout.lineHeight,
+      line: Number(lineIndex || 0)
     };
   },
 
@@ -1294,6 +1342,9 @@ getPreviewBackground(bg) {
     const max = value.length;
     const index = Math.max(0, Math.min(Number(cursor || 0), max));
     let pos = layout.offsets[index];
+    if (index === max && layout.lines.length) {
+      pos = this.getLineCaretPosition(layout, layout.lines.length - 1, undefined, blockOverride);
+    }
     if (!pos) {
       for (let i = index; i >= 0; i--) {
         if (layout.offsets[i]) {
@@ -1415,7 +1466,7 @@ getPreviewBackground(bg) {
       selectionStart: rangeStart,
       selectionEnd: rangeEnd,
       showPasteTip: true,
-      selectionHint: hint || `已选中 ${rangeEnd - rangeStart} 个字`
+      selectionHint: ''
     });
   },
 
@@ -1444,7 +1495,7 @@ getPreviewBackground(bg) {
       selectionStart: rangeStart,
       selectionEnd: rangeEnd,
       showPasteTip: true,
-      selectionHint: hint || this.data.selectionHint || `已选中 ${rangeEnd - rangeStart} 个字`
+      selectionHint: ''
     });
   },
 
@@ -1527,7 +1578,7 @@ getPreviewBackground(bg) {
     const start = range.start;
     const end = range.end;
     const text = current.slice(0, start) + String(insertText || '') + current.slice(end);
-    const cursor = start + String(insertText || '').length;
+    const cursor = text.length;
 
     // 粘贴时：用完整文本创建干净的单 op delta，避免多 op 重叠
     const block = this.data.activeBlock || {};
@@ -1544,6 +1595,10 @@ getPreviewBackground(bg) {
       textInputFocus: false,
       selectionStart: cursor,
       selectionEnd: cursor,
+      selectionModeActive: false,
+      selectionPreviewNodes: [],
+      selectionFlowNodes: [],
+      selectionRects: [],
       showPasteTip: true,
       selectionHint: '',
       nodeVersion: newNodeVer,
@@ -1557,6 +1612,10 @@ getPreviewBackground(bg) {
         textInputFocus: !this.data.isIOS,
         selectionStart: cursor,
         selectionEnd: cursor,
+        selectionModeActive: false,
+        selectionPreviewNodes: [],
+        selectionFlowNodes: [],
+        selectionRects: [],
         ...this.getCaretState(cursor, text, nextBlock)
       }, () => this.schedulePreviewRender(0));
     }, 30);
@@ -1661,7 +1720,7 @@ getPreviewBackground(bg) {
     const attrs = getAttrsAtOffset(this.data.activeBlock && this.data.activeBlock.delta, range.start || 0);
     const bold = !attrs.bold;
     this.applyFormatToSelection({ bold });
-    this.setData({ formats: { ...(this.data.formats || {}), bold }, textInputFocus: false, showPasteTip: true });
+    this.setData({ formats: { ...(this.data.formats || {}), bold }, textInputFocus: false, showPasteTip: true, selectionHint: '' });
     this._saveHistory(this.data.design);
   },
 
@@ -1674,8 +1733,8 @@ getPreviewBackground(bg) {
       return;
     }
     const attrs = getAttrsAtOffset(this.data.activeBlock && this.data.activeBlock.delta, range.start || 0);
-    const fontSize = clampFontSize((parseInt(attrs.size || attrs.fontSize || this.data.fontSize || 32, 10) || 32) + 4);
-    this.setData({ fontSize, textInputFocus: false, showPasteTip: true });
+    const fontSize = clampFontSize((parseInt(attrs.size || attrs.fontSize || this.data.fontSize || 32, 10) || 32) + 10);
+    this.setData({ fontSize, textInputFocus: false, showPasteTip: true, selectionHint: '' });
     this.applyFormatToSelection({ size: fontSize, fontSize });
     this._saveHistory(this.data.design);
   },
@@ -1689,15 +1748,15 @@ getPreviewBackground(bg) {
       return;
     }
     const attrs = getAttrsAtOffset(this.data.activeBlock && this.data.activeBlock.delta, range.start || 0);
-    const fontSize = clampFontSize((parseInt(attrs.size || attrs.fontSize || this.data.fontSize || 32, 10) || 32) - 4);
-    this.setData({ fontSize, textInputFocus: false, showPasteTip: true });
+    const fontSize = clampFontSize((parseInt(attrs.size || attrs.fontSize || this.data.fontSize || 32, 10) || 32) - 10);
+    this.setData({ fontSize, textInputFocus: false, showPasteTip: true, selectionHint: '' });
     this.applyFormatToSelection({ size: fontSize, fontSize });
     this._saveHistory(this.data.design);
   },
 
   showFontPanelForSelection() {
     if (this.shouldSkipFormatAction('fontPanel')) return;
-    this.setData({ activePanel: 'font', textInputFocus: true, showPasteTip: true });
+    this.setData({ activePanel: 'font', textInputFocus: false, showPasteTip: true, selectionHint: '' });
     setTimeout(() => this.preloadVisibleFonts(), 80);
   },
 
@@ -1709,9 +1768,7 @@ getPreviewBackground(bg) {
       this.setData({ textInputFocus: true, showPasteTip: true });
       return;
     }
-    const attrs = getAttrsAtOffset(this.data.activeBlock && this.data.activeBlock.delta, range.start || 0);
-    this.setData({ activePanel: 'style', activeStyleTool: 'text', textInputFocus: false, showPasteTip: true });
-    this.openColorPicker('text', attrs.color || this.data.activeTextColor || '#4B4038', '文字颜色');
+    this.setData({ activePanel: 'style', activeStyleTool: 'text', textInputFocus: false, showPasteTip: true, selectionHint: '' });
   },
 
   onEditorReady() {

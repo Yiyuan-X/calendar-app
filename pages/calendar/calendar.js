@@ -352,14 +352,15 @@ Page({
 
     if (!info.isCurrentMonth) {
       if (info.isPrevMonth) { this.prevMonth(); } else { this.nextMonth(); }
-      setTimeout(() => { this.selectDate(dateStr); }, 50);
+      setTimeout(() => { this.selectDate(dateStr, { scrollToHuangli: true }); }, 50);
       return;
     }
 
-    this.selectDate(dateStr);
+    this.selectDate(dateStr, { scrollToHuangli: true });
   },
 
-  selectDate(dateStr) {
+  selectDate(dateStr, options) {
+    const opts = options || {};
     // 更新选中状态
     const calendarData = this.data.calendarData.map(item => ({
       ...item,
@@ -462,6 +463,8 @@ Page({
           huangli: huangliData
         },
         selectedNote: note
+      }, () => {
+        if (opts.scrollToHuangli) this.scrollToHuangliDetail();
       });
     } else {
       this.setData({
@@ -471,6 +474,17 @@ Page({
         selectedNote: null
       });
     }
+  },
+
+  scrollToHuangliDetail() {
+    clearTimeout(this._scrollHuangliTimer);
+    this._scrollHuangliTimer = setTimeout(() => {
+      wx.pageScrollTo({
+        selector: '#huangli-detail',
+        offsetTop: -12,
+        duration: 320
+      });
+    }, 80);
   },
 
   // ==================== 工具方法 ====================

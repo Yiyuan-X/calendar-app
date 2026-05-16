@@ -102,6 +102,9 @@ function drawVerticalGlyph(ctx, glyph, style, block, design, x, y, columnWidth) 
 
   ctx.fillStyle = style.color || block.color || '#333333';
   ctx.fillText(glyph, drawX, y);
+  if (style.bold) {
+    ctx.fillText(glyph, drawX + Math.max(fontSize * 0.035, 0.8), y);
+  }
   if (style.underline) {
     ctx.shadowColor = 'transparent';
     ctx.strokeStyle = ctx.fillStyle;
@@ -303,6 +306,9 @@ function drawTextBlock(ctx, block, design) {
 
       ctx.fillStyle = style.color || block.color || '#333333';
       ctx.fillText(run.text, cursorX, y + (lineHeight - fontSize) / 2);
+      if (style.bold) {
+        ctx.fillText(run.text, cursorX + Math.max(fontSize * 0.035, 0.8), y + (lineHeight - fontSize) / 2);
+      }
       if (style.underline) {
         ctx.shadowColor = 'transparent';
         ctx.strokeStyle = ctx.fillStyle;

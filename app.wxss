@@ -2,17 +2,25 @@
 
 /* CSS 变量 — 精心调配的配色体系 */
 page {
+  --font-main: 'CardLXGWWenKai', 'PingFang SC', 'Noto Sans SC', sans-serif;
+  --font-serif: 'CardSourceHanSerifSC', 'Source Han Serif SC', 'Songti SC', serif;
+  --font-title: 'CardMaShanZheng', 'CardXiaXingKai', 'Kaiti SC', cursive;
+  --font-zen: 'CardLXGWWenKai', 'CardLXGWWenKaiGB', 'Kaiti SC', serif;
+  --font-ui: 'CardSmileySans', 'PingFang SC', 'Noto Sans SC', sans-serif;
+  --font-handwrite: 'CardYouZai', 'CardQiuHongKai', 'Kaiti SC', cursive;
+  --font-poetry: 'CardJiangXiZhuoKai', 'CardQiuHongKai', 'Kaiti SC', serif;
+
   --primary-color: #1D1D1F;
   --secondary-color: #86868B;
-  --accent-color: #007AFF;
-  --bg-color: #F5F5F7;
-  --card-bg: #FFFFFF;
-  --border-color: rgba(0, 0, 0, 0.05);
-  --border-color-light: rgba(0, 0, 0, 0.03);
-  --festival-red: #FF3B30;
-  --festival-gold: #B8965E;
-  --buddhist-purple: #AF52DE;
-  --success-green: #34C759;
+  --accent-color: #B8842E;
+  --bg-color: #F7F3EC;
+  --card-bg: #FFFDF8;
+  --border-color: rgba(112, 82, 50, 0.08);
+  --border-color-light: rgba(112, 82, 50, 0.04);
+  --festival-red: #C94B3E;
+  --festival-gold: #A67A2E;
+  --buddhist-purple: #8A6AA8;
+  --success-green: #4F8A5B;
   --text-primary: #1D1D1F;
   --text-secondary: #6E6E73;
   --text-tertiary: #AEAEB2;
@@ -26,9 +34,9 @@ page {
 
   background-color: var(--bg-color);
   color: var(--text-primary);
-  font-family: -apple-system, BlinkMacSystemFont, 'SF Pro Display', 'SF Pro Text', 'Helvetica Neue', 'PingFang SC', 'Noto Sans SC', sans-serif;
+  font-family: var(--font-ui);
   font-size: 30rpx;
-  line-height: 1.55;
+  line-height: 1.68;
   -webkit-font-smoothing: antialiased;
 }
 
