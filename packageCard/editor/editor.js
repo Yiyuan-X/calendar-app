@@ -19,7 +19,7 @@ const MAX_TEXT_BOX_HEIGHT = PREVIEW_STAGE_HEIGHT_RPX - 40;  // 保留底部边�
 const DEFAULT_TEXT_BOX_WIDTH = 420;
 const DEFAULT_TEXT_BOX_HEIGHT = 140;
 const DEFAULT_TEXT_BOX_Y = 280;
-const DEFAULT_TEXT_FONT_SIZE = 33;
+const DEFAULT_TEXT_FONT_SIZE = 38;
 const FONT_CDN = 'https://cdn.jsdelivr.net/fontsource/fonts';
 const CUSTOM_FONT_ASSET_BASE = '/fonts/open';
 const EMPTY_TEXT_PLACEHOLDER = '输入文字...';
@@ -292,10 +292,23 @@ function getPreviewScales(design) {
 function getPreviewStageSize(design) {
   const designWidth = Math.max(Number((design && design.size && design.size.width) || 750), 1);
   const designHeight = Math.max(Number((design && design.size && design.size.height) || 1000), 1);
+  const scale = Math.min(PREVIEW_STAGE_RPX / designWidth, PREVIEW_STAGE_HEIGHT_RPX / designHeight);
   return {
-    width: PREVIEW_STAGE_RPX,
-    height: Math.max(1, Math.round(PREVIEW_STAGE_RPX * designHeight / designWidth))
+    width: Math.max(1, Math.round(designWidth * scale)),
+    height: Math.max(1, Math.round(designHeight * scale))
   };
+}
+
+function getDevicePortraitSize() {
+  try {
+    const info = wx.getSystemInfoSync();
+    const screenWidth = Math.max(Number(info.screenWidth || info.windowWidth || 0), 1);
+    const screenHeight = Math.max(Number(info.screenHeight || info.windowHeight || 0), 1);
+    const height = Math.round(750 * screenHeight / screenWidth);
+    return { width: 750, height: Math.max(1000, Math.min(height, 1334)), preset: 'portrait' };
+  } catch (e) {
+    return { width: 750, height: 1000, preset: 'portrait' };
+  }
 }
 
 function getCenteredBlockX(design, width) {
@@ -307,14 +320,14 @@ function getBackgroundImageLayout(bg, design) {
   const sourceWidth = Number((bg && bg.bgWidth) || 0);
   const sourceHeight = Number((bg && bg.bgHeight) || 0);
   const stage = getPreviewStageSize(design);
-  const imageScale = Math.max(0.2, Math.min(Number((bg && bg.scale) || 1), 5));
+  const imageScale = Math.max(0.2, Math.min(Number((bg && bg.scale) || 1), 1));
   if (!sourceWidth || !sourceHeight) {
     return {
       width: Math.max(1, Math.round(stage.width * imageScale)),
       height: Math.max(1, Math.round(stage.height * imageScale))
     };
   }
-  const scale = Math.max(stage.width / sourceWidth, stage.height / sourceHeight) * imageScale;
+  const scale = Math.min(stage.width / sourceWidth, stage.height / sourceHeight) * imageScale;
   return {
     width: Math.max(1, Math.round(sourceWidth * scale)),
     height: Math.max(1, Math.round(sourceHeight * scale))
@@ -326,8 +339,8 @@ function getBackgroundOffsetBounds(layout, design) {
   const width = Number((layout && layout.width) || stage.width);
   const height = Number((layout && layout.height) || stage.height);
   return {
-    x: Math.max(stage.width, Math.round((stage.width + width) / 2)),
-    y: Math.max(stage.height, Math.round((stage.height + height) / 2))
+    x: Math.max(0, Math.round((stage.width - width) / 2)),
+    y: Math.max(0, Math.round((stage.height - height) / 2))
   };
 }
 
@@ -344,6 +357,11 @@ function normalizeAspectSize(width, height) {
   const h = Math.max(Number(height || 0), 1);
   if (w >= h) return { width: 1000, height: Math.max(1, Math.round(1000 * h / w)) };
   return { width: Math.max(1, Math.round(1000 * w / h)), height: 1000 };
+}
+
+function getCanvasSizeById(id, option) {
+  if (id === 'portrait') return getDevicePortraitSize();
+  return { width: option.width, height: option.height, preset: id };
 }
 
 function detectCanvasSizeId(size) {
@@ -364,6 +382,20 @@ function getImageInfo(src) {
       src,
       success: resolve,
       fail: () => resolve({})
+    });
+  });
+}
+
+function persistLocalFile(filePath) {
+  return new Promise(resolve => {
+    if (!filePath || typeof wx.saveFile !== 'function') {
+      resolve(filePath || '');
+      return;
+    }
+    wx.saveFile({
+      tempFilePath: filePath,
+      success: res => resolve(res.savedFilePath || filePath),
+      fail: () => resolve(filePath)
     });
   });
 }
@@ -882,12 +914,13 @@ function createBlankDesign(template) {
   const design = clone(template || {});
   design.id = '';
   design.inputText = '';
+  design.size = getDevicePortraitSize();
   design.blocks = [
     {
       id: 'quote',
       type: 'text',
       x: getCenteredBlockX(design, DEFAULT_TEXT_BOX_WIDTH),
-      y: DEFAULT_TEXT_BOX_Y,
+      y: Math.round(DEFAULT_TEXT_BOX_Y * Number(design.size.height || 1000) / 1000),
       width: DEFAULT_TEXT_BOX_WIDTH,
       height: DEFAULT_TEXT_BOX_HEIGHT,
       manualHeight: DEFAULT_TEXT_BOX_HEIGHT,
@@ -904,6 +937,28 @@ function createBlankDesign(template) {
   design.decorations = [];
   design.qrcode = { ...(design.qrcode || {}), visible: false, src: '' };
   return design;
+}
+
+function normalizeHistoryDesign(design) {
+  const copyDesign = clone(design || {});
+  delete copyDesign._qrPreviewX;
+  delete copyDesign._qrPreviewY;
+  delete copyDesign._qrPreviewSize;
+  copyDesign.blocks = (copyDesign.blocks || []).map(block => {
+    const item = { ...block };
+    Object.keys(item).forEach(key => {
+      if (
+        key === '_previewScale' ||
+        key === 'plainText' ||
+        key.indexOf('preview') === 0 ||
+        key.indexOf('editing') === 0
+      ) {
+        delete item[key];
+      }
+    });
+    return item;
+  });
+  return copyDesign;
 }
 
 Page({
@@ -951,6 +1006,7 @@ Page({
     useCanvasPreview: true,
     previewBackground: '#F7F1EA',
     previewBackgroundImage: '',
+    realtimeBackgroundPreview: false,
     nodeVersion: 0,
     bgOffsetX: 0,
     bgOffsetY: 0,
@@ -959,6 +1015,8 @@ Page({
     bgDisplayHeight: PREVIEW_STAGE_HEIGHT_RPX,
     previewStageWidth: PREVIEW_STAGE_RPX,
     previewStageHeight: PREVIEW_STAGE_HEIGHT_RPX,
+    realtimePreviewBlockId: '',
+    liveTextBlockId: '',
   canvasSizeOptions: CANVAS_SIZE_OPTIONS,
   activeCanvasSizeId: 'portrait',
   // 自定义尺寸
@@ -997,7 +1055,7 @@ Page({
   _saveHistory(design) {
     design = design || this.data.design;
     if (!design || !design.blocks) return;
-    const snapshot = clone(design);
+    const snapshot = normalizeHistoryDesign(design);
     const key = JSON.stringify(snapshot);
     const current = this._history[this._historyIndex];
     if (current && JSON.stringify(current) === key) return;
@@ -1015,7 +1073,7 @@ Page({
   },
 
   _applyHistorySnapshot(snapshot, activeId) {
-    const hydrated = hydrateDesign(snapshot);
+    const hydrated = hydrateDesign(normalizeHistoryDesign(snapshot));
     const activeBlock = hydrated.blocks.find(item => item.id === activeId) || hydrated.blocks[0] || {};
     const stage = getPreviewStageSize(hydrated);
     const bgLayout = getBackgroundImageLayout(hydrated.background, hydrated);
@@ -1030,17 +1088,18 @@ Page({
       selectionRects: [],
       caretVisible: false,
       inlineEditing: false,
+      liveTextBlockId: '',
       selectionStart: 0,
       selectionEnd: 0,
       textInputFocus: false,
       showPasteTip: false,
       ...getTextPanelState(activeBlock, this.data),
       previewBackground: this.getPreviewBackground(hydrated.background),
-      previewBackgroundImage: this.getPreviewBackgroundImage(hydrated.background) || this.data.previewBackgroundImage,
+      previewBackgroundImage: this.getPreviewBackgroundImage(hydrated.background),
       previewBlurStyle: this.getPreviewBlurStyle(hydrated.background),
       bgOffsetX: (hydrated.background && hydrated.background.offsetX) || 0,
       bgOffsetY: (hydrated.background && hydrated.background.offsetY) || 0,
-      bgScale: (hydrated.background && hydrated.background.scale) || 1,
+      bgScale: Math.max(0.2, Math.min((hydrated.background && hydrated.background.scale) || 1, 1)),
       bgDisplayWidth: bgLayout.width,
       bgDisplayHeight: bgLayout.height,
       previewStageWidth: stage.width,
@@ -1109,7 +1168,8 @@ Page({
     try {
       await renderer.drawPosterToCanvas(this, '#previewCanvas', this.data.design, {
         scale: 1,
-        dpr: 1
+        dpr: 1,
+        hiddenBlockIds: this.data.inlineEditing && this.data.activeBlockId ? [this.data.activeBlockId] : []
       });
     } catch (e) {
       console.warn('预览画布渲染失败', e);
@@ -1119,6 +1179,18 @@ Page({
       if (this._previewDirty) {
         this._previewDirty = false;
         this.renderPreviewCanvas();
+      } else {
+        const updates = {};
+        if (this.data.inlineEditing && this.data.activeBlockId && this.data.liveTextBlockId !== this.data.activeBlockId) {
+          updates.liveTextBlockId = this.data.activeBlockId;
+        }
+        if (this.data.realtimePreviewBlockId) {
+          updates.realtimePreviewBlockId = '';
+        }
+        if (this.data.realtimeBackgroundPreview) {
+          updates.realtimeBackgroundPreview = false;
+        }
+        if (Object.keys(updates).length) this.setData(updates);
       }
     }
   },
@@ -1139,6 +1211,7 @@ Page({
       const draft = cardStorage.getDraft(query.draftId);
       design = draft && draft.design ? draft.design : templates.getTemplate('solar-term-paper');
       design.id = query.draftId;
+      this._currentDraftId = query.draftId;
       this.setDesign(design, (design.blocks && design.blocks[0] && design.blocks[0].id) || '');
     } else {
       // 没有指定草稿 ID，检查是否有最近的草稿可以继续编辑
@@ -1148,6 +1221,7 @@ Page({
         design = createBlankDesign(templates.getTemplate(query.templateId || 'solar-term-paper'));
         design.templateId = query.templateId || design.id;
         design.id = '';
+        this._currentDraftId = '';
         this.setDesign(design, (design.blocks && design.blocks[0] && design.blocks[0].id) || '');
         // 弹出草稿恢复选择
         this.setData({
@@ -1159,6 +1233,7 @@ Page({
         design = createBlankDesign(templates.getTemplate(query.templateId || 'solar-term-paper'));
         design.templateId = query.templateId || design.id;
         design.id = '';
+        this._currentDraftId = '';
         this.setDesign(design, (design.blocks && design.blocks[0] && design.blocks[0].id) || '');
       }
     }
@@ -1170,6 +1245,7 @@ Page({
     if (draft && draft.design) {
       const design = draft.design;
       design.id = draft.id;
+      this._currentDraftId = draft.id;
       this.setData({ showDraftModal: false });
       this.setDesign(design, (design.blocks && design.blocks[0] && design.blocks[0].id) || '');
     } else {
@@ -1213,6 +1289,7 @@ Page({
     if (draft && draft.design) {
       const design = draft.design;
       design.id = draft.id;
+      this._currentDraftId = draft.id;
       this.setData({ showDraftList: false, inlineEditing: false, textInputFocus: false, caretVisible: false });
       this.setDesign(design, (design.blocks && design.blocks[0] && design.blocks[0].id) || '');
     } else {
@@ -1295,6 +1372,7 @@ Page({
       activeBlock,
       activePlainText: deltaToText(activeBlock.delta),
       inlineEditing: false,
+      liveTextBlockId: '',
       selectionModeActive: false,
       selectionPreviewNodes: [],
       selectionFlowNodes: [],
@@ -1306,12 +1384,11 @@ Page({
       ...getTextPanelState(activeBlock, this.data),
       inputText: hydrated.inputText || this.data.inputText,
       previewBackground: this.getPreviewBackground(hydrated.background),
-      // 保护背景图：新设计有图则用新的，否则保留当前已有的
-      previewBackgroundImage: (this.getPreviewBackgroundImage(hydrated.background) || this.data.previewBackgroundImage),
+      previewBackgroundImage: this.getPreviewBackgroundImage(hydrated.background),
       previewBlurStyle: this.getPreviewBlurStyle(hydrated.background),
       bgOffsetX: (hydrated.background && hydrated.background.offsetX) || 0,
       bgOffsetY: (hydrated.background && hydrated.background.offsetY) || 0,
-      bgScale: (hydrated.background && hydrated.background.scale) || 1,
+      bgScale: Math.max(0.2, Math.min((hydrated.background && hydrated.background.scale) || 1, 1)),
       bgDisplayWidth: bgLayout.width,
       bgDisplayHeight: bgLayout.height,
       previewStageWidth: stage.width,
@@ -1380,7 +1457,7 @@ getPreviewBackground(bg) {
       }
       nextSize = normalizeAspectSize(bg.bgWidth, bg.bgHeight);
     } else {
-      nextSize = { width: option.width, height: option.height };
+      nextSize = getCanvasSizeById(id, option);
     }
     const oldWidth = Math.max(Number(oldSize.width || 750), 1);
     const oldHeight = Math.max(Number(oldSize.height || 1000), 1);
@@ -2111,6 +2188,7 @@ getPreviewBackground(bg) {
       startClientX: touch.clientX,
       startClientY: touch.clientY,
       startIndex: handle === 'start' ? Number(this.data.selectionStart || 0) : Number(this.data.selectionEnd || 0),
+      anchorIndex: handle === 'start' ? Number(this.data.selectionEnd || 0) : Number(this.data.selectionStart || 0),
       line: handle === 'start' ? currentPos.startLine : currentPos.endLine,
       width
     };
@@ -2136,10 +2214,15 @@ getPreviewBackground(bg) {
     const index = dyPx > 4 || dxPx > 4
       ? this.getSelectionIndexFromPagePoint(pageX, pageY)
       : this.getSelectionIndexFromPoint(baseX + dxRpx, drag.line);
-    let start = Number(this.data.selectionStart || 0);
-    let end = Number(this.data.selectionEnd || 0);
-    if (drag.handle === 'start') start = Math.min(index, end - 1);
-    else end = Math.max(index, start + 1);
+    const max = text.length;
+    const anchor = Math.max(0, Math.min(Number(drag.anchorIndex), max));
+    const moving = Math.max(0, Math.min(index, max));
+    let start = Math.min(anchor, moving);
+    let end = Math.max(anchor, moving);
+    if (start === end) {
+      if (drag.handle === 'start') start = Math.max(0, end - 1);
+      else end = Math.min(max, start + 1);
+    }
     this.enterSelectionMode(start, end, `已选中 ${Math.max(end - start, 0)} 个字`);
     this._selectionDrag = { ...drag, startClientX: touch.clientX, startClientY: touch.clientY };
   },
@@ -2150,6 +2233,7 @@ getPreviewBackground(bg) {
 
   replaceActiveTextSelection(insertText) {
     const current = this.data.activePlainText || '';
+    const wasEmptyText = !String(current || '').trim();
     const range = this.getActiveTextSelectionRange(current);
     const start = range.start;
     const end = range.end;
@@ -2160,12 +2244,23 @@ getPreviewBackground(bg) {
     const block = this.data.activeBlock || {};
     const firstAttrs = block.delta && block.delta.ops && block.delta.ops[0] ? (block.delta.ops[0].attributes || {}) : {};
     const delta = { ops: [{ insert: text, attributes: firstAttrs }] };
-    const caretState = this.getCaretState(cursor, text, { ...block, delta, _previewScale: getPreviewScales(this.data.design) });
+    const design = clone(this.data.design);
+    const blockIndex = (design.blocks || []).findIndex(item => item && item.id === this.data.activeBlockId);
+    if (blockIndex < 0) return;
+    design.blocks[blockIndex] = { ...design.blocks[blockIndex], delta };
+    if (design.blocks[blockIndex].type === 'text') {
+      design.blocks[blockIndex].height = getBlockTextHeight(design.blocks[blockIndex]);
+    }
+    const hydrated = hydrateDesign(design);
+    const activeBlock = hydrated.blocks.find(item => item.id === this.data.activeBlockId) || {};
+    const caretState = this.getCaretState(cursor, text, { ...activeBlock, delta, _previewScale: getPreviewScales(hydrated) });
 
     this._manualTextSelection = null;
     this.exitSelectionMode();
     const newNodeVer = (this.data.nodeVersion || 0) + 1;
     this.setData({
+      design: hydrated,
+      activeBlock,
       activePlainText: text,
       inputText: text,
       textInputFocus: false,
@@ -2178,23 +2273,15 @@ getPreviewBackground(bg) {
       showPasteTip: true,
       selectionHint: '',
       nodeVersion: newNodeVer,
+      liveTextBlockId: wasEmptyText ? this.data.activeBlockId : this.data.liveTextBlockId,
+      ...getTextPanelState(activeBlock, this.data),
       ...caretState
+    }, () => {
+      this.schedulePreviewRender(0);
+      setTimeout(() => {
+        this.setData({ textInputFocus: !this.data.isIOS });
+      }, 30);
     });
-    this.updateActiveBlock({ delta }, { silentEditor: true });
-    setTimeout(() => {
-      const nextBlock = { ...(this.data.activeBlock || {}), delta, _previewScale: getPreviewScales(this.data.design) };
-      this.setData({
-        activePlainText: text,
-        textInputFocus: !this.data.isIOS,
-        selectionStart: cursor,
-        selectionEnd: cursor,
-        selectionModeActive: false,
-        selectionPreviewNodes: [],
-        selectionFlowNodes: [],
-        selectionRects: [],
-        ...this.getCaretState(cursor, text, nextBlock)
-      }, () => this.schedulePreviewRender(0));
-    }, 30);
   },
 
   selectAllActiveText(e) {
@@ -2479,6 +2566,7 @@ getPreviewBackground(bg) {
       selectionPreviewNodes: [],
       selectionFlowNodes: [],
       selectionRects: [],
+      liveTextBlockId: '',
       caretVisible: false
     });
     if (this._typingHistoryStarted) {
@@ -2513,6 +2601,7 @@ getPreviewBackground(bg) {
       selectionFlowNodes: [],
       selectionRects: [],
       caretVisible: false,
+      liveTextBlockId: '',
       selectionHint: ''
     });
     if (hadTyping) {
@@ -2589,11 +2678,13 @@ getPreviewBackground(bg) {
       selectionRects: [],
       textInputFocus: false,
       inlineEditing: true,
+      liveTextBlockId: '',
       selectionStart: cursorOffset,
       selectionEnd: cursorOffset,
       ...caretState,
       ...getTextPanelState(block, this.data)
     }, () => {
+      this.schedulePreviewRender(0);
       // 延迟聚焦：确保 textarea 渲染完成后用正确的 selectionStart/End 定位光标
       setTimeout(() => {
         this.setData({ textInputFocus: true });
@@ -3250,6 +3341,7 @@ getPreviewBackground(bg) {
     } else {
       this.applyFormatToAllText({ size: fontSize, fontSize });
     }
+    if (e && e.type === 'change') this._saveHistory(this.data.design);
   },
 
   changeLineHeight(e) {
@@ -3262,6 +3354,7 @@ getPreviewBackground(bg) {
     if (hasTextSelection(range.start, range.end)) {
       this.refreshSelectionPreview(this.data.activeBlock.delta, range.start, range.end, undefined, { lineHeight });
     }
+    if (e && e.type === 'change') this._saveHistory(this.data.design);
   },
 
   changeLetterSpacing(e) {
@@ -3272,6 +3365,7 @@ getPreviewBackground(bg) {
     } else {
       this.applyFormatToAllText({ letterSpacing }, { letterSpacing });
     }
+    if (e && e.type === 'change') this._saveHistory(this.data.design);
   },
 
   changeOpacity(e) {
@@ -3282,6 +3376,7 @@ getPreviewBackground(bg) {
     } else {
       this.applyFormatToAllText({ opacity });
     }
+    if (e && e.type === 'change') this._saveHistory(this.data.design);
   },
 
   /**
@@ -3332,10 +3427,12 @@ getPreviewBackground(bg) {
     const attrs = this.getShadowAttrs(shadow, shadowStrength, this.data.activeShadowColor || 'rgba(72,48,26,0.55)');
     if (this.hasActiveTextSelection()) {
       this.applyFormatToSelection(attrs);
+      if (e && e.type === 'change') this._saveHistory(this.data.design);
       return;
     }
     this.updateActiveBlock(attrs, { silentEditor: true, renderDelay: 0 });
     this.schedulePreviewRender(0);
+    if (e && e.type === 'change') this._saveHistory(this.data.design);
   },
 
   updateActiveBlockTextAttributes(attrs, blockPatch) {
@@ -3428,6 +3525,13 @@ getPreviewBackground(bg) {
     } else {
       this.applyFormatToAllText(fontAttrs, fontAttrs);
     }
+    if (this.data.inlineEditing && this.data.activeBlockId) {
+      this.setData({
+        liveTextBlockId: this.data.activeBlockId,
+        textInputFocus: false,
+        showPasteTip: true
+      });
+    }
     this.schedulePreviewRender(0);
 
     // 后台异步加载字体文件，完成后刷新画布以正确渲染自定义字体
@@ -3500,6 +3604,7 @@ getPreviewBackground(bg) {
     } else {
       this.applyFormatToAllText({ background: activeBackground, backgroundColor: activeBackground });
     }
+    this._saveHistory(this.data.design);
   },
 
   pickBackgroundColor() {
@@ -3520,6 +3625,7 @@ getPreviewBackground(bg) {
     } else {
       this.applyFormatToAllText({ background: rgba, backgroundColor: rgba });
     }
+    if (e && e.type === 'change') this._saveHistory(this.data.design);
   },
 
   setShadowColor(e) {
@@ -3830,7 +3936,7 @@ getPreviewBackground(bg) {
     };
     blocks.push(copied);
     this.editorCtx = null;
-    this.setData({ inlineEditing: false, textInputFocus: false, caretVisible: false });
+    this.setData({ inlineEditing: false, textInputFocus: false, caretVisible: false, realtimePreviewBlockId: copied.id });
     this.setDesign(design, copied.id);
     wx.showToast({ title: '已复制文字框', icon: 'none' });
   },
@@ -3944,20 +4050,23 @@ getPreviewBackground(bg) {
           wx.showToast({ title: '选择图片失败', icon: 'none' });
           return;
         }
+        const token = `bg_${Date.now()}_${Math.random().toString(36).slice(2, 7)}`;
+        this._backgroundChooseToken = token;
+        const tempPath = file.tempFilePath;
         const design = clone(this.data.design);
         const prevBg = design.background || {};
-        const info = await getImageInfo(file.tempFilePath);
-        const bgWidth = Number(file.width || info.width || 0);
-        const bgHeight = Number(file.height || info.height || 0);
+        const bgWidth = Number(file.width || 0);
+        const bgHeight = Number(file.height || 0);
         if (this.data.activeCanvasSizeId === 'image' && bgWidth && bgHeight) {
           design.size = { ...normalizeAspectSize(bgWidth, bgHeight), preset: 'image' };
         }
-        const scale = Number(prevBg.scale || 1);
+        const scale = Math.max(0.2, Math.min(Number(prevBg.scale || 1), 1));
         const layout = getBackgroundImageLayout({ bgWidth, bgHeight, scale }, design);
 
         design.background = {
           type: 'image',
-          src: file.tempFilePath,
+          src: tempPath,
+          persistent: false,
           blur: !!prevBg.blur,
           color: prevBg.color || '#F7F1EA',
           glassColor: prevBg.glassColor,
@@ -3969,17 +4078,39 @@ getPreviewBackground(bg) {
           bgHeight
         };
 
-        // 先设置背景图 URL 和偏移，确保 WXML 立即渲染
+        // 先用临时路径立即上屏；持久化和精确尺寸在后台补齐。
         this.setData({
-          previewBackgroundImage: file.tempFilePath,
+          previewBackgroundImage: tempPath,
+          realtimeBackgroundPreview: true,
           bgOffsetX: 0,
           bgOffsetY: 0,
           bgScale: scale,
           bgDisplayWidth: layout.width,
           bgDisplayHeight: layout.height
         });
-        // 再更新完整设计
         this.setDesign(design, this.data.activeBlockId);
+        Promise.all([persistLocalFile(tempPath), getImageInfo(tempPath)]).then(([persistentPath, info]) => {
+          if (this._backgroundChooseToken !== token) return;
+          const current = clone(this.data.design);
+          if (!current.background || current.background.src !== tempPath) return;
+          const finalWidth = Number(file.width || (info && info.width) || current.background.bgWidth || 0);
+          const finalHeight = Number(file.height || (info && info.height) || current.background.bgHeight || 0);
+          current.background = {
+            ...current.background,
+            src: persistentPath || tempPath,
+            persistent: !!persistentPath && persistentPath !== tempPath,
+            bgWidth: finalWidth,
+            bgHeight: finalHeight
+          };
+          const finalLayout = getBackgroundImageLayout(current.background, current);
+          this.setData({
+            'design.background': current.background,
+            previewBackgroundImage: current.background.src,
+            realtimeBackgroundPreview: true,
+            bgDisplayWidth: finalLayout.width,
+            bgDisplayHeight: finalLayout.height
+          }, () => this.schedulePreviewRender(0));
+        });
       },
       fail: err => {
         console.warn('chooseMedia fail:', err);
@@ -4034,9 +4165,32 @@ getPreviewBackground(bg) {
     this._bgDragStartY = null;
   },
 
+  shouldHandleCanvasBackgroundTouch() {
+    return !!(
+      this.data.activePanel === 'background' &&
+      this.data.previewBackgroundImage &&
+      this.data.useCanvasPreview
+    );
+  },
+
+  onCanvasBackgroundTouchStart(e) {
+    if (!this.shouldHandleCanvasBackgroundTouch()) return;
+    this.onBgTouchStart(e);
+  },
+
+  onCanvasBackgroundTouchMove(e) {
+    if (!this.shouldHandleCanvasBackgroundTouch()) return;
+    this.onBgTouchMove(e);
+  },
+
+  onCanvasBackgroundTouchEnd(e) {
+    if (!this.shouldHandleCanvasBackgroundTouch()) return;
+    this.onBgTouchEnd(e);
+  },
+
   changeBackgroundScale(e) {
     const value = Number(e.detail && e.detail.value);
-    const scale = Math.max(0.2, Math.min(value || 1, 3));
+    const scale = Math.max(0.2, Math.min(value || 1, 1));
     const design = clone(this.data.design);
     if (!design.background || design.background.type !== 'image') return;
     design.background.scale = scale;
@@ -4288,7 +4442,10 @@ getPreviewBackground(bg) {
   },
 
   saveDraft(options) {
-    const saved = cardStorage.saveDraft(clone(this.data.design));
+    const design = clone(this.data.design);
+    design.id = design.id || this._currentDraftId || '';
+    const saved = cardStorage.saveDraft(design);
+    this._currentDraftId = saved.id;
     this.setData({ 'design.id': saved.id, draftListCount: cardStorage.getDraftCount() });
     if (!options || !options.silent) {
       wx.showToast({ title: '已保存草稿', icon: 'success' });
@@ -4328,7 +4485,15 @@ getPreviewBackground(bg) {
     wx.showLoading({ title: '生成图片中...' });
     try {
       // scale=1.5 足够清晰（原 scale=2 会产出 4x 像素，较慢）
-      const imagePath = await renderer.exportPoster(this, '#exportCanvas', exportDesign, { scale: 1.5 });
+      const shouldCropToBackground = !!(
+        exportDesign.background &&
+        exportDesign.background.type === 'image' &&
+        exportDesign.background.src
+      );
+      const imagePath = await renderer.exportPoster(this, '#exportCanvas', exportDesign, {
+        scale: 1.5,
+        cropToBackgroundImage: shouldCropToBackground
+      });
       wx.hideLoading();
       this.saveImageToAlbum(imagePath);
     } catch (e) {

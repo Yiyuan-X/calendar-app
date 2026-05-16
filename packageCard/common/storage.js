@@ -36,13 +36,20 @@ function saveDraft(design) {
   const list = getDrafts();
   const now = Date.now();
   const safeDesign = sanitizeDesign(design || {});
+  const signature = getDraftSignature(safeDesign);
+  const existingBySignature = !design.id
+    ? list.find(draft => (draft.signature || getDraftSignature(draft.design)) === signature)
+    : null;
+  const id = design.id || (existingBySignature && existingBySignature.id) || createId('draft');
+  safeDesign.id = id;
   const item = {
-    id: design.id || createId('draft'),
+    id,
     name: getDraftName(safeDesign),
     templateId: safeDesign.templateId || safeDesign.id || '',
     design: safeDesign,
+    signature,
     updatedAt: now,
-    createdAt: design.createdAt || now
+    createdAt: (existingBySignature && existingBySignature.createdAt) || design.createdAt || now
   };
   const index = list.findIndex(draft => draft.id === item.id);
   if (index >= 0) {
@@ -82,10 +89,27 @@ function isLocalImage(src) {
   return value.indexOf('wxfile://') === 0 || value.indexOf('http://tmp') === 0 || value.indexOf('file://') === 0;
 }
 
+function isPersistentLocalImage(image) {
+  return !!(image && image.persistent && image.src && String(image.src).indexOf('http://tmp') !== 0);
+}
+
 function sanitizeImageConfig(image) {
   if (!image) return null;
-  if (isLocalImage(image.src)) return null;
+  if (isLocalImage(image.src) && !isPersistentLocalImage(image)) return null;
   return { ...image };
+}
+
+function getDraftSignature(design) {
+  const safe = sanitizeDesign({ ...(design || {}), id: '' });
+  return JSON.stringify({
+    templateId: safe.templateId || '',
+    styleId: safe.styleId || '',
+    size: safe.size || {},
+    background: safe.background || {},
+    blocks: safe.blocks || [],
+    decorations: safe.decorations || [],
+    qrcode: safe.qrcode || {}
+  });
 }
 
 function sanitizeDesign(design) {
@@ -133,7 +157,12 @@ function sanitizeDesign(design) {
     qrcode: sanitizeImageConfig(design.qrcode) || { visible: false, src: '' }
   };
 
-  if (result.background && result.background.type === 'image' && isLocalImage(result.background.src)) {
+  if (
+    result.background &&
+    result.background.type === 'image' &&
+    isLocalImage(result.background.src) &&
+    !isPersistentLocalImage(result.background)
+  ) {
     result.background = {
       type: 'solid',
       color: '#F7F1EA',

@@ -11,6 +11,14 @@
         ></image>
         <view class="bg-drag-hint">☝ 可拖动调整背景位置</view>
       </view>
+      <view class="bg-image-container realtime-bg-preview" wx:if="{{previewBackgroundImage && useCanvasPreview && realtimeBackgroundPreview}}">
+        <image
+          class="stage-bg-image"
+          src="{{previewBackgroundImage}}"
+          mode="aspectFit"
+          style="width: {{bgDisplayWidth}}rpx; height: {{bgDisplayHeight}}rpx; transform: translate(-50%, -50%) translate({{bgOffsetX}}rpx, {{bgOffsetY}}rpx);"
+        ></image>
+      </view>
       <view
         class="bg-canvas-touch"
         wx:if="{{previewBackgroundImage && useCanvasPreview && activePanel === 'background'}}"
@@ -22,7 +30,13 @@
       </view>
       <view class="cross-guide" wx:if="{{previewBackgroundImage && !useCanvasPreview}}"></view>
       <view wx:if="{{!useCanvasPreview}}" class="stage-mask {{design.background.blur ? 'blur' : ''}}" style="{{previewBlurStyle}}"></view>
-      <movable-area class="movable-area" style="width: {{previewStageWidth}}rpx; height: {{previewStageHeight}}rpx;">
+      <movable-area
+        class="movable-area"
+        style="width: {{previewStageWidth}}rpx; height: {{previewStageHeight}}rpx;"
+        bindtouchstart="onCanvasBackgroundTouchStart"
+        bindtouchmove="onCanvasBackgroundTouchMove"
+        bindtouchend="onCanvasBackgroundTouchEnd"
+      >
         <view
           wx:for="{{design.blocks}}"
           wx:key="id"
@@ -45,7 +59,7 @@
           catchtouchend="onTextBlockTouchEnd"
         >
           <!-- 始终使用 canvas 渲染导出效果（与最终图片一致） -->
-          <rich-text wx:if="{{!useCanvasPreview}}" class="block-rich-text" node="{{nodeVersion}}" nodes="{{item.previewNodes}}"></rich-text>
+          <rich-text wx:if="{{!useCanvasPreview || liveTextBlockId === item.id || realtimePreviewBlockId === item.id}}" class="block-rich-text" node="{{nodeVersion}}" nodes="{{item.previewNodes}}"></rich-text>
           <view wx:if="{{!activePlainText}}" class="placeholder-text">{{item.placeholder || '输入文字...'}}</view>
 
           <!-- 编辑模式：textarea 在底层接收输入，rich-text 覆盖显示预览 -->
@@ -211,7 +225,7 @@
         </view>
         <view wx:if="{{previewBackgroundImage}}" class="bg-scale-row">
           <text class="bg-scale-label">背景比例</text>
-          <slider class="slider neon bg-scale-slider" min="0.2" max="3" step="0.02" value="{{bgScale || 1}}" bindchanging="changeBackgroundScale" bindchange="changeBackgroundScale" activeColor="#DAA520" backgroundColor="#E8DCCB"></slider>
+          <slider class="slider neon bg-scale-slider" min="0.2" max="1" step="0.02" value="{{bgScale || 1}}" bindchanging="changeBackgroundScale" bindchange="changeBackgroundScale" activeColor="#DAA520" backgroundColor="#E8DCCB"></slider>
         </view>
         <view class="size-row">
           <view
@@ -269,7 +283,7 @@
       <view wx:elif="{{activePanel === 'font'}}" bindtouchstart="keepInlineEditing">
         <scroll-view class="font-scroll" scroll-y enhanced show-scrollbar="{{false}}">
           <view class="font-row">
-            <button
+            <view
               class="font-btn {{activeFontId === item.id ? 'active' : ''}}"
               wx:for="{{fonts}}"
               wx:key="id"
@@ -278,7 +292,7 @@
             >
               <text class="font-btn-name">{{item.name}}</text>
               <text class="font-btn-mood">{{item.mood || item.scene || ''}}</text>
-            </button>
+            </view>
           </view>
         </scroll-view>
       </view>

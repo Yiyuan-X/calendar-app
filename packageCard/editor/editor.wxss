@@ -51,8 +51,8 @@
 
 .stage-bg-image {
   position: absolute;
-  left: 0;
-  top: 0;
+  left: 50%;
+  top: 50%;
   width: 100%;
   height: 100%;
   z-index: 0;
@@ -72,7 +72,12 @@
 }
 
 .poster-stage.bg-editing .bg-image-container {
-  z-index: 3;
+  z-index: 2;
+}
+
+.realtime-bg-preview {
+  z-index: 2;
+  pointer-events: none;
 }
 
 .bg-canvas-touch {
@@ -82,6 +87,10 @@
   right: 0;
   bottom: 0;
   z-index: 3;
+}
+
+.poster-stage.bg-editing .bg-canvas-touch {
+  z-index: 2;
 }
 
 /* 背景编辑模式下：文字框仍可正常交互，不再禁用 pointer-events */
@@ -175,11 +184,12 @@
 .text-block-wrapper {
   position: absolute;
   box-sizing: border-box;
+  z-index: 12;
 }
 
 /* 调整大小手柄覆盖层（在 movable-area 上层，独立于文字框） */
 .resize-handles-overlay {
-  z-index: 15;
+  z-index: 11;
   pointer-events: auto;
 }
 
@@ -434,12 +444,15 @@
 }
 
 .block-rich-text {
+  position: relative;
+  z-index: 6;
+  pointer-events: none;
   display: block;
   width: 100%;
   height: 100%;
   white-space: pre-wrap;
-  word-break: break-all;
-  overflow-wrap: anywhere;
+  word-break: normal;
+  overflow-wrap: normal;
 }
 
 .stage-editor {
@@ -563,8 +576,8 @@
   line-height: inherit;
   text-align: inherit;
   white-space: pre-wrap;
-  word-break: break-all;
-  overflow-wrap: anywhere;
+  word-break: normal;
+  overflow-wrap: normal;
 }
 
 .selection-segment {
@@ -799,7 +812,6 @@
 
 .text-block.editing .block-control,
 .text-block.editing .resize-handle,
-.text-block.editing .block-rich-text,
 .text-block.editing .placeholder-text {
   display: none;
 }
@@ -1196,15 +1208,17 @@
 }
 
 .font-btn {
+  width: 100%;
   min-width: 0;
   height: 74rpx;
-  padding: 0;
+  padding: 0 8rpx;
   margin: 0;
   border-radius: 10rpx;
   color: #6D5138;
   background: #F7F0E7;
   border: 2rpx solid rgba(139, 105, 20, 0.10);
   box-shadow: 0 3rpx 10rpx rgba(109, 79, 48, 0.05);
+  font-family: PingFang SC, Noto Sans SC, sans-serif !important;
   font-size: 24rpx;
   font-weight: 700;
   letter-spacing: 0;
@@ -1215,9 +1229,15 @@
   flex-direction: column;
   align-items: center;
   justify-content: center;
+  justify-self: stretch;
   text-align: center;
+  vertical-align: top;
   /* 重置 button 默认样式干扰 */
   overflow: hidden;
+}
+
+.font-btn text {
+  font-family: PingFang SC, Noto Sans SC, sans-serif !important;
 }
 
 .font-btn::after {
@@ -1233,24 +1253,29 @@
 
 .font-btn-name {
   display: block;
+  width: 100%;
   font-size: 25rpx;
   font-weight: 800;
-  line-height: 1.2;
+  line-height: 30rpx;
   text-align: center;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 
 .font-btn-mood {
   display: block;
+  width: 100%;
   max-width: 100%;
   color: #A08365;
   font-size: 17rpx;
   font-weight: 500;
-  line-height: 1.3;
+  line-height: 22rpx;
+  margin-top: 2rpx;
+  text-align: center;
+  white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
-  white-space: nowrap;
-  text-align: center;
-  margin-top: 4rpx;
 }
 
 .font-btn.active .font-btn-mood {

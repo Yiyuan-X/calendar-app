@@ -8,6 +8,16 @@ const PREVIEW_STAGE_HEIGHT_RPX = Math.round(1000 * PREVIEW_STAGE_RPX / 750);
 const imagePathCache = {};
 const fontLoadCache = {};
 
+function getPreviewStageSize(width, height) {
+  const sourceWidth = Math.max(Number(width || 750), 1);
+  const sourceHeight = Math.max(Number(height || 1000), 1);
+  const scale = Math.min(PREVIEW_STAGE_RPX / sourceWidth, PREVIEW_STAGE_HEIGHT_RPX / sourceHeight);
+  return {
+    width: Math.max(1, Math.round(sourceWidth * scale)),
+    height: Math.max(1, Math.round(sourceHeight * scale))
+  };
+}
+
 function getDpr(exportScale) {
   // 导出分辨率：限制最大 1.5x，避免超大 canvas 导致生成缓慢
   // scale=2 的旧行为会产出 4x 像素（dpr=2 × destWidth=2x），现优化为 2.25x
@@ -259,6 +269,30 @@ function measureChar(ctx, ch, letterSpacing) {
   return ctx.measureText(ch).width + (letterSpacing || 0);
 }
 
+function splitTextForLineWrap(text) {
+  const value = String(text || '');
+  const tokens = [];
+  const wordRe = /[A-Za-z0-9]+(?:[A-Za-z0-9_'’.\-:/@#%&+=]*[A-Za-z0-9])?[\)\]\}",.!?:;，。！？；：、]*/g;
+  let index = 0;
+  let match;
+  while ((match = wordRe.exec(value)) !== null) {
+    if (match.index > index) {
+      value.slice(index, match.index).split('').forEach(ch => tokens.push(ch));
+    }
+    tokens.push(match[0]);
+    index = match.index + match[0].length;
+  }
+  if (index < value.length) {
+    value.slice(index).split('').forEach(ch => tokens.push(ch));
+  }
+  return tokens.filter(Boolean);
+}
+
+function measureToken(ctx, token, letterSpacing) {
+  const text = String(token || '');
+  return ctx.measureText(text).width + Math.max(Number(letterSpacing || 0), 0) * Math.max(text.length - 1, 0);
+}
+
 function layoutText(ctx, block, design) {
   const runs = splitRuns(normalizeOps(block.delta));
   const lines = [];
@@ -281,32 +315,30 @@ function layoutText(ctx, block, design) {
       flush();
       return;
     }
-    const text = run.text || '';
-    for (let i = 0; i < text.length; i++) {
-      const ch = text[i];
+    splitTextForLineWrap(run.text || '').forEach(token => {
       const style = {
         fontFamily: block.fontFamily,
         fontUrl: block.fontUrl,
         ...(run.style || {})
       };
       ctx.font = pickFont(style, design);
-      const chWidth = measureChar(ctx, ch, Number(style.letterSpacing || blockLetterSpacing));
-      if (width + chWidth > maxWidth && line.length) {
+      const tokenWidth = measureToken(ctx, token, Number(style.letterSpacing || blockLetterSpacing));
+      if (width + tokenWidth > maxWidth && line.length) {
         // 禁止标点符号出现在行首：将标点挤到上一行末尾
-        if (PROHIBIT_LINE_START.test(ch)) {
-          line.push({ text: ch, style, width: chWidth });
-          width += chWidth;
+        if (PROHIBIT_LINE_START.test(token)) {
+          line.push({ text: token, style, width: tokenWidth });
+          width += tokenWidth;
           flush();
         } else {
           flush();
-          line.push({ text: ch, style, width: chWidth });
-          width += chWidth;
+          line.push({ text: token, style, width: tokenWidth });
+          width += tokenWidth;
         }
       } else {
-        line.push({ text: ch, style, width: chWidth });
-        width += chWidth;
+        line.push({ text: token, style, width: tokenWidth });
+        width += tokenWidth;
       }
-    }
+    });
   });
 
   if (line.length || !lines.length) flush();
@@ -367,7 +399,7 @@ function drawTextBlock(ctx, block, design) {
       const opacity = Number(style.opacity || 1);
       ctx.font = pickFont(style, design);
       ctx.textBaseline = 'top';
-      const textWidth = ctx.measureText(run.text).width;
+      const textWidth = Math.max(Number(run.width || 0), ctx.measureText(run.text).width);
       ctx.save();
       ctx.globalAlpha = Math.max(0.05, Math.min(opacity, 1));
 
@@ -499,13 +531,15 @@ function getBackgroundImageRect(bg, width, height) {
   if (!sourceWidth || !sourceHeight) {
     return { x: 0, y: 0, width, height };
   }
-  const imageScale = Math.max(0.2, Math.min(Number(bg.scale || 1), 5));
-  const scale = Math.max(width / sourceWidth, height / sourceHeight) * imageScale;
+  const imageScale = Math.max(0.2, Math.min(Number(bg.scale || 1), 1));
+  const scale = Math.min(width / sourceWidth, height / sourceHeight) * imageScale;
   const drawWidth = sourceWidth * scale;
   const drawHeight = sourceHeight * scale;
-  const offsetX = Number(bg.offsetX || 0) * width / PREVIEW_STAGE_RPX;
-  const previewHeight = Math.max(1, Math.round(PREVIEW_STAGE_RPX * height / width));
-  const offsetY = Number(bg.offsetY || 0) * height / previewHeight;
+  const maxOffsetX = Math.max(0, (width - drawWidth) / 2);
+  const maxOffsetY = Math.max(0, (height - drawHeight) / 2);
+  const previewStage = getPreviewStageSize(width, height);
+  const offsetX = Math.max(-maxOffsetX, Math.min(maxOffsetX, Number(bg.offsetX || 0) * width / previewStage.width));
+  const offsetY = Math.max(-maxOffsetY, Math.min(maxOffsetY, Number(bg.offsetY || 0) * height / previewStage.height));
   const x = (width - drawWidth) / 2 + offsetX;
   const y = (height - drawHeight) / 2 + offsetY;
   const cropX = Math.max(0, x);
@@ -531,13 +565,15 @@ async function drawBackground(canvas, ctx, design, width, height) {
       if (!image) throw new Error('background image load failed');
       const sourceWidth = Number(bg.bgWidth || image.width || width);
       const sourceHeight = Number(bg.bgHeight || image.height || height);
-      const imageScale = Math.max(0.2, Math.min(Number(bg.scale || 1), 5));
-      const scale = Math.max(width / sourceWidth, height / sourceHeight) * imageScale;
+      const imageScale = Math.max(0.2, Math.min(Number(bg.scale || 1), 1));
+      const scale = Math.min(width / sourceWidth, height / sourceHeight) * imageScale;
       const drawWidth = sourceWidth * scale;
       const drawHeight = sourceHeight * scale;
-      const offsetX = Number(bg.offsetX || 0) * width / PREVIEW_STAGE_RPX;
-      const previewHeight = Math.max(1, Math.round(PREVIEW_STAGE_RPX * height / width));
-      const offsetY = Number(bg.offsetY || 0) * height / previewHeight;
+      const maxOffsetX = Math.max(0, (width - drawWidth) / 2);
+      const maxOffsetY = Math.max(0, (height - drawHeight) / 2);
+      const previewStage = getPreviewStageSize(width, height);
+      const offsetX = Math.max(-maxOffsetX, Math.min(maxOffsetX, Number(bg.offsetX || 0) * width / previewStage.width));
+      const offsetY = Math.max(-maxOffsetY, Math.min(maxOffsetY, Number(bg.offsetY || 0) * height / previewStage.height));
       const drawX = (width - drawWidth) / 2 + offsetX;
       const drawY = (height - drawHeight) / 2 + offsetY;
       ctx.drawImage(image, drawX, drawY, drawWidth, drawHeight);
@@ -700,7 +736,9 @@ async function drawPosterToCanvas(page, selector, sourceDesign, options) {
   drawDecorations(ctx, design.decorations);
   await drawImageLayer(node, ctx, design.avatar);
   await drawImageLayer(node, ctx, design.overlayImage);
+  const hiddenBlockIds = new Set((options && options.hiddenBlockIds) || []);
   (design.blocks || []).forEach(block => {
+    if (hiddenBlockIds.has(block.id)) return;
     if (block.type === 'text') drawTextBlock(ctx, block, design);
   });
   await drawImageLayer(node, ctx, design.qrcode);
