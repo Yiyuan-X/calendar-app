@@ -25,7 +25,6 @@ Page({
     categories: [
       { key: 'birthday', name: '生日', icon: 'cake' },
       { key: 'anniversary', name: '纪念日', icon: 'heart' },
-      { key: 'salary', name: '发工资', icon: 'coin' },
       { key: 'custom', name: '自定义', icon: 'star' }
     ],
     canSave: false,

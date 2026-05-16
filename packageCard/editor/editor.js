@@ -4,17 +4,24 @@ const renderer = require('../common/renderer');
 
 const PREVIEW_STAGE_RPX = 680;
 const PREVIEW_SCALE = PREVIEW_STAGE_RPX / 750;
-const PREVIEW_STAGE_HEIGHT_RPX = 920;
+const PREVIEW_STAGE_HEIGHT_RPX = Math.round(1000 * PREVIEW_SCALE);
+const CANVAS_SIZE_OPTIONS = [
+  { id: 'portrait', name: '竖版', width: 750, height: 1000 },
+  { id: 'square', name: '方形', width: 1000, height: 1000 },
+  { id: 'landscape', name: '横版', width: 1000, height: 750 },
+  { id: 'image', name: '跟随图片', width: 0, height: 0 }
+];
 const VERTICAL_WIDTH_THRESHOLD = 160;
 const MIN_TEXT_BOX_WIDTH = 60;
 const MAX_TEXT_BOX_WIDTH = PREVIEW_STAGE_RPX;   // 可拉到画布最大宽度
 const MIN_TEXT_BOX_HEIGHT = 50;
 const MAX_TEXT_BOX_HEIGHT = PREVIEW_STAGE_HEIGHT_RPX - 40;  // 保留底部边距，不超出画页
-const DEFAULT_TEXT_BOX_WIDTH = 380;
-const DEFAULT_TEXT_BOX_HEIGHT = 120;
-const DEFAULT_TEXT_BOX_Y = 330;
+const DEFAULT_TEXT_BOX_WIDTH = 420;
+const DEFAULT_TEXT_BOX_HEIGHT = 140;
+const DEFAULT_TEXT_BOX_Y = 280;
 const FONT_CDN = 'https://cdn.jsdelivr.net/fontsource/fonts';
 const EMPTY_TEXT_PLACEHOLDER = '输入文字...';
+const SELECTION_HIGHLIGHT_COLOR = 'rgba(255, 211, 78, 0.56)';
 const FONT_USAGE_KEY = 'card_tool_font_usage';
 const FONT_CATALOG = [
   { id: 'system', name: '系统', family: 'PingFang SC', previewFamily: 'PingFang SC' },
@@ -34,6 +41,20 @@ const FONT_CATALOG = [
   { id: 'lishu', name: '隶书', family: 'STLiti, LiSu, serif', previewFamily: 'STLiti, LiSu, serif' },
   { id: 'yuanti', name: '圆体', family: 'Yuanti SC, YouYuan, sans-serif', previewFamily: 'Yuanti SC, YouYuan, sans-serif' },
   { id: 'mingcho', name: '思源宋体', family: 'CardNotoSerifSC', previewFamily: 'CardNotoSerifSC, serif', fontUrl: `${FONT_CDN}/noto-serif-sc@latest/chinese-simplified-400-normal.woff2` },
+  { id: 'hanyi-hongyikai', name: '华康弘一楷书', family: '"DFHongYiKaiShu", "华康弘一楷书", "STKaiti", serif', previewFamily: '"DFHongYiKaiShu", "华康弘一楷书", "STKaiti", serif' },
+  { id: 'han-shaojie-hongyi-haier', name: '韩绍杰弘一法师孩儿体', family: '"HanShaoJieHongYiHaiEr", "韩绍杰弘一法师孩儿体", "STKaiti", cursive', previewFamily: '"HanShaoJieHongYiHaiEr", "韩绍杰弘一法师孩儿体", "STKaiti", cursive' },
+  { id: 'fz-taishan-jingangjing-lishu', name: '方正泰山金刚经隶书', family: '"FZTaiShanJinGangJingLiShu", "方正泰山金刚经隶书", "STLiti", serif', previewFamily: '"FZTaiShanJinGangJingLiShu", "方正泰山金刚经隶书", "STLiti", serif' },
+  { id: 'yixin-bore-song', name: '壹心般若宋', family: '"YiXinBanRuoSong", "壹心般若宋", "Songti SC", serif', previewFamily: '"YiXinBanRuoSong", "壹心般若宋", "Songti SC", serif' },
+  { id: 'bore-dakai', name: '般若大楷', family: '"BanRuoDaKai", "般若大楷", "Kaiti SC", serif', previewFamily: '"BanRuoDaKai", "般若大楷", "Kaiti SC", serif' },
+  { id: 'zhendian-kaizong-shengdian', name: '真典楷宗圣典楷书', family: '"ZhenDianKaiZongShengDian", "真典楷宗圣典楷书", "Kaiti SC", serif', previewFamily: '"ZhenDianKaiZongShengDian", "真典楷宗圣典楷书", "Kaiti SC", serif' },
+  { id: 'fz-badashanren-xingkai', name: '方正八大山人行楷', family: '"FZBaDaShanRenXingKai", "方正八大山人行楷", "STXingkai", cursive', previewFamily: '"FZBaDaShanRenXingKai", "方正八大山人行楷", "STXingkai", cursive' },
+  { id: 'hanyi-xianer', name: '汉仪弦二体', family: '"HYXianErTi", "汉仪弦二体", "PingFang SC", sans-serif', previewFamily: '"HYXianErTi", "汉仪弦二体", "PingFang SC", sans-serif' },
+  { id: 'fz-zihui-fojun-xingshu', name: '方正字汇佛君行书', family: '"FZZiHuiFoJunXingShu", "方正字汇佛君行书", "STXingkai", cursive', previewFamily: '"FZZiHuiFoJunXingShu", "方正字汇佛君行书", "STXingkai", cursive' },
+  { id: 'zhaomengfu-xinjing', name: '赵孟頫心经字库', family: '"ZhaoMengFuXinJing", "赵孟頫心经字库", "STKaiti", serif', previewFamily: '"ZhaoMengFuXinJing", "赵孟頫心经字库", "STKaiti", serif' },
+  { id: 'lanmo-runcheng-xingcao', name: '蓝墨润城行草', family: '"LanMoRunChengXingCao", "蓝墨润城行草", "STXingkai", cursive', previewFamily: '"LanMoRunChengXingCao", "蓝墨润城行草", "STXingkai", cursive' },
+  { id: 'shanhai-qingchan', name: '山海清禅', family: '"ShanHaiQingChan", "山海清禅", "Kaiti SC", serif', previewFamily: '"ShanHaiQingChan", "山海清禅", "Kaiti SC", serif' },
+  { id: 'ziyou-fuchen', name: '字由拂尘', family: '"ZiYouFuChen", "字由拂尘", "STXingkai", cursive', previewFamily: '"ZiYouFuChen", "字由拂尘", "STXingkai", cursive' },
+  { id: 'honglei-xingshu', name: '鸿雷行书简体', family: '"HongLeiXingShuJianTi", "鸿雷行书简体", "STXingkai", cursive', previewFamily: '"HongLeiXingShuJianTi", "鸿雷行书简体", "STXingkai", cursive' },
   { id: 'weibei', name: '魏碑', family: 'STWeibi, Weibei SC, serif', previewFamily: 'STWeibi, Weibei SC, serif' },
   { id: 'yaoti', name: '姚体', family: 'STYaoti, YaYuan, serif', previewFamily: 'STYaoti, YaYuan, serif' },
   { id: 'georgia', name: 'Georgia', family: 'Georgia, serif', previewFamily: 'Georgia, serif' },
@@ -221,15 +242,23 @@ function getBlockFontSize(block, fallback) {
   return parseInt(attrs.size || attrs.fontSize || fallback || 32, 10) || 32;
 }
 
-function getPreviewPxScale(design) {
+function getPreviewScales(design) {
   const designWidth = Number((design && design.size && design.size.width) || 750);
-  try {
-    const info = wx.getSystemInfoSync();
-    const stageWidthPx = (info.windowWidth || 375) * PREVIEW_STAGE_RPX / 750;
-    return stageWidthPx / designWidth;
-  } catch (e) {
-    return PREVIEW_SCALE / 2;
-  }
+  const designHeight = Number((design && design.size && design.size.height) || 1000);
+  const stage = getPreviewStageSize(design);
+  return {
+    x: stage.width / designWidth,
+    y: stage.height / designHeight
+  };
+}
+
+function getPreviewStageSize(design) {
+  const designWidth = Math.max(Number((design && design.size && design.size.width) || 750), 1);
+  const designHeight = Math.max(Number((design && design.size && design.size.height) || 1000), 1);
+  return {
+    width: PREVIEW_STAGE_RPX,
+    height: Math.max(1, Math.round(PREVIEW_STAGE_RPX * designHeight / designWidth))
+  };
 }
 
 function getCenteredBlockX(design, width) {
@@ -237,34 +266,51 @@ function getCenteredBlockX(design, width) {
   return Math.max(0, Math.round((canvasWidth - Number(width || DEFAULT_TEXT_BOX_WIDTH)) / 2));
 }
 
-function getBackgroundImageLayout(bg) {
+function getBackgroundImageLayout(bg, design) {
   const sourceWidth = Number((bg && bg.bgWidth) || 0);
   const sourceHeight = Number((bg && bg.bgHeight) || 0);
+  const stage = getPreviewStageSize(design);
   if (!sourceWidth || !sourceHeight) {
-    return { width: PREVIEW_STAGE_RPX, height: PREVIEW_STAGE_HEIGHT_RPX };
+    return { width: stage.width, height: stage.height };
   }
-  const scale = Math.min(PREVIEW_STAGE_RPX / sourceWidth, PREVIEW_STAGE_HEIGHT_RPX / sourceHeight);
+  const scale = Math.max(stage.width / sourceWidth, stage.height / sourceHeight);
   return {
     width: Math.max(1, Math.round(sourceWidth * scale)),
     height: Math.max(1, Math.round(sourceHeight * scale))
   };
 }
 
-function getBackgroundOffsetBounds(layout) {
-  const width = Number((layout && layout.width) || PREVIEW_STAGE_RPX);
-  const height = Number((layout && layout.height) || PREVIEW_STAGE_HEIGHT_RPX);
+function getBackgroundOffsetBounds(layout, design) {
+  const stage = getPreviewStageSize(design);
+  const width = Number((layout && layout.width) || stage.width);
+  const height = Number((layout && layout.height) || stage.height);
   return {
-    x: Math.max(PREVIEW_STAGE_RPX, Math.round((PREVIEW_STAGE_RPX + width) / 2)),
-    y: Math.max(PREVIEW_STAGE_HEIGHT_RPX, Math.round((PREVIEW_STAGE_HEIGHT_RPX + height) / 2))
+    x: Math.max(stage.width, Math.round((stage.width + width) / 2)),
+    y: Math.max(stage.height, Math.round((stage.height + height) / 2))
   };
 }
 
-function clampBackgroundOffset(x, y, layout) {
-  const bounds = getBackgroundOffsetBounds(layout);
+function clampBackgroundOffset(x, y, layout, design) {
+  const bounds = getBackgroundOffsetBounds(layout, design);
   return {
     x: Math.max(-bounds.x, Math.min(bounds.x, Math.round(Number(x || 0)))),
     y: Math.max(-bounds.y, Math.min(bounds.y, Math.round(Number(y || 0))))
   };
+}
+
+function normalizeAspectSize(width, height) {
+  const w = Math.max(Number(width || 0), 1);
+  const h = Math.max(Number(height || 0), 1);
+  if (w >= h) return { width: 1000, height: Math.max(1, Math.round(1000 * h / w)) };
+  return { width: Math.max(1, Math.round(1000 * w / h)), height: 1000 };
+}
+
+function detectCanvasSizeId(size) {
+  if (size && size.preset) return size.preset;
+  const width = Number((size && size.width) || 0);
+  const height = Number((size && size.height) || 0);
+  const fixed = CANVAS_SIZE_OPTIONS.find(item => item.width === width && item.height === height);
+  return fixed ? fixed.id : 'custom';
 }
 
 function getImageInfo(src) {
@@ -380,6 +426,58 @@ function applyAttrsToDeltaRange(delta, start, end, attrs) {
   return { ops };
 }
 
+/**
+ * 替换 delta 中指定范围的文本内容，保留原有格式属性
+ * @param {Object} delta - 原始 delta
+ * @param {number} start - 起始字符位置
+ * @param {number} end - 结束字符位置
+ * @param {string} newText - 新文本
+ * @returns {Object} 新 delta
+ */
+function replaceTextInDelta(delta, start, end, newText) {
+  const sourceOps = (delta && delta.ops && delta.ops.length) ? delta.ops : [{ insert: '', attributes: {} }];
+  const total = getDeltaLength(delta);
+  const range = normalizeRange(start, end, total);
+  if (range.start === range.end && !newText) return delta;
+
+  const ops = [];
+  let cursor = 0;
+  let inserted = false;
+  sourceOps.forEach(op => {
+    const text = String(op.insert || '');
+    const length = text.length;
+    const opStart = cursor;
+    const opEnd = cursor + length;
+    const baseAttrs = op.attributes || {};
+
+    if (opEnd <= range.start || opStart >= range.end) {
+      // 完全在选区外，原样保留
+      ops.push({ insert: text, attributes: baseAttrs });
+    } else {
+      // 与选区有交集：拆分为 前/中(替换)/后 三段
+      const localStart = Math.max(range.start - opStart, 0);
+      const localEnd = Math.min(range.end - opStart, length);
+      const before = text.slice(0, localStart);
+      const after = text.slice(localEnd);
+
+      if (before) ops.push({ insert: before, attributes: baseAttrs });
+      if (!inserted) {
+        ops.push({ insert: newText, attributes: baseAttrs });
+        inserted = true;
+      }
+      if (after) ops.push({ insert: after, attributes: baseAttrs });
+    }
+    cursor = opEnd;
+  });
+
+  // 如果选区超出所有 op 的范围（比如在末尾追加）
+  if (!inserted && newText) {
+    ops.push({ insert: newText, attributes: (sourceOps[sourceOps.length - 1] && sourceOps[sourceOps.length - 1].attributes) || {} });
+  }
+
+  return { ops };
+}
+
 function getAttrsAtOffset(delta, offset) {
   const ops = (delta && delta.ops) || [];
   let cursor = 0;
@@ -417,12 +515,14 @@ function getTextPanelState(block, fallback) {
 }
 
 function deltaToNodes(delta, block) {
+  const previewScale = block && block._previewScale ? block._previewScale : { x: PREVIEW_SCALE, y: PREVIEW_SCALE };
+  const textScale = previewScale.x || PREVIEW_SCALE;
   if (!deltaToText(delta).trim() && block.placeholder) {
     // placeholder 模式：从 delta attrs 中取实际字体大小，确保 slider 调整时同步变化
     const attrs = getFirstTextAttrs(block);
     const actualFontSize = parseInt(attrs.size || attrs.fontSize || block.placeholderSize || 30, 10) || 30;
     const placeholderFontFamily = block.fontFamily || attrs.fontFamily ? `font-family:${block.fontFamily || attrs.fontFamily}` : '';
-    const blockLetterSpacing = Math.round(Number(block.letterSpacing || 0) * PREVIEW_SCALE * 10) / 10;
+    const blockLetterSpacing = Math.round(Number(block.letterSpacing || 0) * textScale * 10) / 10;
     return [{
       name: 'div',
       attrs: { style: [`letter-spacing:${blockLetterSpacing}rpx`, placeholderFontFamily].filter(Boolean).join(';') },
@@ -430,7 +530,7 @@ function deltaToNodes(delta, block) {
         name: 'span',
         attrs: {
           style: [
-            `font-size:${Math.max(Math.round(actualFontSize * PREVIEW_SCALE), 12)}rpx`,
+            `font-size:${Math.max(Math.round(actualFontSize * textScale), 12)}rpx`,
             'color:rgba(68,55,43,0.72)',
             'background:rgba(255,248,235,0.82)',
             'padding:10rpx 18rpx',
@@ -446,14 +546,15 @@ function deltaToNodes(delta, block) {
 
   const ops = (delta && delta.ops) || [];
   const children = [];
-  const blockLetterSpacing = Math.round(Number(block.letterSpacing || 0) * PREVIEW_SCALE * 10) / 10;
-  const strokeWidth = Math.max(1, Math.round(Number(block.strokeWidth || 2) * PREVIEW_SCALE));
+  const blockLetterSpacing = Math.round(Number(block.letterSpacing || 0) * textScale * 10) / 10;
   const vertical = isVerticalTextBlock(block);
   ops.forEach(op => {
     const attrs = op.attributes || {};
+    const strokeEnabled = typeof attrs.stroke === 'boolean' ? attrs.stroke : !!block.stroke;
+    const shadowEnabled = typeof attrs.shadow === 'boolean' ? attrs.shadow : !!block.shadow;
     const parts = String(op.insert || '').split(/(\n)/);
-    const fontSize = Math.max(Math.round((parseInt(attrs.size || attrs.fontSize || 30, 10) || 30) * PREVIEW_SCALE), 12);
-    const letterSpacing = Math.round(Number(attrs.letterSpacing || block.letterSpacing || 0) * PREVIEW_SCALE * 10) / 10;
+    const fontSize = Math.max(Math.round((parseInt(attrs.size || attrs.fontSize || 30, 10) || 30) * textScale), 12);
+    const letterSpacing = Math.round(Number(attrs.letterSpacing || block.letterSpacing || 0) * textScale * 10) / 10;
     const style = [
       `font-size:${fontSize}rpx`,
       `color:${attrs.color || '#4B4038'}`,
@@ -464,8 +565,8 @@ function deltaToNodes(delta, block) {
       attrs.background ? `background:${attrs.background}` : '',
       attrs.backgroundColor ? `background:${attrs.backgroundColor}` : '',
       (attrs.fontFamily || block.fontFamily) ? `font-family:${attrs.fontFamily || block.fontFamily}` : '',
-      block.stroke ? `-webkit-text-stroke:${strokeWidth}rpx ${block.strokeColor || '#FFFFFF'}` : '',
-      block.shadow ? `text-shadow:0 ${Math.round(Number(block.shadowOffsetY || 4) * PREVIEW_SCALE)}rpx ${Math.round(Number(block.shadowBlur || 10) * PREVIEW_SCALE)}rpx ${block.shadowColor || 'rgba(72,48,26,0.24)'}` : ''
+      strokeEnabled ? `-webkit-text-stroke:${Math.max(1, Math.round(Number(attrs.strokeWidth || block.strokeWidth || 2) * textScale))}rpx ${attrs.strokeColor || block.strokeColor || '#FFFFFF'}` : '',
+      shadowEnabled ? `text-shadow:${Math.round(Number(attrs.shadowOffsetX || block.shadowOffsetX || 0) * textScale)}rpx ${Math.round(Number(attrs.shadowOffsetY || block.shadowOffsetY || 4) * textScale)}rpx ${Math.round(Number(attrs.shadowBlur || block.shadowBlur || 10) * textScale)}rpx ${attrs.shadowColor || block.shadowColor || 'rgba(72,48,26,0.24)'}` : ''
     ].filter(Boolean).join(';');
     parts.forEach(part => {
       if (!part) return;
@@ -488,31 +589,101 @@ function deltaToNodes(delta, block) {
   }];
 }
 
+function applyTemporarySelectionHighlight(delta, start, end) {
+  return applyAttrsToDeltaRange(
+    clone(delta || { ops: [] }),
+    start,
+    end,
+    { background: SELECTION_HIGHLIGHT_COLOR, backgroundColor: SELECTION_HIGHLIGHT_COLOR }
+  );
+}
+
+function textStyleFromAttrs(attrs, block, textScale, selected) {
+  const strokeEnabled = typeof attrs.stroke === 'boolean' ? attrs.stroke : !!block.stroke;
+  const shadowEnabled = typeof attrs.shadow === 'boolean' ? attrs.shadow : !!block.shadow;
+  const fontSize = Math.max(Math.round((parseInt(attrs.size || attrs.fontSize || 30, 10) || 30) * textScale), 12);
+  return [
+    `font-size:${fontSize}rpx`,
+    `color:${attrs.color || '#4B4038'}`,
+    `opacity:${attrs.opacity || 1}`,
+    attrs.bold ? 'font-weight:700' : '',
+    attrs.italic ? 'font-style:italic' : '',
+    attrs.underline ? 'text-decoration:underline' : '',
+    selected ? `background:${SELECTION_HIGHLIGHT_COLOR}` : (attrs.background ? `background:${attrs.background}` : ''),
+    !selected && attrs.backgroundColor ? `background:${attrs.backgroundColor}` : '',
+    (attrs.fontFamily || block.fontFamily) ? `font-family:${attrs.fontFamily || block.fontFamily}` : '',
+    strokeEnabled ? `-webkit-text-stroke:${Math.max(1, Math.round(Number(attrs.strokeWidth || block.strokeWidth || 2) * textScale))}rpx ${attrs.strokeColor || block.strokeColor || '#FFFFFF'}` : '',
+    shadowEnabled ? `text-shadow:${Math.round(Number(attrs.shadowOffsetX || block.shadowOffsetX || 0) * textScale)}rpx ${Math.round(Number(attrs.shadowOffsetY || block.shadowOffsetY || 4) * textScale)}rpx ${Math.round(Number(attrs.shadowBlur || block.shadowBlur || 10) * textScale)}rpx ${attrs.shadowColor || block.shadowColor || 'rgba(72,48,26,0.24)'}` : ''
+  ].filter(Boolean).join(';');
+}
+
+function deltaToSelectionFlowNodes(delta, block, start, end) {
+  const previewScale = block && block._previewScale ? block._previewScale : { x: PREVIEW_SCALE, y: PREVIEW_SCALE };
+  const textScale = previewScale.x || PREVIEW_SCALE;
+  const nodes = [];
+  let offset = 0;
+  let startInserted = false;
+  let endInserted = false;
+
+  function insertHandle(handle) {
+    nodes.push({ type: 'handle', handle });
+  }
+
+  ((delta && delta.ops) || []).forEach(op => {
+    const text = String(op.insert || '');
+    const attrs = op.attributes || {};
+    for (let i = 0; i < text.length; i++) {
+      if (!startInserted && offset === start) {
+        insertHandle('start');
+        startInserted = true;
+      }
+      if (!endInserted && offset === end) {
+        insertHandle('end');
+        endInserted = true;
+      }
+      const selected = offset >= start && offset < end;
+      const style = textStyleFromAttrs(attrs, block, textScale, selected);
+      const prev = nodes[nodes.length - 1];
+      if (prev && prev.type === 'text' && prev.style === style && prev.selected === selected) {
+        prev.text += text[i];
+      } else {
+        nodes.push({ type: 'text', text: text[i], style, selected });
+      }
+      offset += 1;
+    }
+  });
+  if (!startInserted) insertHandle('start');
+  if (!endInserted) insertHandle('end');
+  return nodes;
+}
+
 function hydrateDesign(design) {
   const copyDesign = clone(design);
-  const previewPxScale = getPreviewPxScale(copyDesign);
+  const previewScale = getPreviewScales(copyDesign);
+  const textScale = previewScale.x;
   copyDesign.blocks = (copyDesign.blocks || []).map(block => {
     const height = getBlockTextHeight(block);
     const attrs = getFirstTextAttrs(block);
     const fontFamily = block.fontFamily || attrs.fontFamily || '';
+    const previewBlock = { ...block, placeholder: block.placeholder || EMPTY_TEXT_PLACEHOLDER, _previewScale: previewScale };
     return {
       ...block,
       placeholder: block.placeholder || EMPTY_TEXT_PLACEHOLDER,
       height,
-      previewX: Math.round((block.x || 0) * previewPxScale),
-      previewY: Math.round((block.y || 0) * previewPxScale),
-      previewWidth: Math.round((block.width || 500) * PREVIEW_SCALE),
-      previewHeight: Math.round(height * PREVIEW_SCALE),
-      previewOverlayHeight: Math.round(height * PREVIEW_SCALE),
-      previewHeightStyle: `height:${Math.round(height * PREVIEW_SCALE)}rpx;`,
+      previewX: Math.round((block.x || 0) * previewScale.x),
+      previewY: Math.round((block.y || 0) * previewScale.y),
+      previewWidth: Math.round((block.width || 500) * previewScale.x),
+      previewHeight: Math.round(height * previewScale.y),
+      previewOverlayHeight: Math.round(height * previewScale.y),
+      previewHeightStyle: `height:${Math.round(height * previewScale.y)}rpx;`,
       // 编辑模式锁定高度：用 max(当前高度, 200rpx) 固定，防止 editor 渲染导致 movable-view 尺寸跳动
-      editingHeightStyle: `height:${Math.max(Math.round(height * PREVIEW_SCALE), 200)}rpx;`,
+      editingHeightStyle: `height:${Math.max(Math.round(height * previewScale.y), 200)}rpx;`,
       previewFontFamilyStyle: fontFamily ? `font-family:${fontFamily};` : '',
       previewTransformStyle: block.rotation ? `transform: rotate(${Number(block.rotation || 0)}deg);` : '',
       previewVerticalClass: isVerticalTextBlock(block) ? 'vertical' : '',
-      previewFontSizeStyle: `font-size:${Math.round(getBlockFontSize(block) * PREVIEW_SCALE)}rpx;`,
-      previewLetterSpacingStyle: `letter-spacing:${Math.round(Number(block.letterSpacing || 0) * PREVIEW_SCALE * 10) / 10}rpx;`,
-      previewNodes: deltaToNodes(block.delta, block),
+      previewFontSizeStyle: `font-size:${Math.round(getBlockFontSize(block) * textScale)}rpx;`,
+      previewLetterSpacingStyle: `letter-spacing:${Math.round(Number(block.letterSpacing || 0) * textScale * 10) / 10}rpx;`,
+      previewNodes: deltaToNodes(block.delta, previewBlock),
       plainText: deltaToText(block.delta)
     };
   });
@@ -553,12 +724,25 @@ Page({
     activeBlockId: '',
     activeBlock: {},
     activePlainText: '',
+    selectionModeActive: false,
+    selectionPreviewNodes: [],
+    selectionFlowNodes: [],
+    selectionRects: [],
+    selectionHandleStartX: 24,
+    selectionHandleEndX: 96,
+    selectionHandleStartY: 42,
+    selectionHandleEndY: 42,
+    caretVisible: false,
+    caretX: 0,
+    caretY: 0,
+    caretHeight: 36,
     inlineEditing: false,
     selectionStart: 0,
     selectionEnd: 0,
     activePanel: 'background',
     activeStyleTool: 'text',
     textInputFocus: false,
+    isIOS: false,
     formats: {},
     colors: getSortedColors(['#8B5A2B', '#A67C52', '#B8860B', '#CD853F', '#D2691E', '#DAA520', '#CC7722', '#BC6C25', '#A0522D', '#8B4513', '#704214', '#5C3317', '#3D3028', '#F7C7CE', '#FFB6A3', '#FF9A7A', '#FF867D', '#FF7F50', '#FF6347', '#FF5151', '#FF173D', '#E8A87C', '#C9915E', '#A77E50', '#FFFFFF', '#F4EEE6', '#C9AA84', '#8E7054', '#4B3428', '#17100D']),
     bgColors: ['#FFFFFF', '#FFF2C7', '#FFE4B5', '#FFDAB9', '#F7E1D7', '#E8D7C0', '#F5E6D3', '#E9D5BF', '#D4B896', '#C4A574', '#FFF0F0', '#FFD4D4', '#DDEEDB', '#E4F3D8', '#3D3028'],
@@ -576,6 +760,7 @@ Page({
     fontSize: 32,
     textOpacity: 1,
     shadowStrength: 0,
+    useCanvasPreview: true,
     previewBackground: '#F7F1EA',
     previewBackgroundImage: '',
     nodeVersion: 0,
@@ -583,6 +768,10 @@ Page({
     bgOffsetY: 0,
     bgDisplayWidth: PREVIEW_STAGE_RPX,
     bgDisplayHeight: PREVIEW_STAGE_HEIGHT_RPX,
+    previewStageWidth: PREVIEW_STAGE_RPX,
+    previewStageHeight: PREVIEW_STAGE_HEIGHT_RPX,
+    canvasSizeOptions: CANVAS_SIZE_OPTIONS,
+    activeCanvasSizeId: 'portrait',
     showColorPicker: false,
     showPasteTip: false,
     selectionHint: '',
@@ -626,11 +815,18 @@ Page({
   _applyHistorySnapshot(snapshot, activeId) {
     const hydrated = hydrateDesign(snapshot);
     const activeBlock = hydrated.blocks.find(item => item.id === activeId) || hydrated.blocks[0] || {};
+    const stage = getPreviewStageSize(hydrated);
+    const bgLayout = getBackgroundImageLayout(hydrated.background, hydrated);
     this.setData({
       design: hydrated,
       activeBlockId: activeBlock.id || '',
       activeBlock,
       activePlainText: deltaToText(activeBlock.delta),
+      selectionModeActive: false,
+      selectionPreviewNodes: [],
+      selectionFlowNodes: [],
+      selectionRects: [],
+      caretVisible: false,
       inlineEditing: false,
       selectionStart: 0,
       selectionEnd: 0,
@@ -642,9 +838,12 @@ Page({
       previewBlurStyle: this.getPreviewBlurStyle(hydrated.background),
       bgOffsetX: (hydrated.background && hydrated.background.offsetX) || 0,
       bgOffsetY: (hydrated.background && hydrated.background.offsetY) || 0,
-      bgDisplayWidth: getBackgroundImageLayout(hydrated.background).width,
-      bgDisplayHeight: getBackgroundImageLayout(hydrated.background).height
-    });
+      bgDisplayWidth: bgLayout.width,
+      bgDisplayHeight: bgLayout.height,
+      previewStageWidth: stage.width,
+      previewStageHeight: stage.height,
+      activeCanvasSizeId: detectCanvasSizeId(hydrated.size)
+    }, () => this.schedulePreviewRender(0));
   },
 
   /** 撤销：恢复到上一个状态 */
@@ -693,7 +892,31 @@ Page({
     });
   },
 
+  schedulePreviewRender(delay) {
+    if (!this.data.useCanvasPreview) return;
+    clearTimeout(this._previewRenderTimer);
+    this._previewRenderTimer = setTimeout(() => this.renderPreviewCanvas(), typeof delay === 'number' ? delay : 80);
+  },
+
+  async renderPreviewCanvas() {
+    if (!this.data.useCanvasPreview || !this.data.design) return;
+    try {
+      await renderer.drawPosterToCanvas(this, '#previewCanvas', this.data.design, {
+        scale: 1,
+        dpr: 1,
+        preloadFonts: false
+      });
+    } catch (e) {
+      console.warn('预览画布渲染失败', e);
+    }
+  },
+
   onLoad(query) {
+    try {
+      const info = wx.getSystemInfoSync();
+      const platform = String(info.platform || info.system || '').toLowerCase();
+      this.setData({ isIOS: platform.indexOf('ios') >= 0 });
+    } catch (e) {}
     this.setData({ fonts: getSortedFonts() });
     setTimeout(() => this.preloadVisibleFonts(), 120);
     let design;
@@ -709,9 +932,15 @@ Page({
     this.setDesign(design, (design.blocks && design.blocks[0] && design.blocks[0].id) || '');
   },
 
+  onReady() {
+    this.schedulePreviewRender(0);
+  },
+
   setDesign(design, activeId) {
     const hydrated = hydrateDesign(design);
     const activeBlock = hydrated.blocks.find(item => item.id === activeId) || hydrated.blocks[0] || {};
+    const stage = getPreviewStageSize(hydrated);
+    const bgLayout = getBackgroundImageLayout(hydrated.background, hydrated);
     const attrs = getFirstTextAttrs(activeBlock);
     if (attrs.fontUrl && attrs.fontFamily) {
       this.loadPreviewFont({ id: attrs.fontId || attrs.fontFamily, family: attrs.fontFamily, fontUrl: attrs.fontUrl });
@@ -722,9 +951,14 @@ Page({
       activeBlock,
       activePlainText: deltaToText(activeBlock.delta),
       inlineEditing: false,
+      selectionModeActive: false,
+      selectionPreviewNodes: [],
+      selectionFlowNodes: [],
+      selectionRects: [],
       selectionStart: 0,
       selectionEnd: 0,
       textInputFocus: false,
+      caretVisible: false,
       ...getTextPanelState(activeBlock, this.data),
       inputText: hydrated.inputText || this.data.inputText,
       previewBackground: this.getPreviewBackground(hydrated.background),
@@ -733,9 +967,12 @@ Page({
       previewBlurStyle: this.getPreviewBlurStyle(hydrated.background),
       bgOffsetX: (hydrated.background && hydrated.background.offsetX) || 0,
       bgOffsetY: (hydrated.background && hydrated.background.offsetY) || 0,
-      bgDisplayWidth: getBackgroundImageLayout(hydrated.background).width,
-      bgDisplayHeight: getBackgroundImageLayout(hydrated.background).height
-    });
+      bgDisplayWidth: bgLayout.width,
+      bgDisplayHeight: bgLayout.height,
+      previewStageWidth: stage.width,
+      previewStageHeight: stage.height,
+      activeCanvasSizeId: detectCanvasSizeId(hydrated.size)
+    }, () => this.schedulePreviewRender(0));
     this._saveHistory(hydrated);
   },
 
@@ -776,15 +1013,80 @@ getPreviewBackground(bg) {
     this.setData({ activeStyleTool: e.currentTarget.dataset.tool || 'text' });
   },
 
+  setCanvasSize(e) {
+    const id = (e.currentTarget && e.currentTarget.dataset && e.currentTarget.dataset.id) || 'portrait';
+    const option = CANVAS_SIZE_OPTIONS.find(item => item.id === id) || CANVAS_SIZE_OPTIONS[0];
+    const design = clone(this.data.design);
+    const oldSize = design.size || { width: 750, height: 1000 };
+    let nextSize;
+    if (id === 'image') {
+      const bg = design.background || {};
+      if (!bg.bgWidth || !bg.bgHeight) {
+        wx.showToast({ title: '请先选择背景图', icon: 'none' });
+        return;
+      }
+      nextSize = normalizeAspectSize(bg.bgWidth, bg.bgHeight);
+    } else {
+      nextSize = { width: option.width, height: option.height };
+    }
+    const oldWidth = Math.max(Number(oldSize.width || 750), 1);
+    const oldHeight = Math.max(Number(oldSize.height || 1000), 1);
+    const scaleX = nextSize.width / oldWidth;
+    const scaleY = nextSize.height / oldHeight;
+    design.size = { ...nextSize, preset: id };
+    design.blocks = (design.blocks || []).map(block => ({
+      ...block,
+      x: Math.round(Number(block.x || 0) * scaleX),
+      y: Math.round(Number(block.y || 0) * scaleY),
+      width: Math.max(MIN_TEXT_BOX_WIDTH, Math.round(Number(block.width || DEFAULT_TEXT_BOX_WIDTH) * scaleX)),
+      height: block.height ? Math.max(MIN_TEXT_BOX_HEIGHT, Math.round(Number(block.height || DEFAULT_TEXT_BOX_HEIGHT) * scaleY)) : block.height,
+      manualHeight: block.manualHeight ? Math.max(MIN_TEXT_BOX_HEIGHT, Math.round(Number(block.manualHeight || DEFAULT_TEXT_BOX_HEIGHT) * scaleY)) : block.manualHeight
+    }));
+    if (design.qrcode) {
+      design.qrcode = {
+        ...design.qrcode,
+        x: Math.round(Number(design.qrcode.x || 0) * scaleX),
+        y: Math.round(Number(design.qrcode.y || 0) * scaleY),
+        size: Math.max(40, Math.round(Number(design.qrcode.size || 110) * Math.min(scaleX, scaleY)))
+      };
+    }
+    design.decorations = (design.decorations || []).map(item => ({
+      ...item,
+      x: Math.round(Number(item.x || 0) * scaleX),
+      y: Math.round(Number(item.y || 0) * scaleY),
+      width: item.width ? Math.round(Number(item.width || 0) * scaleX) : item.width
+    }));
+    if (design.background) {
+      design.background.offsetX = 0;
+      design.background.offsetY = 0;
+    }
+    this.setDesign(design, this.data.activeBlockId);
+  },
+
   onActiveTextInput(e) {
+    this._manualTextSelection = null;
+    this.exitSelectionMode();
     this._typingHistoryStarted = true;
     const text = e.detail.value || '';
     const block = this.data.activeBlock || {};
     const firstAttrs = block.delta && block.delta.ops && block.delta.ops[0] ? (block.delta.ops[0].attributes || {}) : {};
+    // 输入时：直接用当前文字创建干净的单 op delta
+    // （格式由底部面板统一控制，不需要保留多 op 结构）
     const delta = { ops: [{ insert: text, attributes: firstAttrs }] };
     const cursor = typeof e.detail.cursor === 'number' ? e.detail.cursor : text.length;
-    this.setData({ activePlainText: text, inputText: text, selectionStart: cursor, selectionEnd: cursor, showPasteTip: false });
+    const newNodeVer = (this.data.nodeVersion || 0) + 1;
+    const caretState = this.getCaretState(cursor, text, { ...block, delta, _previewScale: getPreviewScales(this.data.design) });
+    this.setData({
+      activePlainText: text,
+      inputText: text,
+      selectionStart: cursor,
+      selectionEnd: cursor,
+      showPasteTip: false,
+      nodeVersion: newNodeVer,
+      ...caretState
+    });
     this.updateActiveBlock({ delta }, { silentEditor: true });
+    this.schedulePreviewRender(150); // 输入后延迟刷新 canvas 预览
   },
 
   onTextSelection(e) {
@@ -792,16 +1094,34 @@ getPreviewBackground(bg) {
     const start = typeof detail.selectionStart === 'number' ? detail.selectionStart : detail.cursor;
     const end = typeof detail.selectionEnd === 'number' ? detail.selectionEnd : detail.cursor;
     if (typeof start !== 'number') return;
+    const nextEnd = typeof end === 'number' ? end : start;
+    if (hasTextSelection(start, nextEnd)) {
+      this._manualTextSelection = { start, end: nextEnd };
+    }
     this.setData({
       selectionStart: start,
-      selectionEnd: typeof end === 'number' ? end : start,
-      selectionHint: hasTextSelection(start, typeof end === 'number' ? end : start) ? '已选中文字' : ''
+      selectionEnd: nextEnd,
+      selectionHint: hasTextSelection(start, nextEnd) ? '已选中文字' : this.data.selectionHint
     });
   },
 
   // textarea 获得焦点时：自动全选 + 弹出工具栏
   onTextareaFocus(e) {
     const text = this.data.activePlainText || '';
+    const pendingSelection = this._pendingTextareaSelection;
+    if (pendingSelection) {
+      this._pendingTextareaSelection = null;
+      setTimeout(() => {
+        this.setData({
+          textInputFocus: true,
+          showPasteTip: !!pendingSelection.showPasteTip,
+          selectionStart: pendingSelection.start,
+          selectionEnd: pendingSelection.end,
+          selectionHint: pendingSelection.hint || ''
+        });
+      }, 80);
+      return;
+    }
     // 延迟设置选区，等 textarea 完成聚焦
     setTimeout(() => {
       this.setData({
@@ -819,12 +1139,12 @@ getPreviewBackground(bg) {
       this._skipNextEditorTap = false;
       return;
     }
-    this.handleStageEditorDoubleTap();
+    this.openFormatMenu();
   },
 
   onStageEditorTouchEnd() {
     this._skipNextEditorTap = true;
-    this.handleStageEditorDoubleTap();
+    this.openFormatMenu();
   },
 
   showPasteTip() {
@@ -848,19 +1168,13 @@ getPreviewBackground(bg) {
   openFormatMenu() {
     clearTimeout(this._emptyFormatMenuTimer);
     this.setData({ showPasteTip: true, textInputFocus: true });
-    if (!(this.data.activePlainText || '').trim()) {
-      this._emptyFormatMenuTimer = setTimeout(() => {
-        if (this.data.inlineEditing && !(this.data.activePlainText || '').trim()) {
-          this.setData({ showPasteTip: false, selectionHint: '', textInputFocus: true });
-        }
-      }, 900);
-    }
   },
 
-  pasteClipboardToActiveText() {
+  pasteClipboardToActiveText(e) {
+    if (e && typeof e.stopPropagation === 'function') e.stopPropagation();
     if (this.shouldSkipFormatAction('paste')) return;
     this._ignoreNextEditorBlur = true;
-    this.setData({ textInputFocus: true });
+    this.setData({ textInputFocus: false });
     wx.getClipboardData({
       success: res => {
         const insertText = String((res && res.data) || '');
@@ -870,10 +1184,14 @@ getPreviewBackground(bg) {
         }
         this.replaceActiveTextSelection(insertText);
         this._saveHistory(this.data.design);
+        wx.showToast({ title: '已粘贴', icon: 'none', duration: 600 });
+        this.schedulePreviewRender(0); // 粘贴后立即刷新 canvas 预览
       },
       fail: () => wx.showToast({ title: '读取剪贴板失败，请用系统粘贴', icon: 'none' }),
       complete: () => {
-        setTimeout(() => this.setData({ textInputFocus: true }), 30);
+        setTimeout(() => {
+          this.setData({ textInputFocus: !this.data.isIOS });
+        }, 80);
       }
     });
   },
@@ -887,55 +1205,377 @@ getPreviewBackground(bg) {
     return false;
   },
 
+  getActiveTextSelectionRange(text) {
+    const current = String(text || '');
+    const max = current.length;
+    const manual = this._manualTextSelection;
+    if (manual && hasTextSelection(manual.start, manual.end)) {
+      const start = Math.max(0, Math.min(manual.start, manual.end, max));
+      const end = Math.max(start, Math.min(Math.max(manual.start, manual.end), max));
+      if (end > start) return { start, end, manual: true };
+    }
+    const rawStart = typeof this.data.selectionStart === 'number' ? this.data.selectionStart : max;
+    const rawEnd = typeof this.data.selectionEnd === 'number' ? this.data.selectionEnd : rawStart;
+    const start = Math.max(0, Math.min(rawStart, rawEnd, max));
+    const end = Math.max(start, Math.min(Math.max(rawStart, rawEnd), max));
+    return { start, end, manual: false };
+  },
+
+  hasActiveTextSelection() {
+    const range = this.getActiveTextSelectionRange(this.data.activePlainText || deltaToText(this.data.activeBlock && this.data.activeBlock.delta));
+    return hasTextSelection(range.start, range.end);
+  },
+
+  estimateSelectionCharWidth(ch, fontSize) {
+    if (!ch) return 0;
+    if (/[\u4e00-\u9fff\u3400-\u4dbf\uff00-\uffef]/.test(ch)) return fontSize;
+    if (/\s/.test(ch)) return fontSize * 0.34;
+    if (/[ilI.,:;!|]/.test(ch)) return fontSize * 0.32;
+    if (/[mwMW@#%&]/.test(ch)) return fontSize * 0.82;
+    return fontSize * 0.58;
+  },
+
+  getSelectionLayout(text, blockOverride) {
+    const block = blockOverride || this.data.activeBlock || {};
+    const width = Math.max(Number(block.previewWidth || Math.round(Number(block.width || DEFAULT_TEXT_BOX_WIDTH) * PREVIEW_SCALE)) || 0, 120);
+    const padX = 0;
+    const padY = 0;
+    const usable = Math.max(width - padX * 2, 40);
+    const fontSize = Math.max(Math.round(getBlockFontSize(block) * getPreviewScales(this.data.design).x), 12);
+    const lineHeight = Math.max(fontSize * Number(block.lineHeight || 1.6), fontSize + 6);
+    const align = block.align || 'left';
+    const value = String(text || '');
+    const lines = [];
+    let current = { chars: [], width: 0, startIndex: 0 };
+    for (let i = 0; i < value.length; i++) {
+      const ch = value[i];
+      if (ch === '\n') {
+        lines.push(current);
+        current = { chars: [], width: 0, startIndex: i + 1 };
+        continue;
+      }
+      const chWidth = Math.max(this.estimateSelectionCharWidth(ch, fontSize), 1);
+      if (current.chars.length && current.width + chWidth > usable) {
+        lines.push(current);
+        current = { chars: [], width: 0, startIndex: i };
+      }
+      current.chars.push({ index: i, width: chWidth });
+      current.width += chWidth;
+    }
+    if (current.chars.length || !lines.length || value.endsWith('\n')) lines.push(current);
+
+    const offsets = [];
+    lines.forEach((item, line) => {
+      let offsetX = padX;
+      if (align === 'center') offsetX = padX + Math.max((usable - item.width) / 2, 0);
+      if (align === 'right') offsetX = padX + Math.max(usable - item.width, 0);
+      let x = offsetX;
+      const y = padY + line * lineHeight;
+      offsets[item.startIndex] = { index: item.startIndex, x, y, line };
+      item.chars.forEach(ch => {
+        x += ch.width;
+        offsets[ch.index + 1] = { index: ch.index + 1, x, y, line };
+      });
+    });
+
+    return {
+      offsets,
+      lines,
+      padX,
+      usable,
+      fontSize,
+      lineHeight
+    };
+  },
+
+  getCaretState(cursor, text, blockOverride) {
+    const value = String(text || '');
+    const layout = this.getSelectionLayout(value, blockOverride);
+    const max = value.length;
+    const index = Math.max(0, Math.min(Number(cursor || 0), max));
+    let pos = layout.offsets[index];
+    if (!pos) {
+      for (let i = index; i >= 0; i--) {
+        if (layout.offsets[i]) {
+          pos = layout.offsets[i];
+          break;
+        }
+      }
+    }
+    pos = pos || layout.offsets[0] || { x: layout.padX || 0, y: 0, line: 0 };
+    const top = Math.round(Number(pos.y || 0) + Math.max((layout.lineHeight - layout.fontSize) / 2, 0));
+    const height = Math.max(Math.round(layout.fontSize + 8), 20);
+    return {
+      caretVisible: true,
+      caretX: Math.round(Number(pos.x || 0)),
+      caretY: top,
+      caretHeight: height
+    };
+  },
+
+  getSelectionHandlePositions(start, end, textLength, blockOverride) {
+    const text = String(this.data.activePlainText || '').slice(0, Math.max(Number(textLength || 0), 0));
+    const layout = this.getSelectionLayout(text, blockOverride);
+    const max = Math.max(text.length, 0);
+    const startIndex = Math.max(0, Math.min(start, max));
+    const endIndex = Math.max(0, Math.min(end, max));
+    const startPos = layout.offsets[startIndex] || layout.offsets[0];
+    const endPos = layout.offsets[endIndex] || layout.offsets[layout.offsets.length - 1] || startPos;
+    return {
+      startX: Math.round(startPos.x),
+      endX: Math.round(endPos.x),
+      startY: Math.round(startPos.y + layout.fontSize + 4),
+      endY: Math.round(endPos.y + layout.fontSize + 4),
+      startLine: startPos.line || 0,
+      endLine: endPos.line || 0
+    };
+  },
+
+  getSelectionRects(start, end, textLength, blockOverride) {
+    const text = String(this.data.activePlainText || '').slice(0, Math.max(Number(textLength || 0), 0));
+    const layout = this.getSelectionLayout(text, blockOverride);
+    const rangeStart = Math.max(0, Math.min(start, end, text.length));
+    const rangeEnd = Math.max(rangeStart + 1, Math.min(Math.max(start, end), text.length));
+    const rects = [];
+    const lines = {};
+    for (let i = rangeStart; i < rangeEnd; i++) {
+      const from = layout.offsets[i];
+      const to = layout.offsets[i + 1];
+      if (!from || !to) continue;
+      const line = from.line || 0;
+      if (!lines[line]) lines[line] = { left: from.x, right: to.x, y: from.y };
+      lines[line].left = Math.min(lines[line].left, from.x);
+      lines[line].right = Math.max(lines[line].right, to.x);
+      lines[line].y = from.y;
+    }
+    Object.keys(lines).forEach(key => {
+      const item = lines[key];
+      const left = Math.round(item.left);
+      const top = Math.round(item.y + Math.max((layout.lineHeight - layout.fontSize) / 2, 0));
+      const width = Math.max(Math.round(item.right - item.left), 4);
+      const height = Math.max(Math.round(layout.fontSize + 6), 18);
+      rects.push({
+        style: `left:${left}rpx;top:${top}rpx;width:${width}rpx;height:${height}rpx;`
+      });
+    });
+    return rects;
+  },
+
+  getSelectionIndexFromPoint(x, line) {
+    const text = this.data.activePlainText || '';
+    const layout = this.getSelectionLayout(text);
+    const targetLine = Math.max(0, Number(line || 0));
+    let best = layout.offsets[0] || { index: 0, x: layout.padX, line: 0 };
+    let bestDistance = Infinity;
+    layout.offsets.forEach(pos => {
+      if ((pos.line || 0) !== targetLine) return;
+      const distance = Math.abs(Number(pos.x || 0) - x);
+      if (distance < bestDistance) {
+        bestDistance = distance;
+        best = pos;
+      }
+    });
+    return Math.max(0, Math.min(best.index || 0, text.length));
+  },
+
+  getRpxPerPx() {
+    try {
+      return 750 / (wx.getSystemInfoSync().windowWidth || 750);
+    } catch (e) {
+      return 1;
+    }
+  },
+
+  enterSelectionMode(start, end, hint) {
+    const text = this.data.activePlainText || '';
+    if (!text) {
+      this.setData({ textInputFocus: true, showPasteTip: true, selectionHint: '' });
+      return;
+    }
+    const max = text.length;
+    const rangeStart = Math.max(0, Math.min(start, end, max));
+    const rangeEnd = Math.max(rangeStart + 1, Math.min(Math.max(start, end), max));
+    const block = this.data.activeBlock || {};
+    const highlightedDelta = applyTemporarySelectionHighlight(block.delta, rangeStart, rangeEnd);
+    const previewBlock = { ...block, _previewScale: getPreviewScales(this.data.design) };
+    const handles = this.getSelectionHandlePositions(rangeStart, rangeEnd, max, previewBlock);
+    const selectionRects = this.getSelectionRects(rangeStart, rangeEnd, max, previewBlock);
+    this._manualTextSelection = { start: rangeStart, end: rangeEnd };
+    this.setData({
+      textInputFocus: false,
+      selectionModeActive: true,
+      caretVisible: false,
+      selectionPreviewNodes: deltaToNodes(highlightedDelta, previewBlock),
+      selectionFlowNodes: deltaToSelectionFlowNodes(block.delta, previewBlock, rangeStart, rangeEnd),
+      selectionRects,
+      selectionHandleStartX: handles.startX,
+      selectionHandleEndX: handles.endX,
+      selectionHandleStartY: handles.startY,
+      selectionHandleEndY: handles.endY,
+      selectionStart: rangeStart,
+      selectionEnd: rangeEnd,
+      showPasteTip: true,
+      selectionHint: hint || `已选中 ${rangeEnd - rangeStart} 个字`
+    });
+  },
+
+  refreshSelectionPreview(delta, start, end, hint, blockPatch) {
+    const text = this.data.activePlainText || deltaToText(delta);
+    const max = text.length;
+    const rangeStart = Math.max(0, Math.min(start, end, max));
+    const rangeEnd = Math.max(rangeStart + 1, Math.min(Math.max(start, end), max));
+    const block = { ...(this.data.activeBlock || {}), ...(blockPatch || {}), delta };
+    const highlightedDelta = applyTemporarySelectionHighlight(delta, rangeStart, rangeEnd);
+    const previewBlock = { ...block, _previewScale: getPreviewScales(this.data.design) };
+    const handles = this.getSelectionHandlePositions(rangeStart, rangeEnd, max, previewBlock);
+    const selectionRects = this.getSelectionRects(rangeStart, rangeEnd, max, previewBlock);
+    this._manualTextSelection = { start: rangeStart, end: rangeEnd };
+    this.setData({
+      textInputFocus: false,
+      selectionModeActive: true,
+      caretVisible: false,
+      selectionPreviewNodes: deltaToNodes(highlightedDelta, previewBlock),
+      selectionFlowNodes: deltaToSelectionFlowNodes(delta, previewBlock, rangeStart, rangeEnd),
+      selectionRects,
+      selectionHandleStartX: handles.startX,
+      selectionHandleEndX: handles.endX,
+      selectionHandleStartY: handles.startY,
+      selectionHandleEndY: handles.endY,
+      selectionStart: rangeStart,
+      selectionEnd: rangeEnd,
+      showPasteTip: true,
+      selectionHint: hint || this.data.selectionHint || `已选中 ${rangeEnd - rangeStart} 个字`
+    });
+  },
+
+  exitSelectionMode() {
+    this._selectionDrag = null;
+    if (this.data.selectionModeActive || (this.data.selectionPreviewNodes || []).length || (this.data.selectionFlowNodes || []).length) {
+      this.setData({
+        selectionModeActive: false,
+        selectionPreviewNodes: [],
+        selectionFlowNodes: [],
+        selectionRects: [],
+        caretVisible: false
+      });
+    }
+  },
+
+  returnToTypingFromSelectionMode() {
+    const end = typeof this.data.selectionEnd === 'number' ? this.data.selectionEnd : (this.data.activePlainText || '').length;
+    this._manualTextSelection = null;
+    this.exitSelectionMode();
+    this.setData({
+      textInputFocus: true,
+      selectionStart: end,
+      selectionEnd: end,
+      showPasteTip: true,
+      selectionHint: '',
+      ...this.getCaretState(end, this.data.activePlainText || '', this.data.activeBlock || {})
+    });
+  },
+
+  onSelectionHandleStart(e) {
+    const handle = (e.currentTarget && e.currentTarget.dataset && e.currentTarget.dataset.handle) || 'end';
+    const touch = e.touches && e.touches[0];
+    if (!touch) return;
+    const block = this.data.activeBlock || {};
+    const width = Math.max(Number(block.previewWidth || Math.round(Number(block.width || DEFAULT_TEXT_BOX_WIDTH) * PREVIEW_SCALE)) || 0, 120);
+    const currentPos = this.getSelectionHandlePositions(
+      Number(this.data.selectionStart || 0),
+      Number(this.data.selectionEnd || 0),
+      (this.data.activePlainText || '').length
+    );
+    this._selectionDrag = {
+      handle,
+      startClientX: touch.clientX,
+      startIndex: handle === 'start' ? Number(this.data.selectionStart || 0) : Number(this.data.selectionEnd || 0),
+      line: handle === 'start' ? currentPos.startLine : currentPos.endLine,
+      width
+    };
+  },
+
+  onSelectionHandleMove(e) {
+    if (!this._selectionDrag) return;
+    const touch = e.touches && e.touches[0];
+    const text = this.data.activePlainText || '';
+    if (!touch || !text) return;
+    const drag = this._selectionDrag;
+    const currentPos = this.getSelectionHandlePositions(
+      Number(this.data.selectionStart || 0),
+      Number(this.data.selectionEnd || 0),
+      text.length
+    );
+    const baseX = drag.handle === 'start' ? currentPos.startX : currentPos.endX;
+    const dxRpx = (touch.clientX - drag.startClientX) * this.getRpxPerPx();
+    const index = this.getSelectionIndexFromPoint(baseX + dxRpx, drag.line);
+    let start = Number(this.data.selectionStart || 0);
+    let end = Number(this.data.selectionEnd || 0);
+    if (drag.handle === 'start') start = Math.min(index, end - 1);
+    else end = Math.max(index, start + 1);
+    this.enterSelectionMode(start, end, `已选中 ${Math.max(end - start, 0)} 个字`);
+    this._selectionDrag = { ...drag, startClientX: touch.clientX };
+  },
+
+  onSelectionHandleEnd() {
+    this._selectionDrag = null;
+  },
+
   replaceActiveTextSelection(insertText) {
     const current = this.data.activePlainText || '';
-    const rawStart = typeof this.data.selectionStart === 'number' ? this.data.selectionStart : current.length;
-    const rawEnd = typeof this.data.selectionEnd === 'number' ? this.data.selectionEnd : rawStart;
-    const start = Math.max(0, Math.min(rawStart, rawEnd, current.length));
-    const end = Math.max(start, Math.min(Math.max(rawStart, rawEnd), current.length));
+    const range = this.getActiveTextSelectionRange(current);
+    const start = range.start;
+    const end = range.end;
     const text = current.slice(0, start) + String(insertText || '') + current.slice(end);
-    const attrs = getAttrsAtOffset(this.data.activeBlock && this.data.activeBlock.delta, start) || getFirstTextAttrs(this.data.activeBlock || {});
     const cursor = start + String(insertText || '').length;
+
+    // 粘贴时：用完整文本创建干净的单 op delta，避免多 op 重叠
+    const block = this.data.activeBlock || {};
+    const firstAttrs = block.delta && block.delta.ops && block.delta.ops[0] ? (block.delta.ops[0].attributes || {}) : {};
+    const delta = { ops: [{ insert: text, attributes: firstAttrs }] };
+    const caretState = this.getCaretState(cursor, text, { ...block, delta, _previewScale: getPreviewScales(this.data.design) });
+
+    this._manualTextSelection = null;
+    this.exitSelectionMode();
+    const newNodeVer = (this.data.nodeVersion || 0) + 1;
     this.setData({
       activePlainText: text,
       inputText: text,
-      textInputFocus: true,
+      textInputFocus: false,
       selectionStart: cursor,
       selectionEnd: cursor,
       showPasteTip: true,
-      selectionHint: ''
+      selectionHint: '',
+      nodeVersion: newNodeVer,
+      ...caretState
     });
-    this.updateActiveBlock({ delta: { ops: [{ insert: text, attributes: attrs }] } }, { silentEditor: true });
+    this.updateActiveBlock({ delta }, { silentEditor: true });
     setTimeout(() => {
+      const nextBlock = { ...(this.data.activeBlock || {}), delta, _previewScale: getPreviewScales(this.data.design) };
       this.setData({
         activePlainText: text,
-        textInputFocus: true,
+        textInputFocus: !this.data.isIOS,
         selectionStart: cursor,
-        selectionEnd: cursor
-      });
+        selectionEnd: cursor,
+        ...this.getCaretState(cursor, text, nextBlock)
+      }, () => this.schedulePreviewRender(0));
     }, 30);
   },
 
-  selectAllActiveText() {
+  selectAllActiveText(e) {
+    if (e && typeof e.stopPropagation === 'function') e.stopPropagation();
     if (this.shouldSkipFormatAction('selectAll')) return;
     const text = this.data.activePlainText || '';
-    // 关键：先失焦再聚焦，让 selection 生效
-    this.setData({
-      textInputFocus: false,
-      showPasteTip: true,
-      selectionHint: text ? '已全选' : ''
-    });
-    // 延迟重新聚焦并设置选区
-    setTimeout(() => {
-      this.setData({
-        textInputFocus: true,
-        selectionStart: 0,
-        selectionEnd: text.length
-      });
-    }, 80);
+    if (!text) {
+      wx.showToast({ title: '没有可选择的文字', icon: 'none' });
+      return;
+    }
+    this.enterSelectionMode(0, text.length, `已选中全部 ${text.length} 个字`);
+    wx.showToast({ title: '已全选', icon: 'none', duration: 600 });
   },
 
-  selectCurrentLineText() {
+  selectCurrentLineText(e) {
+    if (e && typeof e.stopPropagation === 'function') e.stopPropagation();
     if (this.shouldSkipFormatAction('selectLine')) return;
     const text = this.data.activePlainText || '';
     if (!text) {
@@ -944,29 +1584,20 @@ getPreviewBackground(bg) {
         showPasteTip: true,
         selectionHint: ''
       });
+      wx.showToast({ title: '没有可选择的文字', icon: 'none' });
       return;
     }
     const rawCursor = typeof this.data.selectionEnd === 'number'
       ? this.data.selectionEnd
       : (typeof this.data.selectionStart === 'number' ? this.data.selectionStart : text.length);
     const cursor = Math.max(0, Math.min(rawCursor, text.length));
-    const lineStart = text.lastIndexOf('\n', Math.max(cursor - 1, 0)) + 1;
-    const nextBreak = text.indexOf('\n', cursor);
-    const lineEnd = nextBreak >= 0 ? nextBreak : text.length;
-    const start = lineStart < lineEnd ? lineStart : 0;
-    const end = lineStart < lineEnd ? lineEnd : text.length;
-    this.setData({
-      textInputFocus: false,
-      showPasteTip: true,
-      selectionHint: end > start ? '已选择' : ''
-    });
-    setTimeout(() => {
-      this.setData({
-        textInputFocus: true,
-        selectionStart: start,
-        selectionEnd: end
-      });
-    }, 80);
+    const selectionLength = Math.min(4, text.length);
+    const start = Math.min(cursor, Math.max(0, text.length - selectionLength));
+    const end = Math.min(text.length, start + selectionLength);
+    const selectedText = text.slice(start, end);
+    const hint = end > start ? `已选中 ${end - start} 个字：${selectedText}` : '';
+    this.enterSelectionMode(start, end, hint);
+    wx.showToast({ title: '已选择', icon: 'none', duration: 600 });
   },
 
   selectTextBeforeCursor() {
@@ -998,13 +1629,14 @@ getPreviewBackground(bg) {
   deleteSelectedText() {
     if (this.shouldSkipFormatAction('delete')) return;
     const current = this.data.activePlainText || '';
-    const rawStart = typeof this.data.selectionStart === 'number' ? this.data.selectionStart : current.length;
-    const rawEnd = typeof this.data.selectionEnd === 'number' ? this.data.selectionEnd : rawStart;
-    let start = Math.max(0, Math.min(rawStart, rawEnd, current.length));
-    let end = Math.max(start, Math.min(Math.max(rawStart, rawEnd), current.length));
+    const range = this.getActiveTextSelectionRange(current);
+    let start = range.start;
+    let end = range.end;
     if (start === end && start > 0) start -= 1;
     const text = current.slice(0, start) + current.slice(end);
     const attrs = getAttrsAtOffset(this.data.activeBlock && this.data.activeBlock.delta, start) || getFirstTextAttrs(this.data.activeBlock || {});
+    this._manualTextSelection = null;
+    this.exitSelectionMode();
     this.setData({
       activePlainText: text,
       inputText: text,
@@ -1020,28 +1652,46 @@ getPreviewBackground(bg) {
 
   toggleSelectedBold() {
     if (this.shouldSkipFormatAction('bold')) return;
-    const attrs = getAttrsAtOffset(this.data.activeBlock && this.data.activeBlock.delta, this.data.selectionStart || 0);
+    const range = this.getActiveTextSelectionRange(this.data.activePlainText || '');
+    if (!hasTextSelection(range.start, range.end)) {
+      wx.showToast({ title: '请先选择文字', icon: 'none' });
+      this.setData({ textInputFocus: true, showPasteTip: true });
+      return;
+    }
+    const attrs = getAttrsAtOffset(this.data.activeBlock && this.data.activeBlock.delta, range.start || 0);
     const bold = !attrs.bold;
     this.applyFormatToSelection({ bold });
-    this.setData({ formats: { ...(this.data.formats || {}), bold }, textInputFocus: true, showPasteTip: true });
+    this.setData({ formats: { ...(this.data.formats || {}), bold }, textInputFocus: false, showPasteTip: true });
     this._saveHistory(this.data.design);
   },
 
   increaseSelectedFontSize() {
     if (this.shouldSkipFormatAction('fontSize')) return;
-    const attrs = getAttrsAtOffset(this.data.activeBlock && this.data.activeBlock.delta, this.data.selectionStart || 0);
+    const range = this.getActiveTextSelectionRange(this.data.activePlainText || '');
+    if (!hasTextSelection(range.start, range.end)) {
+      wx.showToast({ title: '请先选择文字', icon: 'none' });
+      this.setData({ textInputFocus: true, showPasteTip: true });
+      return;
+    }
+    const attrs = getAttrsAtOffset(this.data.activeBlock && this.data.activeBlock.delta, range.start || 0);
     const fontSize = clampFontSize((parseInt(attrs.size || attrs.fontSize || this.data.fontSize || 32, 10) || 32) + 4);
-    this.setData({ fontSize, textInputFocus: true, showPasteTip: true });
-    this.applyFormatToSelection({ size: fontSize });
+    this.setData({ fontSize, textInputFocus: false, showPasteTip: true });
+    this.applyFormatToSelection({ size: fontSize, fontSize });
     this._saveHistory(this.data.design);
   },
 
   decreaseSelectedFontSize() {
     if (this.shouldSkipFormatAction('fontSizeDown')) return;
-    const attrs = getAttrsAtOffset(this.data.activeBlock && this.data.activeBlock.delta, this.data.selectionStart || 0);
+    const range = this.getActiveTextSelectionRange(this.data.activePlainText || '');
+    if (!hasTextSelection(range.start, range.end)) {
+      wx.showToast({ title: '请先选择文字', icon: 'none' });
+      this.setData({ textInputFocus: true, showPasteTip: true });
+      return;
+    }
+    const attrs = getAttrsAtOffset(this.data.activeBlock && this.data.activeBlock.delta, range.start || 0);
     const fontSize = clampFontSize((parseInt(attrs.size || attrs.fontSize || this.data.fontSize || 32, 10) || 32) - 4);
-    this.setData({ fontSize, textInputFocus: true, showPasteTip: true });
-    this.applyFormatToSelection({ size: fontSize });
+    this.setData({ fontSize, textInputFocus: false, showPasteTip: true });
+    this.applyFormatToSelection({ size: fontSize, fontSize });
     this._saveHistory(this.data.design);
   },
 
@@ -1053,7 +1703,15 @@ getPreviewBackground(bg) {
 
   showColorPanelForSelection() {
     if (this.shouldSkipFormatAction('colorPanel')) return;
-    this.setData({ activePanel: 'style', activeStyleTool: 'text', textInputFocus: true, showPasteTip: true });
+    const range = this.getActiveTextSelectionRange(this.data.activePlainText || deltaToText(this.data.activeBlock && this.data.activeBlock.delta));
+    if (!hasTextSelection(range.start, range.end)) {
+      wx.showToast({ title: '请先选择文字', icon: 'none' });
+      this.setData({ textInputFocus: true, showPasteTip: true });
+      return;
+    }
+    const attrs = getAttrsAtOffset(this.data.activeBlock && this.data.activeBlock.delta, range.start || 0);
+    this.setData({ activePanel: 'style', activeStyleTool: 'text', textInputFocus: false, showPasteTip: true });
+    this.openColorPicker('text', attrs.color || this.data.activeTextColor || '#4B4038', '文字颜色');
   },
 
   onEditorReady() {
@@ -1127,7 +1785,17 @@ getPreviewBackground(bg) {
       return;
     }
     this.editorCtx = null;
-    this.setData({ inlineEditing: false, textInputFocus: false, showPasteTip: false });
+    this._manualTextSelection = null;
+    this.setData({
+      inlineEditing: false,
+      textInputFocus: false,
+      showPasteTip: false,
+      selectionModeActive: false,
+      selectionPreviewNodes: [],
+      selectionFlowNodes: [],
+      selectionRects: [],
+      caretVisible: false
+    });
     if (this._typingHistoryStarted) {
       this._typingHistoryStarted = false;
       this._saveHistory(this.data.design);
@@ -1135,8 +1803,8 @@ getPreviewBackground(bg) {
   },
 
   keepInlineEditing() {
+    if (!this.data.inlineEditing) return;
     this._ignoreNextEditorBlur = true;
-    this.setData({ textInputFocus: true });
   },
 
   finishInlineEditingFromMenu() {
@@ -1144,10 +1812,16 @@ getPreviewBackground(bg) {
     if (this.shouldSkipFormatAction('done')) return;
     this._ignoreNextEditorBlur = false;
     this.editorCtx = null;
+    this._manualTextSelection = null;
     this.setData({
       inlineEditing: false,
       textInputFocus: false,
       showPasteTip: false,
+      selectionModeActive: false,
+      selectionPreviewNodes: [],
+      selectionFlowNodes: [],
+      selectionRects: [],
+      caretVisible: false,
       selectionHint: ''
     });
     if (this._typingHistoryStarted) {
@@ -1171,15 +1845,22 @@ getPreviewBackground(bg) {
 
     // 如果已经是同一个框的编辑模式，不重复处理
     if (this.data.inlineEditing && this.data.activeBlockId === id) return;
+    const text = deltaToText(block && block.delta);
+    const caretState = this.getCaretState(end, text, { ...(block || {}), _previewScale: getPreviewScales(this.data.design) });
 
     this.setData({
       activeBlockId: id,
       activeBlock: block || {},
-      activePlainText: deltaToText(block && block.delta),
+      activePlainText: text,
+      selectionModeActive: false,
+      selectionPreviewNodes: [],
+      selectionFlowNodes: [],
+      selectionRects: [],
       textInputFocus: true,
       inlineEditing: true,
       selectionStart: end,
       selectionEnd: end,
+      ...caretState,
       ...getTextPanelState(block, this.data)
     });
     this.openFormatMenu();
@@ -1208,7 +1889,7 @@ getPreviewBackground(bg) {
         activePlainText: deltaToText(activeBlock.delta),
         nodeVersion: (this.data.nodeVersion || 0) + 1,
         ...getTextPanelState(activeBlock, this.data)
-      });
+      }, () => this.schedulePreviewRender(options && typeof options.renderDelay === 'number' ? options.renderDelay : undefined));
       return;
     }
     this.setDesign(design, design.blocks[index].id);
@@ -1218,9 +1899,16 @@ getPreviewBackground(bg) {
     if (this.data.inlineEditing) return;
     const id = e.currentTarget.dataset.id || '';
     const block = (this.data.design.blocks || []).find(item => item.id === id);
+    const touches = e.touches || [];
+    if (touches.length >= 2 && block) {
+      this.startBlockPinchResize(block, touches);
+      this._dragBlockId = id;
+      this._dragMoved = true;
+      return;
+    }
     this._dragBlockId = id;
     this._dragMoved = false;
-    const touch = e.touches && e.touches[0];
+    const touch = touches[0];
     if (touch && block) {
       this._dragStartX = touch.clientX;
       this._dragStartY = touch.clientY;
@@ -1232,7 +1920,23 @@ getPreviewBackground(bg) {
   // 替代 movable-view 的拖动：用触摸坐标计算位移
   onBlockMoveByResize(e) {
     if (this.data.inlineEditing) return;
-    const touch = e.touches && e.touches[0];
+    const touches = e.touches || [];
+    if (this.resizeState && this.resizeState.fromBlockPinch) {
+      this.onResizeMove(e);
+      this._dragMoved = true;
+      return;
+    }
+    if (touches.length >= 2) {
+      const id = this._dragBlockId || (e.currentTarget.dataset.id || '');
+      const block = (this.data.design.blocks || []).find(item => item.id === id);
+      if (block) {
+        this.startBlockPinchResize(block, touches);
+        this.onResizeMove(e);
+        this._dragMoved = true;
+      }
+      return;
+    }
+    const touch = touches[0];
     if (!touch) return;
     const id = this._dragBlockId || (e.currentTarget.dataset.id || '');
     if (!id) return;
@@ -1242,21 +1946,42 @@ getPreviewBackground(bg) {
     const dy = (touch.clientY - (this._dragStartY || touch.clientY)) * rpxPerPx;
     if (Math.abs(dx) > 4 || Math.abs(dy) > 4) this._dragMoved = true;
 
+    const previewScale = getPreviewScales(this.data.design);
+    const stage = getPreviewStageSize(this.data.design);
     const blocks = (this.data.design.blocks || []).map(block => {
       if (block.id !== id) return block;
-      const maxX = PREVIEW_STAGE_RPX - Number(block.previewWidth || 0);
-      const maxY = PREVIEW_STAGE_HEIGHT_RPX - Number(block.previewHeight || 0);
+      const maxX = stage.width - Number(block.previewWidth || 0);
+      const maxY = stage.height - Number(block.previewHeight || 0);
+      const previewX = Math.max(0, Math.min(maxX, Math.round((this._dragStartPreviewX || 0) + dx)));
+      const previewY = Math.max(0, Math.min(maxY, Math.round((this._dragStartPreviewY || 0) + dy)));
       return {
         ...block,
-        previewX: Math.max(0, Math.min(maxX, Math.round((this._dragStartPreviewX || 0) + dx))),
-        previewY: Math.max(0, Math.min(maxY, Math.round((this._dragStartPreviewY || 0) + dy)))
+        previewX,
+        previewY,
+        x: Math.round(previewX / previewScale.x),
+        y: Math.round(previewY / previewScale.y)
       };
     });
-    this.setData({ 'design.blocks': blocks });
+    this.setData({ 'design.blocks': blocks }, () => this.schedulePreviewRender(16));
   },
 
   onBlockTouchEnd(e) {
     if (this.data.inlineEditing) return;
+    if (this.resizeState && this.resizeState.fromBlockPinch) {
+      this._saveHistory(this.data.design);
+      this.resizeState = null;
+      this._dragBlockId = '';
+      this._dragMoved = false;
+      this._dragStartX = null;
+      this._dragStartY = null;
+      this._dragStartPreviewX = null;
+      this._dragStartPreviewY = null;
+      this._suppressNextTap = true;
+      setTimeout(() => {
+        this._suppressNextTap = false;
+      }, 120);
+      return;
+    }
     const id = this._dragBlockId || (e.currentTarget.dataset.id || '');
     const moved = !!this._dragMoved;
     this._dragBlockId = '';
@@ -1282,11 +2007,51 @@ getPreviewBackground(bg) {
     const design = clone(this.data.design);
     const index = design.blocks.findIndex(item => item.id === id);
     if (index >= 0) {
-      const previewPxScale = getPreviewPxScale(design);
-      design.blocks[index].x = Math.round((block.previewX || 0) / previewPxScale);
-      design.blocks[index].y = Math.round((block.previewY || 0) / previewPxScale);
+      const previewScale = getPreviewScales(design);
+      design.blocks[index].x = Math.round((block.previewX || 0) / previewScale.x);
+      design.blocks[index].y = Math.round((block.previewY || 0) / previewScale.y);
       this.setDesign(design, id);
     }
+  },
+
+  startBlockPinchResize(block, touches) {
+    if (!block || !block.id || !touches || touches.length < 2) return;
+    let rpxPerPx = 1;
+    try {
+      const info = wx.getSystemInfoSync();
+      rpxPerPx = 750 / (info.windowWidth || 750);
+    } catch (err) {}
+    const dx = touches[1].clientX - touches[0].clientX;
+    const dy = touches[1].clientY - touches[0].clientY;
+    const previewScale = getPreviewScales(this.data.design);
+    this.setData({
+      activeBlockId: block.id,
+      activeBlock: block,
+      inlineEditing: false,
+      textInputFocus: false,
+      caretVisible: false,
+      ...getTextPanelState(block, this.data)
+    });
+    this.resizeState = {
+      id: block.id,
+      edge: 'pinch',
+      startX: touches[0].clientX,
+      startY: touches[0].clientY,
+      x: Number(block.x || 0),
+      y: Number(block.y || 0),
+      width: Number(block.width || DEFAULT_TEXT_BOX_WIDTH),
+      height: Number(block.manualHeight || block.height || getBlockTextHeight(block)),
+      baseWidth: Number(block.width || DEFAULT_TEXT_BOX_WIDTH),
+      baseHeight: Number(block.manualHeight || block.height || getBlockTextHeight(block)),
+      baseFontSize: getBlockFontSize(block),
+      baseDelta: clone(block.delta || { ops: [] }),
+      rpxPerPx,
+      previewScaleX: previewScale.x,
+      previewScaleY: previewScale.y,
+      isPinch: true,
+      fromBlockPinch: true,
+      pinchStartDist: Math.sqrt(dx * dx + dy * dy)
+    };
   },
 
   onResizeStart(e) {
@@ -1301,11 +2066,13 @@ getPreviewBackground(bg) {
     } catch (err) {}
 
     const edge = e.currentTarget.dataset.edge || 'br';
+    const previewScale = getPreviewScales(this.data.design);
     this.setData({
       activeBlockId: block.id,
       activeBlock: block,
       inlineEditing: false,
       textInputFocus: false,
+      caretVisible: false,
       ...getTextPanelState(block, this.data)
     });
     this.resizeState = {
@@ -1322,6 +2089,8 @@ getPreviewBackground(bg) {
       baseFontSize: getBlockFontSize(block),
       baseDelta: clone(block.delta || { ops: [] }),
       rpxPerPx,
+      previewScaleX: previewScale.x,
+      previewScaleY: previewScale.y,
       isPinch: touches.length >= 2
     };
 
@@ -1359,8 +2128,8 @@ getPreviewBackground(bg) {
     if (!state.isPinch && touches.length === 1) {
       const touch = touches[0];
       const edge = state.edge || 'br';
-      const dx = (touch.clientX - state.startX) * state.rpxPerPx / PREVIEW_SCALE;
-      const dy = (touch.clientY - state.startY) * state.rpxPerPx / PREVIEW_SCALE;
+      const dx = (touch.clientX - state.startX) * state.rpxPerPx / (state.previewScaleX || PREVIEW_SCALE);
+      const dy = (touch.clientY - state.startY) * state.rpxPerPx / (state.previewScaleY || PREVIEW_SCALE);
 
       let newX = state.x;
       let newY = state.y;
@@ -1404,15 +2173,20 @@ getPreviewBackground(bg) {
   applyFormatToAllText(attrs, blockPatch) {
     const block = this.data.activeBlock || {};
     if (!block.delta || !block.delta.ops) return;
+    const range = this.getActiveTextSelectionRange(this.data.activePlainText || deltaToText(block.delta));
+    const hasSelection = hasTextSelection(range.start, range.end);
     const newOps = (block.delta.ops || []).map(op => ({
       ...op,
       attributes: { ...(op.attributes || {}), ...attrs }
     }));
     const newDelta = { ops: newOps };
-    if (this.editorCtx && this.data.inlineEditing) {
+    if (this.editorCtx && this.data.inlineEditing && !this.data.selectionModeActive) {
       this.editorCtx.setContents({ delta: newDelta });
     }
     this.updateActiveBlock({ ...(blockPatch || {}), delta: newDelta }, { silentEditor: true });
+    if (hasSelection) {
+      this.refreshSelectionPreview(newDelta, range.start, range.end, undefined, blockPatch);
+    }
   },
 
   format(e) {
@@ -1420,15 +2194,16 @@ getPreviewBackground(bg) {
     let value = e.currentTarget.dataset.value;
     if (!name) return;
     if (name === 'bold' || name === 'italic' || name === 'underline') {
-      const attrs = getAttrsAtOffset(this.data.activeBlock && this.data.activeBlock.delta, this.data.selectionStart || 0);
+      const range = this.getActiveTextSelectionRange(this.data.activePlainText || '');
+      const attrs = getAttrsAtOffset(this.data.activeBlock && this.data.activeBlock.delta, range.start || 0);
       const nextValue = !attrs[name];
-      // 排列面板的 B/I/U 应用到全部文字
-      this.applyFormatToAllText({ [name]: nextValue });
+      this.applyFormatToSelection({ [name]: nextValue });
       this.setData({ formats: { ...(this.data.formats || {}), [name]: nextValue } });
       return;
     }
     if (name === 'backgroundColor') {
-      if (this.editorCtx && this.data.inlineEditing) {
+      const range = this.getActiveTextSelectionRange(this.data.activePlainText || deltaToText(this.data.activeBlock && this.data.activeBlock.delta));
+      if (!hasTextSelection(range.start, range.end) && this.editorCtx && this.data.inlineEditing) {
         this.editorCtx.format('backgroundColor', value);
         setTimeout(() => this.syncEditorContentsToDesign(), 60);
         this.setData({ activeBackground: value });
@@ -1440,7 +2215,8 @@ getPreviewBackground(bg) {
     }
     if (name === 'color') {
       recordColorUsage(value);
-      if (this.editorCtx && this.data.inlineEditing) {
+      const range = this.getActiveTextSelectionRange(this.data.activePlainText || deltaToText(this.data.activeBlock && this.data.activeBlock.delta));
+      if (!hasTextSelection(range.start, range.end) && this.editorCtx && this.data.inlineEditing) {
         this.editorCtx.format('color', value);
         setTimeout(() => this.syncEditorContentsToDesign(), 60);
         this.setData({ activeTextColor: value });
@@ -1454,27 +2230,44 @@ getPreviewBackground(bg) {
   changeFontSize(e) {
     const fontSize = Number(e.detail.value || 32);
     this.setData({ fontSize });
-    this.applyFormatToAllText({ size: fontSize });
+    const range = this.getActiveTextSelectionRange(this.data.activePlainText || deltaToText(this.data.activeBlock && this.data.activeBlock.delta));
+    if (hasTextSelection(range.start, range.end)) {
+      this.applyFormatToSelection({ size: fontSize, fontSize });
+    } else {
+      this.applyFormatToAllText({ size: fontSize, fontSize });
+    }
   },
 
   changeLineHeight(e) {
     const lineHeight = Number(e.detail.value || 1.6).toFixed(1);
+    const range = this.getActiveTextSelectionRange(this.data.activePlainText || deltaToText(this.data.activeBlock && this.data.activeBlock.delta));
     if (this.editorCtx && this.data.inlineEditing) {
       this.editorCtx.format('lineHeight', String(lineHeight));
     }
     this.updateActiveBlock({ lineHeight }, { silentEditor: true });
+    if (hasTextSelection(range.start, range.end)) {
+      this.refreshSelectionPreview(this.data.activeBlock.delta, range.start, range.end, undefined, { lineHeight });
+    }
   },
 
   changeLetterSpacing(e) {
     const letterSpacing = Number(e.detail.value || 0);
     this.setData({ 'activeBlock.letterSpacing': letterSpacing });
-    this.applyFormatToAllText({ letterSpacing }, { letterSpacing });
+    if (this.hasActiveTextSelection()) {
+      this.applyFormatToSelection({ letterSpacing }, { letterSpacing });
+    } else {
+      this.applyFormatToAllText({ letterSpacing }, { letterSpacing });
+    }
   },
 
   changeOpacity(e) {
     const opacity = Number(e.detail.value || 1);
     this.setData({ textOpacity: opacity });
-    this.applyFormatToAllText({ opacity });
+    if (this.hasActiveTextSelection()) {
+      this.applyFormatToSelection({ opacity });
+    } else {
+      this.applyFormatToAllText({ opacity });
+    }
   },
 
   /**
@@ -1485,49 +2278,59 @@ getPreviewBackground(bg) {
   applyFormatToSelection(attrs, blockPatch) {
     const block = this.data.activeBlock || {};
     if (!block.delta || !block.delta.ops) return;
-    const hasSelection = hasTextSelection(this.data.selectionStart, this.data.selectionEnd);
+    const range = this.getActiveTextSelectionRange(this.data.activePlainText || deltaToText(block.delta));
+    const hasSelection = hasTextSelection(range.start, range.end);
     const delta = applyAttrsToDeltaRange(
       clone(block.delta),
-      hasSelection ? this.data.selectionStart : 0,
-      hasSelection ? this.data.selectionEnd : getDeltaLength(block.delta),
+      hasSelection ? range.start : 0,
+      hasSelection ? range.end : getDeltaLength(block.delta),
       attrs
     );
-    if (this.editorCtx && this.data.inlineEditing) {
+    if (this.editorCtx && this.data.inlineEditing && !this.data.selectionModeActive) {
       this.editorCtx.setContents({ delta });
     }
-    this.updateActiveBlock({ ...(!hasSelection ? (blockPatch || {}) : {}), delta }, { silentEditor: true });
+    if (hasSelection) {
+      this._manualTextSelection = { start: range.start, end: range.end };
+    }
+    this.updateActiveBlock({ ...(!hasSelection ? (blockPatch || {}) : {}), delta }, { silentEditor: true, renderDelay: 0 });
+    if (hasSelection) {
+      this.refreshSelectionPreview(delta, range.start, range.end);
+    }
+    this.schedulePreviewRender(0);
   },
 
   changeShadowStrength(e) {
     const shadowStrength = Number(e.detail.value || 0);
     const shadow = shadowStrength > 0;
     this.setData({ shadowStrength });
-    this.updateActiveBlock({
+    const attrs = {
       shadow,
       shadowStrength,
       shadowBlur: Math.round(4 + shadowStrength * 18),
       shadowOffsetY: Math.round(2 + shadowStrength * 6),
-      shadowColor: 'rgba(72,48,26,0.26)'
-    }, { silentEditor: true });
+      shadowColor: this.data.activeShadowColor || 'rgba(72,48,26,0.26)'
+    };
+    if (this.hasActiveTextSelection()) {
+      this.applyFormatToSelection(attrs);
+      return;
+    }
+    this.updateActiveBlock(attrs, { silentEditor: true });
   },
 
   updateActiveBlockTextAttributes(attrs, blockPatch) {
-    const block = this.data.activeBlock || {};
-    const delta = applyAttrsToDeltaRange(
-      clone(block.delta || { ops: [] }),
-      this.data.selectionStart,
-      this.data.selectionEnd,
-      attrs
-    );
-    this.updateActiveBlock({ ...(blockPatch || {}), delta }, { silentEditor: true });
+    this.applyFormatToSelection(attrs, blockPatch);
   },
 
   setAlign(e) {
     const align = e.currentTarget.dataset.align || 'center';
+    const range = this.getActiveTextSelectionRange(this.data.activePlainText || deltaToText(this.data.activeBlock && this.data.activeBlock.delta));
     if (this.editorCtx && this.data.inlineEditing) {
       this.editorCtx.format('align', align);
     }
     this.updateActiveBlock({ align });
+    if (hasTextSelection(range.start, range.end)) {
+      this.refreshSelectionPreview(this.data.activeBlock.delta, range.start, range.end, undefined, { align });
+    }
   },
 
   setFontFamily(e) {
@@ -1545,33 +2348,15 @@ getPreviewBackground(bg) {
       fontFamily: font.family,
       fontUrl: font.fontUrl || ''
     };
-    if (this.data.inlineEditing || hasTextSelection(this.data.selectionStart, this.data.selectionEnd)) {
+    const range = this.getActiveTextSelectionRange(this.data.activePlainText || deltaToText(block.delta));
+    if (hasTextSelection(range.start, range.end)) {
       this.applyFormatToSelection(fontAttrs, fontAttrs);
       this._saveHistory(this.data.design);
       return;
     }
 
-    const newOps = (block.delta.ops || []).map(op => ({
-      ...op,
-      attributes: {
-        ...(op.attributes || {}),
-        ...fontAttrs
-      }
-    }));
-    const newDelta = { ops: newOps };
-
-    if (this.editorCtx && this.data.inlineEditing) {
-      if (typeof this.editorCtx.format === 'function') {
-        this.editorCtx.format('fontFamily', font.family);
-      }
-      this.editorCtx.setContents({ delta: newDelta });
-    }
-    this.updateActiveBlock({
-      delta: newDelta,
-      fontId: font.id,
-      fontFamily: font.family,
-      fontUrl: font.fontUrl || ''
-    }, { silentEditor: true });
+    this.applyFormatToAllText(fontAttrs, fontAttrs);
+    this._saveHistory(this.data.design);
   },
 
   loadPreviewFont(font) {
@@ -1584,7 +2369,7 @@ getPreviewBackground(bg) {
         global: false,
         success: () => {
           this.loadedFonts[font.id] = true;
-          this.setData({ design: hydrateDesign(clone(this.data.design)) });
+          this.setData({ design: hydrateDesign(clone(this.data.design)) }, () => this.schedulePreviewRender(0));
           resolve();
         },
         fail: () => resolve()
@@ -1602,6 +2387,11 @@ getPreviewBackground(bg) {
   setStrokeColor(e) {
     const activeStrokeColor = e.currentTarget.dataset.value || '#FFFFFF';
     this.setData({ activeStrokeColor });
+    if (this.hasActiveTextSelection()) {
+      this.applyFormatToSelection({ stroke: true, strokeColor: activeStrokeColor, strokeWidth: 2 });
+      this._saveHistory(this.data.design);
+      return;
+    }
     this.updateActiveBlock({ stroke: true, strokeColor: activeStrokeColor, strokeWidth: 2 });
   },
 
@@ -1616,7 +2406,11 @@ getPreviewBackground(bg) {
   setBgColor(e) {
     const activeBackground = e.currentTarget.dataset.value || '#FFF2C7';
     this.setData({ activeBackground });
-    this.applyFormatToAllText({ background: activeBackground, backgroundColor: activeBackground });
+    if (this.hasActiveTextSelection()) {
+      this.applyFormatToSelection({ background: activeBackground, backgroundColor: activeBackground });
+    } else {
+      this.applyFormatToAllText({ background: activeBackground, backgroundColor: activeBackground });
+    }
   },
 
   pickBackgroundColor() {
@@ -1632,20 +2426,30 @@ getPreviewBackground(bg) {
     const g = parseInt(hex.slice(3, 5), 16);
     const b = parseInt(hex.slice(5, 7), 16);
     const rgba = `rgba(${r},${g},${b},${bgOpacity})`;
-    this.applyFormatToAllText({ background: rgba, backgroundColor: rgba });
+    if (this.hasActiveTextSelection()) {
+      this.applyFormatToSelection({ background: rgba, backgroundColor: rgba });
+    } else {
+      this.applyFormatToAllText({ background: rgba, backgroundColor: rgba });
+    }
   },
 
   setShadowColor(e) {
     const activeShadowColor = e.currentTarget.dataset.value || 'rgba(72,48,26,0.24)';
     this.setData({ activeShadowColor: activeShadowColor });
-    if (this.data.activeBlock && this.data.activeBlock.shadow) {
-      this.updateActiveBlock({
-        shadowColor: activeShadowColor,
-        shadow: true,
-        shadowBlur: Math.round(4 + (this.data.shadowStrength || 0) * 18),
-        shadowOffsetY: Math.round(2 + (this.data.shadowStrength || 0) * 6)
-      }, { silentEditor: true });
+    const shadowStrength = this.data.shadowStrength || 0.65;
+    const attrs = {
+      shadow: true,
+      shadowColor: activeShadowColor,
+      shadowStrength,
+      shadowBlur: Math.round(4 + shadowStrength * 18),
+      shadowOffsetY: Math.round(2 + shadowStrength * 6)
+    };
+    if (this.hasActiveTextSelection()) {
+      this.applyFormatToSelection(attrs);
+      this._saveHistory(this.data.design);
+      return;
     }
+    this.updateActiveBlock(attrs, { silentEditor: true });
   },
 
   pickShadowColor() {
@@ -1686,31 +2490,48 @@ getPreviewBackground(bg) {
 
     if (target === 'text') {
       this.setData({ activeTextColor: color });
-      if (this.editorCtx && this.data.inlineEditing) {
+      const range = this.getActiveTextSelectionRange(this.data.activePlainText || deltaToText(this.data.activeBlock && this.data.activeBlock.delta));
+      if (!hasTextSelection(range.start, range.end) && this.editorCtx && this.data.inlineEditing) {
         this.editorCtx.format('color', color);
         setTimeout(() => this.syncEditorContentsToDesign(), 60);
       } else {
         this.updateActiveBlockTextAttributes({ color });
+        if (hasTextSelection(range.start, range.end)) this._saveHistory(this.data.design);
       }
     } else if (target === 'stroke') {
       this.setData({ activeStrokeColor: color });
-      this.updateActiveBlock({ stroke: true, strokeColor: color, strokeWidth: 2 });
+      if (this.hasActiveTextSelection()) {
+        this.applyFormatToSelection({ stroke: true, strokeColor: color, strokeWidth: 2 });
+        this._saveHistory(this.data.design);
+      } else {
+        this.updateActiveBlock({ stroke: true, strokeColor: color, strokeWidth: 2 });
+      }
     } else if (target === 'bg') {
       this.setData({ activeBackground: color });
-      this.applyFormatToAllText({ background: color, backgroundColor: color });
+      if (this.hasActiveTextSelection()) {
+        this.applyFormatToSelection({ background: color, backgroundColor: color });
+      } else {
+        this.applyFormatToAllText({ background: color, backgroundColor: color });
+      }
     } else if (target === 'shadow') {
       const r = parseInt(color.slice(1, 3), 16);
       const g = parseInt(color.slice(3, 5), 16);
       const b = parseInt(color.slice(5, 7), 16);
       const rgba = `rgba(${r},${g},${b},0.35)`;
       this.setData({ activeShadowColor: rgba });
-      if (this.data.activeBlock && this.data.activeBlock.shadow) {
-        this.updateActiveBlock({
-          shadowColor: rgba,
-          shadow: true,
-          shadowBlur: Math.round(4 + (this.data.shadowStrength || 0) * 18),
-          shadowOffsetY: Math.round(2 + (this.data.shadowStrength || 0) * 6)
-        }, { silentEditor: true });
+      const shadowStrength = this.data.shadowStrength || 0.65;
+      const attrs = {
+        shadowColor: rgba,
+        shadow: true,
+        shadowStrength,
+        shadowBlur: Math.round(4 + shadowStrength * 18),
+        shadowOffsetY: Math.round(2 + shadowStrength * 6)
+      };
+      if (this.hasActiveTextSelection()) {
+        this.applyFormatToSelection(attrs);
+        this._saveHistory(this.data.design);
+      } else {
+        this.updateActiveBlock(attrs, { silentEditor: true });
       }
     } else if (target === 'canvasBg') {
       const design = clone(this.data.design);
@@ -1891,7 +2712,7 @@ getPreviewBackground(bg) {
     blocks.splice(index, 1);
     design.blocks = blocks;
     this.editorCtx = null;
-    this.setData({ inlineEditing: false, textInputFocus: false });
+    this.setData({ inlineEditing: false, textInputFocus: false, caretVisible: false });
     if (!blocks.length) {
       this.setData({
         design: hydrateDesign(design),
@@ -1899,7 +2720,8 @@ getPreviewBackground(bg) {
         activeBlock: {},
         activePlainText: '',
         selectionStart: 0,
-        selectionEnd: 0
+        selectionEnd: 0,
+        caretVisible: false
       });
       wx.showToast({ title: '已删除文字框', icon: 'none' });
       return;
@@ -1922,7 +2744,7 @@ getPreviewBackground(bg) {
     };
     blocks.push(copied);
     this.editorCtx = null;
-    this.setData({ inlineEditing: false, textInputFocus: false });
+    this.setData({ inlineEditing: false, textInputFocus: false, caretVisible: false });
     this.setDesign(design, copied.id);
     wx.showToast({ title: '已复制文字框', icon: 'none' });
   },
@@ -1934,19 +2756,38 @@ getPreviewBackground(bg) {
   },
 
   toggleStroke() {
+    const range = this.getActiveTextSelectionRange(this.data.activePlainText || deltaToText(this.data.activeBlock && this.data.activeBlock.delta));
+    if (hasTextSelection(range.start, range.end)) {
+      const attrs = getAttrsAtOffset(this.data.activeBlock && this.data.activeBlock.delta, range.start || 0);
+      const stroke = !(typeof attrs.stroke === 'boolean' ? attrs.stroke : false);
+      this.applyFormatToSelection({ stroke, strokeColor: this.data.activeStrokeColor || '#FFFFFF', strokeWidth: 2 });
+      this._saveHistory(this.data.design);
+      return;
+    }
     this.updateActiveBlock({ stroke: !this.data.activeBlock.stroke, strokeColor: this.data.activeStrokeColor || '#FFFFFF', strokeWidth: 2 });
   },
 
   toggleShadow() {
-    const shadow = !this.data.activeBlock.shadow;
+    const range = this.getActiveTextSelectionRange(this.data.activePlainText || deltaToText(this.data.activeBlock && this.data.activeBlock.delta));
+    const currentAttrs = getAttrsAtOffset(this.data.activeBlock && this.data.activeBlock.delta, range.start || 0);
+    const selected = hasTextSelection(range.start, range.end);
+    const shadow = selected
+      ? !(typeof currentAttrs.shadow === 'boolean' ? currentAttrs.shadow : false)
+      : !this.data.activeBlock.shadow;
     const shadowStrength = shadow ? (this.data.shadowStrength || 0.65) : 0;
-    this.updateActiveBlock({
+    const attrs = {
       shadow,
       shadowStrength,
       shadowBlur: Math.round(4 + shadowStrength * 18),
       shadowOffsetY: Math.round(2 + shadowStrength * 6),
-      shadowColor: 'rgba(72,48,26,0.26)'
-    });
+      shadowColor: this.data.activeShadowColor || 'rgba(72,48,26,0.26)'
+    };
+    if (selected) {
+      this.applyFormatToSelection(attrs);
+      this._saveHistory(this.data.design);
+      return;
+    }
+    this.updateActiveBlock(attrs);
   },
 
   addTextBlock() {
@@ -2005,7 +2846,10 @@ getPreviewBackground(bg) {
         const info = await getImageInfo(file.tempFilePath);
         const bgWidth = Number(file.width || info.width || 0);
         const bgHeight = Number(file.height || info.height || 0);
-        const layout = getBackgroundImageLayout({ bgWidth, bgHeight });
+        if (this.data.activeCanvasSizeId === 'image' && bgWidth && bgHeight) {
+          design.size = { ...normalizeAspectSize(bgWidth, bgHeight), preset: 'image' };
+        }
+        const layout = getBackgroundImageLayout({ bgWidth, bgHeight }, design);
 
         design.background = {
           type: 'image',
@@ -2052,8 +2896,8 @@ getPreviewBackground(bg) {
     const touch = e.touches && e.touches[0];
     if (!touch || this._bgDragStartX == null) return;
     const layout = {
-      width: this.data.bgDisplayWidth || PREVIEW_STAGE_RPX,
-      height: this.data.bgDisplayHeight || PREVIEW_STAGE_HEIGHT_RPX
+      width: this.data.bgDisplayWidth || this.data.previewStageWidth || PREVIEW_STAGE_RPX,
+      height: this.data.bgDisplayHeight || this.data.previewStageHeight || PREVIEW_STAGE_HEIGHT_RPX
     };
     let rpxPerPx = 1;
     try {
@@ -2062,11 +2906,13 @@ getPreviewBackground(bg) {
     } catch (err) {}
     const dx = (touch.clientX - this._bgDragStartX) * rpxPerPx;
     const dy = (touch.clientY - this._bgDragStartY) * rpxPerPx;
-    const offset = clampBackgroundOffset(this._bgOffsetStartX + dx, this._bgOffsetStartY + dy, layout);
+    const offset = clampBackgroundOffset(this._bgOffsetStartX + dx, this._bgOffsetStartY + dy, layout, this.data.design);
     this.setData({
       bgOffsetX: offset.x,
-      bgOffsetY: offset.y
-    });
+      bgOffsetY: offset.y,
+      'design.background.offsetX': offset.x,
+      'design.background.offsetY': offset.y
+    }, () => this.schedulePreviewRender(16));
   },
 
   onBgTouchEnd() {
@@ -2076,7 +2922,7 @@ getPreviewBackground(bg) {
       design.background.offsetX = this.data.bgOffsetX || 0;
       design.background.offsetY = this.data.bgOffsetY || 0;
     }
-    this.setData({ 'design.background': design.background });
+    this.setData({ 'design.background': design.background }, () => this.schedulePreviewRender(0));
     this._saveHistory(design);
     this._bgDragStartX = null;
     this._bgDragStartY = null;
@@ -2113,7 +2959,7 @@ getPreviewBackground(bg) {
   deleteQrCode() {
     const design = clone(this.data.design);
     design.qrcode = { ...(design.qrcode || {}), visible: false, src: '' };
-    this.setData({ design: hydrateDesign(design) });
+    this.setData({ design: hydrateDesign(design) }, () => this.schedulePreviewRender(0));
     wx.showToast({ title: '已删除二维码', icon: 'none' });
   },
 
@@ -2215,7 +3061,7 @@ getPreviewBackground(bg) {
     cardStorage.setCurrentExportDesign(exportDesign);
     wx.showLoading({ title: '导出中...' });
     try {
-      const imagePath = await renderer.exportPoster(this, '#exportCanvas', exportDesign, { scale: 3, cropToBackgroundImage: true });
+      const imagePath = await renderer.exportPoster(this, '#exportCanvas', exportDesign, { scale: 2 });
       wx.hideLoading();
       this.saveImageToAlbum(imagePath);
     } catch (e) {

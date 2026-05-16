@@ -41,6 +41,7 @@ Page({
 
     // === 近期节日 ===
     upcomingFestivals: [],
+    collapsedUpcomingFestivals: [],
 
     // === 节气养生 ===
     todaySolarTermName: '',
@@ -63,7 +64,8 @@ Page({
     stExpanded: false,
     festivalsExpanded: false,
 
-    // 近期日子「更多」按钮数字（预计算，避免WXML表达式问题）
+    // 近期日子折叠显示数量与「更多」按钮数字（预计算，避免WXML表达式问题）
+    collapsedFestivalCount: 1,
     festivalsMoreCount: 0,
 
     // === 功过格 ===
@@ -668,9 +670,12 @@ Page({
       });
     });
 
-    this.setData({ 
-      upcomingFestivals: flatList.slice(0, 10),
-      festivalsMoreCount: Math.max(flatList.length - 3, 0)
+    const collapsedCount = this.data.collapsedFestivalCount || 1;
+    const upcomingFestivals = flatList.slice(0, 10);
+    this.setData({
+      upcomingFestivals,
+      collapsedUpcomingFestivals: upcomingFestivals.slice(0, collapsedCount),
+      festivalsMoreCount: Math.max(flatList.length - collapsedCount, 0)
     });
   },
 

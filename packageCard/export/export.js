@@ -25,7 +25,7 @@ Page({
     if (!this.data.design) return;
     wx.showLoading({ title: '生成中...' });
     try {
-      const imagePath = await renderer.exportPoster(this, '#exportCanvas', this.data.design, { scale: 3 });
+      const imagePath = await renderer.exportPoster(this, '#exportCanvas', this.data.design, { scale: 2 });
       this.setData({ imagePath });
     } catch (e) {
       console.error('导出失败', e);

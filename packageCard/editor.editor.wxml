@@ -1,7 +1,7 @@
 <view class="editor-page">
     <view class="stage-wrap">
-    <view class="poster-stage {{activePanel === 'background' && previewBackgroundImage ? 'bg-editing' : ''}}" style="width: {{previewStageWidth}}rpx; height: {{previewStageHeight}}rpx; background: {{previewBackground}};">
-      <canvas type="2d" id="previewCanvas" class="preview-canvas" style="width: {{previewStageWidth}}rpx; height: {{previewStageHeight}}rpx;"></canvas>
+    <view class="poster-stage {{activePanel === 'background' && previewBackgroundImage ? 'bg-editing' : ''}}" style="background: {{previewBackground}};">
+      <canvas type="2d" id="previewCanvas" class="preview-canvas"></canvas>
       <view class="bg-image-container" wx:if="{{previewBackgroundImage && !useCanvasPreview}}" bindtouchstart="onBgTouchStart" bindtouchmove="onBgTouchMove" bindtouchend="onBgTouchEnd">
         <image
           class="stage-bg-image"
@@ -22,7 +22,7 @@
       </view>
       <view class="cross-guide" wx:if="{{previewBackgroundImage && !useCanvasPreview}}"></view>
       <view wx:if="{{!useCanvasPreview}}" class="stage-mask {{design.background.blur ? 'blur' : ''}}" style="{{previewBlurStyle}}"></view>
-      <movable-area class="movable-area" style="width: {{previewStageWidth}}rpx; height: {{previewStageHeight}}rpx;">
+      <movable-area class="movable-area">
         <view
           wx:for="{{design.blocks}}"
           wx:key="id"
@@ -41,13 +41,13 @@
           catchtap="editBlockText"
         >
           <!-- 始终使用 canvas 渲染导出效果（与最终图片一致） -->
-          <rich-text wx:if="{{!useCanvasPreview}}" class="block-rich-text" node="{{nodeVersion}}" nodes="{{item.previewNodes}}"></rich-text>
+          <rich-text class="block-rich-text" node="{{nodeVersion}}" nodes="{{item.previewNodes}}"></rich-text>
           <view wx:if="{{!activePlainText}}" class="placeholder-text">{{item.placeholder || '输入文字...'}}</view>
 
-          <!-- 编辑模式：textarea 在底层接收输入，rich-text 覆盖显示预览 -->
+          <!-- 编辑模式：隐藏 textarea（移到屏幕外） -->
           <textarea
             wx:if="{{inlineEditing && activeBlockId === item.id}}"
-            class="stage-editor"
+            class="stage-editor-hidden"
             value="{{activePlainText}}"
             placeholder=""
             focus="{{textInputFocus}}"
@@ -56,62 +56,23 @@
             maxlength="-1"
             auto-height="{{false}}"
             adjust-position="{{false}}"
-            cursor-color="transparent"
-            cursor-spacing="24"
+            cursor-spacing="-9999"
+            style="position:fixed;left:-9999px;top:-9999px;width:1px;height:1px;opacity:0;"
             bindinput="onActiveTextInput"
             bindblur="finishInlineEditing"
           ></textarea>
-          <view
-            wx:if="{{inlineEditing && activeBlockId === item.id && caretVisible && !selectionModeActive}}"
-            class="custom-caret"
-            style="left: {{caretX}}rpx; top: {{caretY}}rpx; height: {{caretHeight}}rpx;"
-          ></view>
-          <view
-            wx:if="{{selectionModeActive && activeBlockId === item.id}}"
-            class="selection-overlay"
-          >
-            <rich-text
-              class="selection-preview-text"
-              node="{{nodeVersion}}"
-              nodes="{{selectionPreviewNodes}}"
-            ></rich-text>
-            <view
-              wx:for="{{selectionRects}}"
-              wx:key="index"
-              class="selection-rect"
-              style="{{item.style}}"
-            ></view>
-            <view
-              class="selection-handle start"
-              data-handle="start"
-              style="left: {{selectionHandleStartX}}rpx; top: {{selectionHandleStartY}}rpx;"
-              catchtouchstart="onSelectionHandleStart"
-              catchtouchmove="onSelectionHandleMove"
-              catchtouchend="onSelectionHandleEnd"
-            ></view>
-            <view
-              class="selection-handle end"
-              data-handle="end"
-              style="left: {{selectionHandleEndX}}rpx; top: {{selectionHandleEndY}}rpx;"
-              catchtouchstart="onSelectionHandleStart"
-              catchtouchmove="onSelectionHandleMove"
-              catchtouchend="onSelectionHandleEnd"
-            ></view>
-          </view>
           <!-- 编辑工具栏 -->
-          <view wx:if="{{inlineEditing && activeBlockId === item.id && showPasteTip}}" class="paste-tip" catchtouchstart="keepInlineEditing">
-            <view class="paste-menu-btn" catchtouchend="pasteClipboardToActiveText">粘贴</view>
-            <view class="paste-menu-btn danger" catchtap="deleteSelectedText">删除</view>
-            <view class="paste-menu-btn" catchtouchend="selectCurrentLineText">选择</view>
-            <view class="paste-menu-btn" catchtouchend="selectAllActiveText">全选</view>
-            <view class="paste-menu-btn strong {{formats.bold ? 'on' : ''}}" catchtap="toggleSelectedBold">B</view>
-            <view class="paste-menu-btn" catchtap="decreaseSelectedFontSize">A-</view>
-            <view class="paste-menu-btn strong" catchtap="increaseSelectedFontSize">A+</view>
-            <view class="paste-menu-btn" catchtap="showFontPanelForSelection">字体</view>
-            <view class="paste-menu-btn" catchtap="showColorPanelForSelection">颜色</view>
-            <view class="paste-menu-btn done" catchtap="finishInlineEditingFromMenu">完成</view>
+          <view wx:if="{{inlineEditing && activeBlockId === item.id && showPasteTip}}" class="paste-tip">
+            <view class="paste-menu-btn" catchtouchend="pasteClipboardToActiveText" catchtap="pasteClipboardToActiveText">粘贴</view>
+            <view class="paste-menu-btn danger" catchtouchend="deleteSelectedText" catchtap="deleteSelectedText">删除</view>
+            <view class="paste-menu-btn" catchtouchend="selectAllActiveText" catchtap="selectAllActiveText">全选</view>
+            <view class="paste-menu-btn strong {{formats.bold ? 'on' : ''}}" catchtouchend="toggleSelectedBold" catchtap="toggleSelectedBold">B</view>
+            <view class="paste-menu-btn" catchtouchend="decreaseSelectedFontSize" catchtap="decreaseSelectedFontSize">A-</view>
+            <view class="paste-menu-btn strong" catchtouchend="increaseSelectedFontSize" catchtap="increaseSelectedFontSize">A+</view>
+            <view class="paste-menu-btn" catchtouchend="showFontPanelForSelection" catchtap="showFontPanelForSelection">字体</view>
+            <view class="paste-menu-btn" catchtouchend="showColorPanelForSelection" catchtap="showColorPanelForSelection">颜色</view>
+            <view class="paste-menu-btn done" catchtouchend="finishInlineEditingFromMenu" catchtap="finishInlineEditingFromMenu">完成</view>
           </view>
-          <view wx:if="{{inlineEditing && activeBlockId === item.id && selectionHint}}" class="paste-menu-hint">{{selectionHint}}</view>
         </view>
         </view>
 
@@ -180,15 +141,6 @@
           <button class="bg-btn" data-type="gradient" bindtap="setBackgroundType">渐变</button>
           <button class="bg-btn" data-type="blur" bindtap="setBackgroundType">毛玻璃</button>
         </view>
-        <view class="size-row">
-          <button
-            class="size-btn {{activeCanvasSizeId === item.id ? 'active' : ''}}"
-            wx:for="{{canvasSizeOptions}}"
-            wx:key="id"
-            data-id="{{item.id}}"
-            bindtap="setCanvasSize"
-          >{{item.name}}</button>
-        </view>
         <view wx:if="{{showSolidPalette}}" class="bg-palette">
           <view
             wx:for="{{backgroundColors}}"
@@ -208,6 +160,7 @@
               class="font-btn {{activeFontId === item.id ? 'active' : ''}}"
               wx:for="{{fonts}}"
               wx:key="id"
+              style="font-family: {{item.previewFamily}};"
               data-id="{{item.id}}"
               bindtap="setFontFamily"
             >{{item.name}}</button>

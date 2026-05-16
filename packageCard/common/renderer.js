@@ -4,11 +4,12 @@ function copy(value) {
 
 const VERTICAL_WIDTH_THRESHOLD = 160;
 const PREVIEW_STAGE_RPX = 680;
-const PREVIEW_STAGE_HEIGHT_RPX = 920;
+const PREVIEW_STAGE_HEIGHT_RPX = Math.round(1000 * PREVIEW_STAGE_RPX / 750);
+const imagePathCache = {};
+const fontLoadCache = {};
 
 function getDpr(exportScale) {
-  const info = wx.getSystemInfoSync();
-  return Math.max(info.pixelRatio || 2, exportScale || 2);
+  return Math.max(1, Number(exportScale || 2));
 }
 
 function pickFont(style, design) {
@@ -73,7 +74,10 @@ function drawVerticalGlyph(ctx, glyph, style, block, design, x, y, columnWidth) 
   ctx.save();
   ctx.globalAlpha = Math.max(0.05, Math.min(opacity, 1));
 
-  if (style.shadow || block.shadow) {
+  const shadowEnabled = typeof style.shadow === 'boolean' ? style.shadow : !!block.shadow;
+  const strokeEnabled = typeof style.stroke === 'boolean' ? style.stroke : !!block.stroke;
+
+  if (shadowEnabled) {
     ctx.shadowColor = style.shadowColor || block.shadowColor || 'rgba(80,54,30,0.25)';
     ctx.shadowBlur = Number(style.shadowBlur || block.shadowBlur || 10);
     ctx.shadowOffsetX = Number(style.shadowOffsetX || block.shadowOffsetX || 2);
@@ -90,7 +94,7 @@ function drawVerticalGlyph(ctx, glyph, style, block, design, x, y, columnWidth) 
     ctx.fillRect(x - 3, y - 2, columnWidth + 6, fontSize + 5);
   }
 
-  if (style.stroke || block.stroke) {
+  if (strokeEnabled) {
     ctx.strokeStyle = style.strokeColor || block.strokeColor || '#FFFFFF';
     ctx.lineWidth = Number(style.strokeWidth || block.strokeWidth || 2);
     ctx.strokeText(glyph, drawX, y);
@@ -240,43 +244,6 @@ function drawTextBlock(ctx, block, design) {
   let x = sourceX;
   let y = sourceY;
 
-  // ===== 先绘制整个文字块的背景色（铺满整个方块区域） =====
-  ctx.save();
-  if (rotation) {
-    ctx.translate(sourceX + maxWidth / 2, sourceY + boxHeight / 2);
-    ctx.rotate(rotation * Math.PI / 180);
-    x = -maxWidth / 2;
-    y = -boxHeight / 2;
-  }
-
-  // 检查是否有任意文字设置了背景色
-  const hasAnyBg = lines.some(l => l.runs.some(r => r.style && (r.style.background || r.style.backgroundColor)));
-  if (hasAnyBg) {
-    // 合并所有行的背景色，取第一个有背景色的作为整块背景
-    let bgStyle = null;
-    for (const l of lines) {
-      for (const r of l.runs) {
-        if (r.style && (r.style.background || r.style.backgroundColor)) {
-          bgStyle = r.style.background || r.style.backgroundColor;
-          break;
-        }
-      }
-      if (bgStyle) break;
-    }
-    if (bgStyle) {
-      ctx.fillStyle = bgStyle;
-      drawRoundRect(ctx, x, y, maxWidth, boxHeight, Math.min(12, maxWidth * 0.02));
-      ctx.fill();
-    }
-  } else {
-    // 无背景色时也绘制一个半透明白色底（让文字区域可见）
-    ctx.fillStyle = 'rgba(255, 248, 235, 0.45)';
-    drawRoundRect(ctx, x, y, maxWidth, boxHeight, Math.min(12, maxWidth * 0.02));
-    ctx.fill();
-  }
-  ctx.restore();
-
-  // ===== 重置坐标（旋转后需要重新计算） =====
   if (rotation) {
     ctx.save();
     ctx.translate(sourceX + maxWidth / 2, sourceY + boxHeight / 2);
@@ -303,7 +270,20 @@ function drawTextBlock(ctx, block, design) {
       ctx.save();
       ctx.globalAlpha = Math.max(0.05, Math.min(opacity, 1));
 
-      if (style.shadow || block.shadow) {
+      const bgStyle = style.background || style.backgroundColor;
+      if (bgStyle) {
+        ctx.shadowColor = 'transparent';
+        ctx.shadowBlur = 0;
+        ctx.shadowOffsetX = 0;
+        ctx.shadowOffsetY = 0;
+        ctx.fillStyle = bgStyle;
+        ctx.fillRect(cursorX - 2, y + (lineHeight - fontSize) / 2 - 2, textWidth + 4, fontSize + 4);
+      }
+
+      const shadowEnabled = typeof style.shadow === 'boolean' ? style.shadow : !!block.shadow;
+      const strokeEnabled = typeof style.stroke === 'boolean' ? style.stroke : !!block.stroke;
+
+      if (shadowEnabled) {
         ctx.shadowColor = style.shadowColor || block.shadowColor || 'rgba(80,54,30,0.25)';
         ctx.shadowBlur = Number(style.shadowBlur || block.shadowBlur || 10);
         ctx.shadowOffsetX = Number(style.shadowOffsetX || block.shadowOffsetX || 2);
@@ -315,7 +295,7 @@ function drawTextBlock(ctx, block, design) {
         ctx.shadowOffsetY = 0;
       }
 
-      if (style.stroke || block.stroke) {
+      if (strokeEnabled) {
         ctx.strokeStyle = style.strokeColor || block.strokeColor || '#FFFFFF';
         ctx.lineWidth = Number(style.strokeWidth || block.strokeWidth || 2);
         ctx.strokeText(run.text, cursorX, y + (lineHeight - fontSize) / 2);
@@ -379,9 +359,16 @@ function getImagePath(src) {
       resolve('');
       return;
     }
+    if (imagePathCache[src]) {
+      resolve(imagePathCache[src]);
+      return;
+    }
     wx.getImageInfo({
       src,
-      success: res => resolve(res.path),
+      success: res => {
+        imagePathCache[src] = res.path;
+        resolve(res.path);
+      },
       fail: () => resolve(src)
     });
   });
@@ -408,7 +395,7 @@ function getBackgroundImageRect(bg, width, height) {
   if (!sourceWidth || !sourceHeight) {
     return { x: 0, y: 0, width, height };
   }
-  const scale = Math.min(width / sourceWidth, height / sourceHeight);
+  const scale = Math.max(width / sourceWidth, height / sourceHeight);
   const drawWidth = sourceWidth * scale;
   const drawHeight = sourceHeight * scale;
   const offsetX = Number(bg.offsetX || 0) * width / PREVIEW_STAGE_RPX;
@@ -438,7 +425,7 @@ async function drawBackground(canvas, ctx, design, width, height) {
       if (!image) throw new Error('background image load failed');
       const sourceWidth = Number(bg.bgWidth || image.width || width);
       const sourceHeight = Number(bg.bgHeight || image.height || height);
-      const scale = Math.min(width / sourceWidth, height / sourceHeight);
+      const scale = Math.max(width / sourceWidth, height / sourceHeight);
       const drawWidth = sourceWidth * scale;
       const drawHeight = sourceHeight * scale;
       const offsetX = Number(bg.offsetX || 0) * width / PREVIEW_STAGE_RPX;
@@ -447,7 +434,7 @@ async function drawBackground(canvas, ctx, design, width, height) {
       const drawY = (height - drawHeight) / 2 + offsetY;
       ctx.drawImage(image, drawX, drawY, drawWidth, drawHeight);
       if (bg.blur) {
-        ctx.fillStyle = glassFillStyle(bg, 0.42);
+        ctx.fillStyle = glassFillStyle(bg, 0.24);
         ctx.fillRect(0, 0, width, height);
       }
       return;
@@ -456,15 +443,15 @@ async function drawBackground(canvas, ctx, design, width, height) {
   if (bg.type === 'gradient') {
     drawGradient(ctx, bg, width, height);
     if (bg.blur) {
-      ctx.fillStyle = glassFillStyle(bg, 0.22);
-      ctx.fillRect(28, 28, width - 56, height - 56);
+      ctx.fillStyle = glassFillStyle(bg, 0.24);
+      ctx.fillRect(0, 0, width, height);
     }
     drawPaperTexture(ctx, bg, width, height);
     return;
   }
   if (bg.blur) {
-    ctx.fillStyle = glassFillStyle(bg, 0.28);
-    ctx.fillRect(32, 32, width - 64, height - 64);
+    ctx.fillStyle = glassFillStyle(bg, 0.24);
+    ctx.fillRect(0, 0, width, height);
   }
   drawPaperTexture(ctx, bg, width, height);
 }
@@ -545,18 +532,26 @@ async function preloadFont(design) {
   const fonts = collectFonts(design);
   if (!fonts.length) return;
   await Promise.all(fonts.map(font => new Promise(resolve => {
+    const key = `${font.family}|${font.url}`;
+    if (fontLoadCache[key]) {
+      resolve();
+      return;
+    }
     wx.loadFontFace({
       family: font.family,
       source: `url("${font.url}")`,
       global: false,
-      success: resolve,
+      success: () => {
+        fontLoadCache[key] = true;
+        resolve();
+      },
       fail: resolve
     });
   })));
   design.fontFamily = design.fontFamily || 'CardSerif';
 }
 
-async function exportPoster(page, selector, sourceDesign, options) {
+async function drawPosterToCanvas(page, selector, sourceDesign, options) {
   const design = copy(sourceDesign);
   const fullWidth = Number((design.size && design.size.width) || 750);
   const fullHeight = Number((design.size && design.size.height) || 1000);
@@ -566,9 +561,11 @@ async function exportPoster(page, selector, sourceDesign, options) {
   const width = viewport.width;
   const height = viewport.height;
   const scale = Number((options && options.scale) || 2);
-  const dpr = getDpr(scale);
+  const dpr = Number((options && options.dpr) || getDpr(scale));
 
-  await preloadFont(design);
+  if (!options || options.preloadFonts !== false) {
+    await preloadFont(design);
+  }
   const node = await new Promise((resolve, reject) => {
     wx.createSelectorQuery().in(page).select(selector).fields({ node: true, size: true }).exec(res => {
       if (!res || !res[0] || !res[0].node) reject(new Error('canvas missing'));
@@ -592,6 +589,15 @@ async function exportPoster(page, selector, sourceDesign, options) {
   });
   await drawImageLayer(node, ctx, design.qrcode);
   ctx.restore();
+  return { node, width, height, scale };
+}
+
+async function exportPoster(page, selector, sourceDesign, options) {
+  const result = await drawPosterToCanvas(page, selector, sourceDesign, options);
+  const node = result.node;
+  const width = result.width;
+  const height = result.height;
+  const scale = result.scale;
 
   return new Promise((resolve, reject) => {
     wx.canvasToTempFilePath({
@@ -626,5 +632,6 @@ function _drawRoundedRect(ctx, x, y, w, h, r) {
 
 module.exports = {
   exportPoster,
+  drawPosterToCanvas,
   layoutText
 };

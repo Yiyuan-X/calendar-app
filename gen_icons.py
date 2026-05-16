@@ -325,16 +325,6 @@ def icon_heart(draw, s):
     ]
     draw.polygon(points, fill=c)
 
-def icon_coin(draw, s):
-    """金币/发工资"""
-    c = '#FFB300'
-    cx, cy = s // 2, s // 2
-    r = s // 2 - 6
-    draw.ellipse([cx-r, cy-r, cx+r, cy+r], outline=c, width=3)
-    draw.ellipse([cx-r+4, cy-r+4, cx+r-4, cy+r-4], outline=c, width=1)
-    # ¥ 符号简化为竖线
-    draw.line([cx, cy-6, cx, cy+6], fill=c, width=2)
-    draw.line([cx-4, cy-2, cx+4, cy-2], fill=c, width=1)
 
 def icon_star(draw, s):
     """星星/自定义"""
@@ -383,7 +373,6 @@ if __name__ == '__main__':
     print('\n--- 事件分类图标 ---')
     make_icon(icon_cake, 'cake.png')         # 生日
     make_icon(icon_heart, 'heart.png')       # 纪念日
-    make_icon(icon_coin, 'coin.png')         # 发工资
     make_icon(icon_star, 'star.png')         # 自定义
 
     # ==================== TabBar 图标（81×81 px） ====================
