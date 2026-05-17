@@ -2,11 +2,11 @@
 
 /* CSS 变量 — 精心调配的配色体系 */
 page {
-  --font-main: 'CardLXGWWenKai', 'PingFang SC', 'Noto Sans SC', sans-serif;
+  --font-main: 'CardLXGWWenKai', 'CardSourceHanSansSC', 'PingFang SC', 'Noto Sans SC', sans-serif;
   --font-serif: 'CardSourceHanSerifSC', 'Source Han Serif SC', 'Songti SC', serif;
   --font-title: 'CardMaShanZheng', 'CardXiaXingKai', 'Kaiti SC', cursive;
-  --font-zen: 'CardLXGWWenKai', 'CardLXGWWenKaiGB', 'Kaiti SC', serif;
-  --font-ui: 'CardSmileySans', 'PingFang SC', 'Noto Sans SC', sans-serif;
+  --font-zen: 'CardLXGWWenKai', 'CardSourceHanSansSC', 'CardLXGWWenKaiGB', 'Kaiti SC', serif;
+  --font-ui: 'CardSourceHanSansSC', 'CardSmileySans', 'PingFang SC', 'Noto Sans SC', sans-serif;
   --font-handwrite: 'CardYouZai', 'CardQiuHongKai', 'Kaiti SC', cursive;
   --font-poetry: 'CardJiangXiZhuoKai', 'CardQiuHongKai', 'Kaiti SC', serif;
 

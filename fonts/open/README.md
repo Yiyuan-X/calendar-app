@@ -1,5 +1,9 @@
 Open font assets for the Zen card editor.
 
+New font binaries should go to `/assets/fonts/` and be registered in
+`packageCard/common/fontRegistry.js` only after their commercial distribution
+rights are clear. Do not add unverified fonts to the runtime registry or UI.
+
 Only place fonts here when their license clearly permits commercial use and
 distribution in a WeChat mini program. Keep the exact filenames below because
 `packageCard/editor/editor.js` loads these paths through `wx.loadFontFace`.

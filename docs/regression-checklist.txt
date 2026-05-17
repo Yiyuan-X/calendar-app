@@ -1,0 +1,59 @@
+Engine Regression Checklist
+
+Scope
+- Run before merging changes to coordinate, transform, layout, grapheme, renderer, font loading, or editor selection code.
+- Capture before/after screenshots for preview and export when possible.
+
+Text & Grapheme
+- Emoji: single emoji, skin tone emoji, flag emoji, ZWJ family emoji.
+- Grapheme boundary: caret cannot enter the middle of emoji, ZWJ sequence, variation selector, or combining mark.
+- Mixed unicode: Chinese + English + punctuation + emoji in one line.
+- Combining marks: e + acute combining mark remains one selectable unit.
+
+Layout
+- Multiline: manual newline, auto wrap, trailing newline.
+- Mixed language line break: English long word, Chinese punctuation, emoji near wrap boundary.
+- LetterSpacing: 0, small positive, large positive.
+- Custom font: before loading, loading, after ready, failed fallback.
+- Font loading: caret/selection/export refresh after font ready.
+
+Selection & Caret
+- Tap hit testing at start/middle/end of line.
+- Drag selection across lines.
+- Selection handles on first and last grapheme.
+- Selection rects across line breaks.
+- Caret after paste, delete, undo, redo.
+- Delete before cursor deletes one grapheme, not one UTF-16 code unit.
+
+Transform
+- Rotate 0, 15, 45, 90 degrees.
+- Hit testing after rotation.
+- Selection handles after rotation.
+- Transform origin remains centered in preview and export.
+
+Renderer & Export
+- Export matches preview for ordinary horizontal text.
+- Export emoji is not split or spaced incorrectly.
+- Glyph bounds align with selection/caret layout in debug overlay.
+- Baseline is stable for Chinese + English + emoji + custom font.
+- Texture text remains on legacy path and does not regress.
+- Vertical text remains on legacy path and does not regress.
+
+Undo / Redo / Persistence
+- Type text, change font, undo, redo.
+- Move text block, undo, redo.
+- Resize text block, undo, redo.
+- Save draft and reopen preserves text, font, selection-safe content.
+
+Performance & Cache
+- Repeated typing does not grow measure/layout/glyph/font metrics caches beyond configured max size.
+- Repeated export does not grow caches without bound.
+- Cache hit rate is non-zero during repeated render/layout.
+- Layout cost and render cost stay within expected range for a multiline card.
+
+Debug Overlay
+- layoutBox: verifies text block bounds.
+- glyphBounds: verifies individual grapheme bounds.
+- baseline: verifies shared line baseline.
+- selectionRect: verifies selection overlay when editor hook is enabled.
+- transformOrigin: verifies rotation center.

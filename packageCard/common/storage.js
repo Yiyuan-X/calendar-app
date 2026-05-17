@@ -108,7 +108,8 @@ function getDraftSignature(design) {
     background: safe.background || {},
     blocks: safe.blocks || [],
     decorations: safe.decorations || [],
-    qrcode: safe.qrcode || {}
+    qrcode: safe.qrcode || {},
+    eraserStrokes: safe.eraserStrokes || []
   });
 }
 
@@ -123,6 +124,13 @@ function sanitizeDesign(design) {
     fontUrl: design.fontUrl || '',
     fontFamily: design.fontFamily || '',
     background: { ...(design.background || {}) },
+    eraserStrokes: (design.eraserStrokes || []).map(stroke => ({
+      size: Number(stroke.size || 36),
+      points: (stroke.points || []).map(point => ({
+        x: Number(point.x || 0),
+        y: Number(point.y || 0)
+      }))
+    })),
     blocks: (design.blocks || []).map(block => ({
       id: block.id,
       type: block.type,
@@ -142,6 +150,9 @@ function sanitizeDesign(design) {
       textDirection: block.textDirection,
       lineHeight: block.lineHeight,
       letterSpacing: block.letterSpacing,
+      textBackground: block.textBackground,
+      textBackgroundColor: block.textBackgroundColor,
+      textBackgroundRadius: block.textBackgroundRadius,
       stroke: !!block.stroke,
       strokeColor: block.strokeColor,
       strokeWidth: block.strokeWidth,
@@ -151,6 +162,7 @@ function sanitizeDesign(design) {
       shadowBlur: block.shadowBlur,
       shadowOffsetX: block.shadowOffsetX,
       shadowOffsetY: block.shadowOffsetY,
+      textTexture: block.textTexture ? { ...block.textTexture } : null,
       delta: block.delta || { ops: [] }
     })),
     decorations: design.decorations || [],

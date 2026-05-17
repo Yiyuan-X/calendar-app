@@ -1,7 +1,37 @@
 <view class="editor-page">
     <view class="stage-wrap">
-    <view class="poster-stage {{activePanel === 'background' && previewBackgroundImage ? 'bg-editing' : ''}}" style="width: {{previewStageWidth}}rpx; height: {{previewStageHeight}}rpx; background: {{previewBackground}};" bindtap="clearTextSelectionAndEditing">
+    <view class="poster-stage {{activePanel === 'background' && previewBackgroundImage ? 'bg-editing' : ''}} {{eraserActive ? 'erasing' : ''}}" style="width: {{previewStageWidth}}rpx; height: {{previewStageHeight}}rpx; background: {{previewBackground}};" bindtap="clearTextSelectionAndEditing">
       <canvas type="2d" id="previewCanvas" class="preview-canvas" style="width: {{previewStageWidth}}rpx; height: {{previewStageHeight}}rpx;"></canvas>
+      <view
+        wx:if="{{eraserActive}}"
+        class="eraser-touch-layer"
+        catchtouchstart="onEraserTouchStart"
+        catchtouchmove="onEraserTouchMove"
+        catchtouchend="onEraserTouchEnd"
+        catchtouchcancel="onEraserTouchEnd"
+        catchtap="noop"
+      >
+        <view class="eraser-hint">轻抹擦除</view>
+      </view>
+      <view
+        wx:if="{{eyedropperActive}}"
+        class="picker-touch-layer"
+        catchtouchstart="onEyedropperPick"
+        catchtap="noop"
+      >
+        <view class="eraser-hint">点取颜色</view>
+      </view>
+      <view
+        wx:if="{{textureAdjustActive}}"
+        class="texture-touch-layer"
+        catchtouchstart="onTextureTouchStart"
+        catchtouchmove="onTextureTouchMove"
+        catchtouchend="onTextureTouchEnd"
+        catchtouchcancel="onTextureTouchEnd"
+        catchtap="noop"
+      >
+        <view class="eraser-hint">拖动纹理</view>
+      </view>
       <view class="bg-image-container" wx:if="{{previewBackgroundImage && !useCanvasPreview}}" bindtouchstart="onBgTouchStart" bindtouchmove="onBgTouchMove" bindtouchend="onBgTouchEnd">
         <image
           class="stage-bg-image"
@@ -51,7 +81,7 @@
         >
         <view
           class="text-block {{activeBlockId === item.id ? 'active' : ''}} {{item.previewVerticalClass}} {{inlineEditing && activeBlockId === item.id ? 'editing' : ''}}"
-          style="width: {{item.previewWidth}}rpx; {{inlineEditing && activeBlockId === item.id ? item.editingHeightStyle : item.previewHeightStyle}} text-align: {{item.align}}; line-height: {{item.lineHeight}}; {{item.previewFontSizeStyle}} {{item.previewLetterSpacingStyle}} {{item.previewFontFamilyStyle}} {{item.previewTransformStyle}}"
+          style="{{inlineEditing && activeBlockId === item.id ? item.editingPreviewStyle : item.previewStyle}}"
           data-id="{{item.id}}"
           catchtap="editBlockText"
           catchtouchstart="onTextBlockTouchStart"
@@ -77,8 +107,13 @@
             adjust-position="{{false}}"
             cursor-color="transparent"
             cursor-spacing="24"
+            bindfocus="onTextareaFocus"
             bindinput="onActiveTextInput"
             bindblur="finishInlineEditing"
+            bindselectionchange="onTextSelection"
+            bindcompositionstart="onTextCompositionStart"
+            bindcompositionupdate="onTextCompositionUpdate"
+            bindcompositionend="onTextCompositionEnd"
             catchtouchstart="onTextBlockTouchStart"
             catchtouchmove="onTextBlockTouchMove"
             catchtouchend="onTextBlockTouchEnd"
@@ -242,12 +277,12 @@
           <view
             class="size-btn {{activeCanvasSizeId === 'custom' ? 'active' : ''}} custom-size-btn"
             bindtap="toggleCustomSizeInput"
-          >自定义</view>
+          >自由裁剪</view>
         </view>
-        <!-- 自定义尺寸输入 -->
+        <!-- 自由裁剪尺寸输入 -->
         <view wx:if="{{showCustomSizeInput}}" class="custom-size-row">
           <view class="custom-size-field">
-            <text class="custom-size-label">宽</text>
+            <text class="custom-size-label">裁剪宽</text>
             <input
               class="custom-size-input"
               type="number"
@@ -259,7 +294,7 @@
           </view>
           <text class="custom-size-times">×</text>
           <view class="custom-size-field">
-            <text class="custom-size-label">高</text>
+            <text class="custom-size-label">裁剪高</text>
             <input
               class="custom-size-input"
               type="number"
@@ -294,7 +329,7 @@
               data-id="{{item.id}}"
               catchtouchend="setFontFamily"
             >
-              <text class="font-btn-name">{{item.name}}</text>
+              <text class="font-btn-name" style="font-family: {{item.previewFamily}};">{{item.name}}</text>
               <text class="font-btn-mood">{{item.mood || item.scene || ''}}</text>
             </view>
           </view>
@@ -307,6 +342,11 @@
           <view class="style-subtab {{activeStyleTool === 'stroke' ? 'active' : ''}}" data-tool="stroke" bindtap="switchStyleTool">描边</view>
           <view class="style-subtab {{activeStyleTool === 'bg' ? 'active' : ''}}" data-tool="bg" bindtap="switchStyleTool">背景</view>
           <view class="style-subtab {{activeStyleTool === 'shadow' ? 'active' : ''}}" data-tool="shadow" bindtap="switchStyleTool">阴影</view>
+          <view class="style-subtab {{activeStyleTool === 'texture' ? 'active' : ''}}" data-tool="texture" bindtap="switchStyleTool">纹理</view>
+          <view class="style-subtab {{activeStyleTool === 'eraser' ? 'active' : ''}}" data-tool="eraser" bindtap="switchStyleTool">
+            <text class="eraser-tab-icon">◌</text>
+            <text>橡皮擦</text>
+          </view>
         </view>
 
         <!-- 文字：颜色 + 透明度 -->
@@ -314,6 +354,9 @@
           <view class="style-control-row">
             <text class="style-control-label">默认颜色</text>
             <view class="color-wheel" catchtap="pickTextColor"></view>
+            <button class="circle-tool {{eyedropperActive ? 'on' : ''}}" catchtap="toggleEyedropper">
+              <text>⌕</text>
+            </button>
             <view class="current-color" style="background: {{activeTextColor}};" catchtap="pickTextColor"></view>
           </view>
           <view class="style-control-row opacity-row">
@@ -352,7 +395,7 @@
             <view class="thin-line"></view>
             <view class="current-color" style="background: {{activeBackground}};" catchtap="pickBackgroundColor"></view>
           </view>
-          <text class="panel-label">背景颜色</text>
+          <text class="panel-label">文字背景</text>
           <view class="swatches color-scroll">
             <view class="swatch {{activeBackground === item ? 'active' : ''}}" wx:for="{{bgColors}}" wx:key="*this" style="background: {{item}};" data-value="{{item}}" catchtap="setBgColor"></view>
           </view>
@@ -382,16 +425,61 @@
             <slider class="slider neon" min="0" max="1" step="0.1" value="{{shadowStrength}}" bindchange="changeShadowStrength" activeColor="#DAA520" backgroundColor="#E8DCCB"></slider>
           </view>
         </view>
+
+        <view wx:elif="{{activeStyleTool === 'texture'}}">
+          <view class="texture-panel">
+            <view class="tool-strip">
+              <button class="seg texture-upload-btn" catchtap="chooseTextTexture">上传纹理</button>
+              <button class="seg texture-upload-btn {{textureAdjustActive ? 'active' : ''}}" catchtap="toggleTextureAdjust">拖动</button>
+            </view>
+            <view class="texture-preset-row">
+              <view class="texture-preset gold" data-preset="gold" catchtap="setTextTexturePreset">金箔</view>
+              <view class="texture-preset ink" data-preset="ink" catchtap="setTextTexturePreset">水墨</view>
+              <view class="texture-preset paper" data-preset="paper" catchtap="setTextTexturePreset">宣纸</view>
+              <view class="texture-preset landscape" data-preset="landscape" catchtap="setTextTexturePreset">山水</view>
+              <view class="texture-preset glow" data-preset="glow" catchtap="setTextTexturePreset">佛光</view>
+            </view>
+            <view class="layout-slider-row">
+              <text class="layout-slider-label">缩放</text>
+              <slider class="slider neon" min="0.3" max="3" step="0.05" value="{{textTextureScale}}" bindchanging="changeTextTextureScale" bindchange="changeTextTextureScale" activeColor="#DAA520" backgroundColor="#E8DCCB"></slider>
+            </view>
+            <view class="layout-slider-row">
+              <text class="layout-slider-label">透明</text>
+              <slider class="slider neon" min="0.1" max="1" step="0.05" value="{{textTextureOpacity}}" bindchanging="changeTextTextureOpacity" bindchange="changeTextTextureOpacity" activeColor="#DAA520" backgroundColor="#E8DCCB"></slider>
+            </view>
+            <view class="block-action-row layout-secondary-actions">
+              <button class="block-action danger" catchtap="clearTextTexture">清除纹理</button>
+            </view>
+          </view>
+        </view>
+
+        <view wx:elif="{{activeStyleTool === 'eraser'}}">
+          <view class="eraser-panel">
+            <view class="tool-strip eraser-tool-strip">
+              <button class="eraser-toggle-pill {{eraserActive ? 'on' : ''}}" catchtap="toggleEraser">
+                <text class="eraser-toggle-icon">◌</text>
+                <text class="eraser-state">{{eraserActive ? '正在擦除' : '轻触开启'}}</text>
+              </button>
+            </view>
+            <view class="eraser-size-row">
+              <view class="eraser-size-btn {{eraserSizePreset === 'small' ? 'active' : ''}}" data-preset="small" catchtap="setEraserPreset">小</view>
+              <view class="eraser-size-btn {{eraserSizePreset === 'medium' ? 'active' : ''}}" data-preset="medium" catchtap="setEraserPreset">中</view>
+              <view class="eraser-size-btn {{eraserSizePreset === 'large' ? 'active' : ''}}" data-preset="large" catchtap="setEraserPreset">大</view>
+            </view>
+            <view class="layout-slider-row eraser-slider-row">
+              <text class="layout-slider-label">大小</text>
+              <slider class="slider neon" min="8" max="120" step="1" value="{{eraserSize}}" bindchanging="changeEraserSize" bindchange="changeEraserSize" activeColor="#DAA520" backgroundColor="#E8DCCB"></slider>
+            </view>
+          </view>
+        </view>
       </view>
 
       <view wx:elif="{{activePanel === 'layout'}}" bindtouchstart="keepInlineEditing">
-        <view class="layout-format-row">
+        <!-- 字形 + 对齐：B / I / U + 左 / 中 / 右 + 垂直上 / 中 / 下 -->
+        <view class="align-row layout-align-row">
           <button class="format-key {{formats.bold ? 'on' : ''}}" data-name="bold" bindtap="format">B</button>
           <button class="format-key {{formats.italic ? 'on' : ''}}" data-name="italic" bindtap="format">I</button>
           <button class="format-key {{formats.underline ? 'on' : ''}}" data-name="underline" bindtap="format">U</button>
-        </view>
-        <!-- 对齐：左 / 中 / 右 + 垂直上 / 中 / 下 -->
-        <view class="align-row layout-align-row">
           <button class="align-key {{activeBlock.textDirection !== 'vertical' && activeBlock.align === 'left' ? 'on' : ''}}" data-align="left" bindtap="setAlign">
             <view class="align-icon"><view class="bar"></view><view class="bar"></view><view class="bar short"></view></view>
           </button>

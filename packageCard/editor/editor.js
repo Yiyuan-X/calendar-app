@@ -1,6 +1,15 @@
 const templates = require('../common/templates');
 const cardStorage = require('../common/storage');
 const renderer = require('../common/renderer');
+const autosave = require('../common/autosave');
+const exportQueue = require('../common/export-queue');
+const checkpoint = require('../common/engine-checkpoint');
+const benchmark = require('../common/performance-benchmark');
+const { mergeFontCatalog } = require('../common/fontRegistry');
+const { resolveFontFaceSource } = require('../common/fontLoader');
+const coord = require('../common/coordinate');
+const textLayout = require('../common/text-layout');
+const graphemeUtils = require('../common/grapheme-utils');
 
 const PREVIEW_STAGE_RPX = 680;
 const PREVIEW_SCALE = PREVIEW_STAGE_RPX / 750;
@@ -22,12 +31,11 @@ const DEFAULT_TEXT_BOX_Y = 280;
 const DEFAULT_TEXT_FONT_SIZE = 38;
 const FIRST_PASTE_TEXT_FONT_SIZE = 44;
 const FONT_CDN = 'https://cdn.jsdelivr.net/fontsource/fonts';
-const CUSTOM_FONT_ASSET_BASE = '/fonts/open';
 const EMPTY_TEXT_PLACEHOLDER = '输入文字...';
 const SELECTION_HIGHLIGHT_COLOR = 'rgba(255, 211, 78, 0.56)';
 const FONT_USAGE_KEY = 'card_tool_font_usage';
 const FONT_USAGE_SORT_THRESHOLD = 3;
-const FONT_CATALOG = [
+const BASE_FONT_CATALOG = [
   { id: 'system', name: '系统', family: 'PingFang SC, Noto Sans SC, sans-serif', previewFamily: 'PingFang SC, Noto Sans SC, sans-serif', token: 'ui', mood: '清晰', scene: '默认界面' },
   { id: 'zen', name: '雅宋', sourceName: '系统宋体', family: 'Songti SC, STSong, Noto Serif SC, serif', previewFamily: 'Songti SC, STSong, Noto Serif SC, serif', token: 'zen', mood: '温润克制', scene: '诗词、日签、正文' },
   { id: 'soft-round', name: '暖圆', sourceName: 'ZCOOL KuaiLe', family: 'CardMaoKenTangYuan', previewFamily: 'CardMaoKenTangYuan, PingFang SC, sans-serif', fontUrl: `${FONT_CDN}/zcool-kuaile@latest/chinese-simplified-400-normal.woff2`, token: 'soft', mood: '自然圆润', scene: '祝福、手账、轻松文案' },
@@ -42,20 +50,20 @@ const FONT_CATALOG = [
   { id: 'ease-script', name: '闲云', sourceName: 'ZCOOL KuaiLe', family: 'CardYouZai', previewFamily: 'CardYouZai, Kaiti SC, cursive', fontUrl: `${FONT_CDN}/zcool-kuaile@latest/chinese-simplified-400-normal.woff2`, token: 'handwrite', mood: '轻松自然', scene: '闲适语录、手写短句' },
   { id: 'brush-title', name: '墨韵', sourceName: 'Ma Shan Zheng', family: 'CardMaShanZheng', previewFamily: 'CardMaShanZheng, cursive', fontUrl: `${FONT_CDN}/ma-shan-zheng@latest/chinese-simplified-400-normal.woff2`, token: 'title', mood: '毛笔国风', scene: '封面、国风标题' },
   { id: 'guofeng', name: '国风', sourceName: 'Long Cang', family: 'CardXiaXingKai', previewFamily: 'CardXiaXingKai, Kaiti SC, cursive', fontUrl: `${FONT_CDN}/long-cang@latest/chinese-simplified-400-normal.woff2`, token: 'title', mood: '行楷海报', scene: '海报、签名、标题' },
-  { id: 'clear-kai', name: '清楷', sourceName: 'Klee One', family: 'CardKleeOne', previewFamily: 'CardKleeOne, Kaiti SC, serif', fontUrl: `${FONT_CDN}/klee-one@latest/japanese-400-normal.woff2`, token: 'zen', mood: '清秀纸笔', scene: '短句、便签、手写旁注' },
-  { id: 'round-zen', name: '圆融', sourceName: 'Zen Maru Gothic', family: 'CardZenMaruGothic', previewFamily: 'CardZenMaruGothic, PingFang SC, sans-serif', fontUrl: `${FONT_CDN}/zen-maru-gothic@latest/japanese-400-normal.woff2`, token: 'soft', mood: '圆润安定', scene: '温柔标题、祝福卡片' },
+  { id: 'clear-kai', name: '清楷', sourceName: 'ZCOOL XiaoWei', family: 'CardKleeOne', previewFamily: 'CardKleeOne, Kaiti SC, serif', fontUrl: `${FONT_CDN}/zcool-xiaowei@latest/chinese-simplified-400-normal.woff2`, token: 'zen', mood: '清秀纸笔', scene: '短句、便签、手写旁注' },
+  { id: 'round-zen', name: '圆融', sourceName: 'ZCOOL KuaiLe', family: 'CardZenMaruGothic', previewFamily: 'CardZenMaruGothic, PingFang SC, sans-serif', fontUrl: `${FONT_CDN}/zcool-kuaile@latest/chinese-simplified-400-normal.woff2`, token: 'soft', mood: '圆润安定', scene: '温柔标题、祝福卡片' },
   { id: 'old-book', name: '书卷', sourceName: 'Noto Serif SC', family: 'CardIMing', previewFamily: 'CardIMing, Songti SC, serif', fontUrl: `${FONT_CDN}/noto-serif-sc@latest/chinese-simplified-400-normal.woff2`, token: 'sutra', mood: '旧书刻本', scene: '古籍、古文、注疏' },
-  { id: 'temple-serif', name: '唐风', sourceName: 'Kaisei Tokumin', family: 'CardKaiseiTokumin', previewFamily: 'CardKaiseiTokumin, Songti SC, serif', fontUrl: `${FONT_CDN}/kaisei-tokumin@latest/japanese-400-normal.woff2`, token: 'serif', mood: '端正典雅', scene: '节气标题、仪式感正文' },
+  { id: 'temple-serif', name: '唐风', sourceName: 'Noto Serif SC', family: 'CardKaiseiTokumin', previewFamily: 'CardKaiseiTokumin, Songti SC, serif', fontUrl: `${FONT_CDN}/noto-serif-sc@latest/chinese-simplified-400-normal.woff2`, token: 'serif', mood: '端正典雅', scene: '节气标题、仪式感正文' },
   { id: 'glow-sans', name: '素净', sourceName: 'Noto Sans SC', family: 'CardGlowSans', previewFamily: 'CardGlowSans, PingFang SC, sans-serif', fontUrl: `${FONT_CDN}/noto-sans-sc@latest/chinese-simplified-400-normal.woff2`, token: 'ui', mood: '干净松弛', scene: '现代说明、轻量信息' },
   { id: 'cw-kai', name: '古楷', sourceName: 'ZCOOL XiaoWei', family: 'CardCwKai', previewFamily: 'CardCwKai, Kaiti SC, serif', fontUrl: `${FONT_CDN}/zcool-xiaowei@latest/chinese-simplified-400-normal.woff2`, token: 'poetry', mood: '古朴楷意', scene: '碑帖感短文、传统题跋' },
   { id: 'noto-serif', name: '端雅', sourceName: 'Noto Serif SC', family: 'CardNotoSerifSCOpen', previewFamily: 'CardNotoSerifSCOpen, Songti SC, serif', fontUrl: `${FONT_CDN}/noto-serif-sc@latest/chinese-simplified-400-normal.woff2`, token: 'serif', mood: '稳重端雅', scene: '通用长文、节气说明' },
   { id: 'noto-sans', name: '明净', sourceName: 'Noto Sans SC', family: 'CardNotoSansSCOpen', previewFamily: 'CardNotoSansSCOpen, PingFang SC, sans-serif', fontUrl: `${FONT_CDN}/noto-sans-sc@latest/chinese-simplified-400-normal.woff2`, token: 'ui', mood: '明净清晰', scene: '信息层级、说明文字' },
-  { id: 'en-zen', name: '古典英文', sourceName: 'Garamond', family: 'Garamond, "Times New Roman", serif', previewFamily: 'Garamond, "Times New Roman", serif', token: 'serif', mood: '安静古典', scene: '英文日签、短句落款' },
-  { id: 'en-magazine', name: '高级杂志', sourceName: 'Playfair Display', family: '"Playfair Display", Georgia, serif', previewFamily: '"Playfair Display", Georgia, serif', token: 'title', mood: '优雅杂志', scene: '英文标题、封面' },
-  { id: 'en-minimal', name: '极简海报', sourceName: 'Inter', family: 'Inter, Arial, sans-serif', previewFamily: 'Inter, Arial, sans-serif', token: 'ui', mood: '现代留白', scene: '极简英文、辅助信息' },
-  { id: 'en-oriental', name: '东方文艺', sourceName: 'Cormorant Garamond', family: '"Cormorant Garamond", Garamond, serif', previewFamily: '"Cormorant Garamond", Garamond, serif', token: 'poetry', mood: '文艺纤细', scene: '诗句、英文副标题' },
+  { id: 'en-zen', name: '古典英文', sourceName: 'EB Garamond', family: 'CardEBGaramond', previewFamily: 'CardEBGaramond, "Times New Roman", serif', fontUrl: `${FONT_CDN}/eb-garamond@latest/latin-400-normal.woff2`, token: 'serif', mood: '安静古典', scene: '英文日签、短句落款' },
+  { id: 'en-magazine', name: '高级杂志', sourceName: 'Playfair Display', family: 'CardPlayfairDisplay', previewFamily: 'CardPlayfairDisplay, Georgia, serif', fontUrl: `${FONT_CDN}/playfair-display@latest/latin-400-normal.woff2`, token: 'title', mood: '优雅杂志', scene: '英文标题、封面' },
+  { id: 'en-minimal', name: '极简海报', sourceName: 'Inter', family: 'CardInter', previewFamily: 'CardInter, Arial, sans-serif', fontUrl: `${FONT_CDN}/inter@latest/latin-400-normal.woff2`, token: 'ui', mood: '现代留白', scene: '极简英文、辅助信息' },
+  { id: 'en-oriental', name: '东方文艺', sourceName: 'Cormorant Garamond', family: 'CardCormorantGaramond', previewFamily: 'CardCormorantGaramond, Garamond, serif', fontUrl: `${FONT_CDN}/cormorant-garamond@latest/latin-400-normal.woff2`, token: 'poetry', mood: '文艺纤细', scene: '诗句、英文副标题' },
   { id: 'en-cultivate', name: '人文英文', sourceName: 'Times', family: '"Times New Roman", Times, serif', previewFamily: '"Times New Roman", Times, serif', token: 'serif', mood: '经典克制', scene: '人文英文、正文' },
-  { id: 'en-landscape', name: '山水英文', sourceName: 'Didot', family: 'Didot, "Bodoni 72", "Bodoni MT", serif', previewFamily: 'Didot, "Bodoni 72", "Bodoni MT", serif', token: 'title', mood: '纤细空灵', scene: '山水封面、留白标题' },
+  { id: 'en-landscape', name: '山水英文', sourceName: 'Playfair Display', family: 'CardLandscapeSerif', previewFamily: 'CardLandscapeSerif, "Bodoni 72", "Times New Roman", serif', fontUrl: `${FONT_CDN}/playfair-display@latest/latin-400-normal.woff2`, token: 'title', mood: '纤细空灵', scene: '山水封面、留白标题' },
 
   // ===== 隐藏字体：原风险字体，不在前端显示，仅用于旧数据兼容和回退映射 =====
   { id: 'hanyi-hongyikai', name: '温雅楷书', sourceName: '温雅楷书', family: 'CardLXGWWenKai, Kaiti SC, serif', previewFamily: 'CardLXGWWenKai, Kaiti SC, serif', token: 'zen', mood: '温润克制', scene: '诗词、日签、正文', hidden: true },
@@ -73,6 +81,7 @@ const FONT_CATALOG = [
   { id: 'ziyou-fuchen', name: '墨韵原体', sourceName: '字由墨韵', family: 'CardMaShanZheng, cursive', previewFamily: 'CardMaShanZheng, cursive', token: 'title', mood: '毛笔国风', scene: '封面、国风标题', hidden: true },
   { id: 'honglei-xingshu', name: '鸿雷行书', sourceName: '鸿雷行书简体', family: 'CardXiaXingKai, Kaiti SC, cursive', previewFamily: 'CardXiaXingKai, Kaiti SC, cursive', token: 'title', mood: '行楷海报', scene: '海报、签名、标题', hidden: true }
 ];
+const FONT_CATALOG = mergeFontCatalog(BASE_FONT_CATALOG);
 const FONT_ID_ALIASES = {
   zcoolkuaile: 'soft-round',
   mashanzheng: 'brush-title',
@@ -161,6 +170,7 @@ function getSortedFonts() {
     .sort((a, b) => {
       if (a.id === 'system') return -1;
       if (b.id === 'system') return 1;
+      if (!!a.managed !== !!b.managed) return a.managed ? -1 : 1;
       const aCount = Number(a._usage.count || 0);
       const bCount = Number(b._usage.count || 0);
       const aFrequent = aCount >= FONT_USAGE_SORT_THRESHOLD;
@@ -273,6 +283,30 @@ function deltaToText(delta) {
 
 function getFirstTextAttrs(block) {
   return block && block.delta && block.delta.ops && block.delta.ops[0] ? (block.delta.ops[0].attributes || {}) : {};
+}
+
+function collectDesignFonts(design) {
+  const map = {};
+  if (design && design.fontUrl && design.fontFamily) {
+    map[design.fontFamily] = { id: design.fontFamily, family: design.fontFamily, fontUrl: design.fontUrl };
+  }
+  ((design && design.blocks) || []).forEach(block => {
+    if (block.fontUrl && block.fontFamily) {
+      map[block.fontFamily] = { id: block.fontFamily, family: block.fontFamily, fontUrl: block.fontUrl };
+    }
+    const ops = block && block.delta && Array.isArray(block.delta.ops) ? block.delta.ops : [];
+    ops.forEach(op => {
+      const attrs = (op && op.attributes) || {};
+      if (attrs.fontUrl && attrs.fontFamily) {
+        map[attrs.fontFamily] = {
+          id: attrs.fontId || attrs.fontFamily,
+          family: attrs.fontFamily,
+          fontUrl: attrs.fontUrl
+        };
+      }
+    });
+  });
+  return Object.keys(map).map(key => map[key]);
 }
 
 function getBlockFontSize(block, fallback) {
@@ -398,7 +432,11 @@ function getBackgroundImageLayout(bg, design) {
       height: Math.max(1, Math.round(stage.height * imageScale))
     };
   }
-  const scale = Math.min(stage.width / sourceWidth, stage.height / sourceHeight) * imageScale;
+  const fit = design && design.size && design.size.preset === 'custom' ? 'cover' : 'contain';
+  const baseScale = fit === 'cover'
+    ? Math.max(stage.width / sourceWidth, stage.height / sourceHeight)
+    : Math.min(stage.width / sourceWidth, stage.height / sourceHeight);
+  const scale = baseScale * imageScale;
   return {
     width: Math.max(1, Math.round(sourceWidth * scale)),
     height: Math.max(1, Math.round(sourceHeight * scale))
@@ -648,12 +686,13 @@ function isVerticalTextBlock(block) {
 function getTextPanelState(block, fallback) {
   const attrs = getFirstTextAttrs(block);
   const font = findFontForBlock(block, attrs);
+  const blockBackground = block && (block.textBackgroundColor || block.textBackground);
   return {
     formats: getTextFormats(block),
     fontSize: getBlockFontSize(block, fallback && fallback.fontSize),
     textOpacity: Number(attrs.opacity || 1),
     activeTextColor: attrs.color || (fallback && fallback.activeTextColor) || '#4B4038',
-    activeBackground: attrs.background || attrs.backgroundColor || (fallback && fallback.activeBackground) || '#FFF2C7',
+    activeBackground: attrs.background || attrs.backgroundColor || blockBackground || (fallback && fallback.activeBackground) || '#FFF2C7',
     activeStrokeColor: block.strokeColor || (fallback && fallback.activeStrokeColor) || '#FFFFFF',
     activeFontId: (font && font.id) || (fallback && fallback.activeFontId) || 'system',
     shadowStrength: block.shadow ? Number(block.shadowStrength || (fallback && fallback.shadowStrength) || 0.65) : 0
@@ -939,34 +978,7 @@ function deltaToSelectionFlowNodes(delta, block, start, end) {
 function hydrateDesign(design) {
   const copyDesign = clone(design);
   const previewScale = getPreviewScales(copyDesign);
-  const textScale = previewScale.x;
-  copyDesign.blocks = (copyDesign.blocks || []).map(block => {
-    const height = getBlockTextHeight(block);
-    const attrs = getFirstTextAttrs(block);
-    const fontFamily = block.fontFamily || attrs.fontFamily || '';
-    const previewBlock = { ...block, placeholder: block.placeholder || EMPTY_TEXT_PLACEHOLDER, _previewScale: previewScale };
-    return {
-      ...block,
-      placeholder: block.placeholder || EMPTY_TEXT_PLACEHOLDER,
-      height,
-      previewX: Math.round((block.x || 0) * previewScale.x),
-      previewY: Math.round((block.y || 0) * previewScale.y),
-      previewWidth: Math.round((block.width || 500) * previewScale.x),
-      previewHeight: Math.round(height * previewScale.y),
-      previewOverlayHeight: Math.round(height * previewScale.y),
-      previewHeightStyle: `height:${Math.round(height * previewScale.y)}rpx;`,
-      // 编辑模式锁定高度：用 max(当前高度, 200rpx) 固定，防止 editor 渲染导致 movable-view 尺寸跳动
-      editingHeightStyle: `height:${Math.max(Math.round(height * previewScale.y), 200)}rpx;`,
-      previewFontFamilyStyle: fontFamily ? `font-family:${fontFamily};` : '',
-      previewTransformStyle: block.rotation ? `transform: rotate(${Number(block.rotation || 0)}deg);` : '',
-      previewVerticalClass: isVerticalTextBlock(block) ? 'vertical' : '',
-      previewFontSizeStyle: `font-size:${Math.round(getBlockFontSize(block) * textScale)}rpx;`,
-      previewLetterSpacingStyle: `letter-spacing:${Math.round(Number(block.letterSpacing || 0) * textScale * 10) / 10}rpx;`,
-      verticalAlign: block.verticalAlign || 'top',
-      previewNodes: deltaToNodes(block.delta, previewBlock),
-      plainText: deltaToText(block.delta)
-    };
-  });
+  copyDesign.blocks = (copyDesign.blocks || []).map(block => hydrateTextBlockPreview(block, previewScale));
   // 计算二维码预览坐标（用于 movable-view 定位）
   var qr = copyDesign.qrcode;
   const qrItems = [];
@@ -1002,7 +1014,66 @@ function hydrateDesign(design) {
     return qrItem;
   });
   copyDesign.qrItems = qrItems;
+  copyDesign.eraserStrokes = copyDesign.eraserStrokes || [];
   return copyDesign;
+}
+
+function hydrateTextBlockPreview(block, previewScale) {
+  const scale = previewScale || { x: PREVIEW_SCALE, y: PREVIEW_SCALE };
+  const textScale = scale.x;
+  const height = getBlockTextHeight(block);
+  const attrs = getFirstTextAttrs(block);
+  const fontFamily = block.fontFamily || attrs.fontFamily || '';
+  const blockBackground = block.textBackgroundColor || block.textBackground || '';
+  const blockBackgroundRadius = Math.max(Number(block.textBackgroundRadius || 8), 0);
+  const previewBlock = { ...block, placeholder: block.placeholder || EMPTY_TEXT_PLACEHOLDER, _previewScale: scale };
+  return {
+    ...block,
+    placeholder: block.placeholder || EMPTY_TEXT_PLACEHOLDER,
+    height,
+    previewX: Math.round((block.x || 0) * scale.x),
+    previewY: Math.round((block.y || 0) * scale.y),
+    previewWidth: Math.round((block.width || 500) * scale.x),
+    previewHeight: Math.round(height * scale.y),
+    previewOverlayHeight: Math.round(height * scale.y),
+    previewHeightStyle: `height:${Math.round(height * scale.y)}rpx;`,
+    // 编辑模式锁定高度：用 max(当前高度, 200rpx) 固定，防止 editor 渲染导致 movable-view 尺寸跳动
+    editingHeightStyle: `height:${Math.max(Math.round(height * scale.y), 200)}rpx;`,
+    previewFontFamilyStyle: fontFamily ? `font-family:${fontFamily};` : '',
+    previewTransformStyle: block.rotation ? `transform: rotate(${Number(block.rotation || 0)}deg);` : '',
+    previewVerticalClass: isVerticalTextBlock(block) ? 'vertical' : '',
+    previewFontSizeStyle: `font-size:${Math.round(getBlockFontSize(block) * textScale)}rpx;`,
+    previewLetterSpacingStyle: `letter-spacing:${Math.round(Number(block.letterSpacing || 0) * textScale * 10) / 10}rpx;`,
+    // 预生成完整 style 字符串，避免 WXML 中拼接 {{}} 三元表达式触发 CSS linter 误报
+    previewStyle: [
+      `width:${Math.round((block.width || 500) * scale.x)}rpx`,
+      `height:${Math.round(height * scale.y)}rpx`,
+      `text-align:${block.align || 'left'}`,
+      `line-height:${block.lineHeight || 1.6}`,
+      `font-size:${Math.round(getBlockFontSize(block) * textScale)}rpx`,
+      Number(block.letterSpacing || 0) ? `letter-spacing:${Math.round(Number(block.letterSpacing || 0) * textScale * 10) / 10}rpx` : '',
+      fontFamily ? `font-family:${fontFamily}` : '',
+      blockBackground ? `background:${blockBackground}` : '',
+      blockBackground ? `border-radius:${Math.round(blockBackgroundRadius * scale.x)}rpx` : '',
+      block.rotation ? `transform:rotate(${Number(block.rotation || 0)}deg)` : ''
+    ].filter(Boolean).join(';'),
+    // 编辑态 style：高度用 max(当前高度, 200rpx) 固定，防止 editor 渲染导致 movable-view 尺寸跳动
+    editingPreviewStyle: [
+      `width:${Math.round((block.width || 500) * scale.x)}rpx`,
+      `height:${Math.max(Math.round(height * scale.y), 200)}rpx`,
+      `text-align:${block.align || 'left'}`,
+      `line-height:${block.lineHeight || 1.6}`,
+      `font-size:${Math.round(getBlockFontSize(block) * textScale)}rpx`,
+      Number(block.letterSpacing || 0) ? `letter-spacing:${Math.round(Number(block.letterSpacing || 0) * textScale * 10) / 10}rpx` : '',
+      fontFamily ? `font-family:${fontFamily}` : '',
+      blockBackground ? `background:${blockBackground}` : '',
+      blockBackground ? `border-radius:${Math.round(blockBackgroundRadius * scale.x)}rpx` : '',
+      block.rotation ? `transform:rotate(${Number(block.rotation || 0)}deg)` : ''
+    ].filter(Boolean).join(';'),
+    verticalAlign: block.verticalAlign || 'top',
+    previewNodes: deltaToNodes(block.delta, previewBlock),
+    plainText: deltaToText(block.delta)
+  };
 }
 
 function createBlankDesign(template) {
@@ -1031,6 +1102,7 @@ function createBlankDesign(template) {
   ];
   design.decorations = [];
   design.qrcode = { ...(design.qrcode || {}), visible: false, src: '' };
+  design.eraserStrokes = [];
   return design;
 }
 
@@ -1084,6 +1156,7 @@ Page({
     caretY: 0,
     caretHeight: 36,
     inlineEditing: false,
+    interactionMode: 'idle',
     selectionStart: 0,
     selectionEnd: 0,
     activePanel: 'background',
@@ -1091,20 +1164,24 @@ Page({
     textInputFocus: false,
     isIOS: false,
     formats: {},
-    colors: getSortedColors(['#8B5A2B', '#A67C52', '#B8860B', '#CD853F', '#D2691E', '#DAA520', '#CC7722', '#BC6C25', '#A0522D', '#8B4513', '#704214', '#5C3317', '#3D3028', '#F7C7CE', '#FFB6A3', '#FF9A7A', '#FF867D', '#FF7F50', '#FF6347', '#FF5151', '#FF173D', '#E8A87C', '#C9915E', '#A77E50', '#FFFFFF', '#F4EEE6', '#C9AA84', '#8E7054', '#4B3428', '#17100D']),
-    bgColors: ['#FFFFFF', '#FFF2C7', '#FFE4B5', '#FFDAB9', '#F7E1D7', '#E8D7C0', '#F5E6D3', '#E9D5BF', '#D4B896', '#C4A574', '#FFF0F0', '#FFD4D4', '#DDEEDB', '#E4F3D8', '#3D3028'],
+    colors: getSortedColors(['#C94B3E', '#FF6B35', '#DAA520', '#17100D', '#6E6E73', '#FFFFFF', '#4F8A5B', '#2CA6A4', '#2F6FDB', '#8A6AA8', '#8B5A2B', '#A67C52', '#B8860B', '#CD853F', '#D2691E', '#CC7722', '#BC6C25', '#A0522D', '#8B4513', '#704214', '#5C3317', '#3D3028', '#F7C7CE', '#FFB6A3', '#FF9A7A', '#FF867D', '#FF7F50', '#FF6347', '#FF5151', '#FF173D', '#E8A87C', '#C9915E', '#A77E50', '#F4EEE6', '#C9AA84', '#8E7054', '#4B3428']),
+    bgColors: ['#FFFFFF', '#FFF2C7', '#FFE4B5', '#FFDAB9', '#F7F5F1', '#D8D4CC', '#3D3028', '#F7E1D7', '#E8D7C0', '#F5E6D3', '#E9D5BF', '#D4B896', '#C4A574', '#FFF0F0', '#FFD4D4', '#FFE2C7', '#FFF2A8', '#DDEEDB', '#D8F0EA', '#DDEBFF', '#E9DDF7', '#E4F3D8'],
     activeShadowColor: 'rgba(72,48,26,0.24)',
     bgOpacity: 0.8,
     backgroundColors: ['#F7F1EA', '#FFF7E8', '#FFF2D8', '#F6E7D1', '#EAF1E7', '#E8E8D6', '#F3DED8', '#E9D7BF', '#D8C7AE', '#BFA07A', '#8B6F55', '#314538'],
     showSolidPalette: false,
     backgroundPaletteMode: 'solid',
     fonts: getSortedFonts(),
+    fontReadyState: {},
+    fontMetricsVersion: 0,
+    layoutVersion: 0,
     inputText: '',
     activeBackground: '#FFF2C7',
     activeTextColor: '#4B4038',
     activeStrokeColor: '#FFFFFF',
     activeFontId: 'system',
     fontSize: 32,
+    draftText: '',
     textOpacity: 1,
     shadowStrength: 0,
     useCanvasPreview: true,
@@ -1146,10 +1223,19 @@ Page({
   // 二维码交互状态
   qrcodeActive: false,
   activeQrId: '',
-  qrItems: [],
-  qrPreviewX: 0,
-  qrPreviewY: 0,
-  qrPreviewSize: 88
+    qrItems: [],
+    qrPreviewX: 0,
+    qrPreviewY: 0,
+    qrPreviewSize: 88,
+    eraserActive: false,
+    eraserSize: 36,
+    eraserSizePreset: 'medium',
+    canUndoEraser: false,
+    canRedoEraser: false,
+    eyedropperActive: false,
+    textureAdjustActive: false,
+    textTextureScale: 1,
+    textTextureOpacity: 1
 },
 
   // ==================== 撤销 / 重做 历史栈 ====================
@@ -1157,8 +1243,16 @@ Page({
   _historyIndex: -1,
   _maxHistory: 30,
 
+  ensureReliabilityLayer() {
+    if (!this._autosave) this._autosave = autosave.createAutosave({ delay: 1200 });
+    if (!this._exportQueue) this._exportQueue = exportQueue.createExportQueue({ maxPixels: 750 * 1000 * 4, cooldownMs: 1200 });
+    if (!this._checkpointManager) this._checkpointManager = checkpoint.createCheckpointManager({ limit: 12 });
+    if (!this._benchmark) this._benchmark = benchmark.createBenchmark();
+  },
+
   /** 保存设计快照到历史栈 */
   _saveHistory(design) {
+    this.ensureReliabilityLayer();
     design = design || this.data.design;
     if (!design || !design.blocks) return;
     const snapshot = normalizeHistoryDesign(design);
@@ -1176,6 +1270,8 @@ Page({
       this._historyIndex++;
     }
     this._updateUndoRedoState();
+    this._checkpointManager.snapshot('history', snapshot);
+    this._autosave.schedule(snapshot, 'history');
   },
 
   _applyHistorySnapshot(snapshot, activeId) {
@@ -1210,7 +1306,9 @@ Page({
       bgDisplayHeight: bgLayout.height,
       previewStageWidth: stage.width,
       previewStageHeight: stage.height,
-      activeCanvasSizeId: detectCanvasSizeId(hydrated.size)
+      activeCanvasSizeId: detectCanvasSizeId(hydrated.size),
+      canUndoEraser: (hydrated.eraserStrokes || []).length > 0,
+      canRedoEraser: false
     }, () => this.schedulePreviewRender(0));
   },
 
@@ -1220,6 +1318,10 @@ Page({
       wx.showToast({ title: '没有可撤销的操作', icon: 'none' });
       return;
     }
+    // 先 flush 当前所有 draft 状态，确保不丢失
+    this.flushAllPendingState();
+    // 再清理所有 draft timer，防止旧 timer 触发后覆盖撤销结果
+    this.clearPendingTimers();
     this._historyIndex--;
     const prevDesign = this._history[this._historyIndex];
     if (prevDesign) {
@@ -1239,6 +1341,10 @@ Page({
       wx.showToast({ title: '没有可重做的操作', icon: 'none' });
       return;
     }
+    // 先 flush 当前所有 draft 状态，确保不丢失
+    this.flushAllPendingState();
+    // 再清理所有 draft timer，防止旧 timer 触发后覆盖重做结果
+    this.clearPendingTimers();
     this._historyIndex++;
     const nextDesign = this._history[this._historyIndex];
     if (nextDesign) {
@@ -1260,10 +1366,251 @@ Page({
     });
   },
 
+  // ===================================================================
+  // 统一状态提交系统 (Flush Pipeline)
+  //
+  // 状态三阶段：Draft → Commit → Persist
+  //   Draft:   JS 私有变量，不经过 setData，高性能中间态
+  //   Commit:  通过 setData 写入 this.data，视图同步
+  //   Persist: _saveHistory / saveDraft / goExport 等持久化操作
+  //
+  // 核心规则：
+  //   任何 Persist 操作前必须先 flushAllPendingState()
+  //   确保 this.data 中的 design 是最新且一致的
+  // ===================================================================
+
+  /**
+   * Flush 1: 提交输入草稿到 design
+   *
+   * 将 _draftText 同步写入 design.blocks[activeBlock].delta
+   * 代替异步的 scheduleInputDraftCommit + commitInputDraftToDesign
+   *
+   * 关键：使用同步 setData（通过 callback 确认），而非异步 timer
+   */
+  flushInputDraft() {
+    clearTimeout(this._inputCommitTimer);
+    this._inputCommitTimer = null;
+    this._textComposing = false;
+
+    if (!this.data.inlineEditing || !this.data.activeBlockId) return;
+    const block = this.data.activeBlock || {};
+    const text = typeof this._draftText === 'string' ? this._draftText : this.data.activePlainText || '';
+    if (deltaToText(block.delta) === text) return;
+
+    const delta = this.rebuildDeltaWithText(block.delta, text);
+    // 直接走 updateActiveBlock 同步提交，不走 timer
+    this.updateActiveBlock({ delta }, { silentEditor: true, renderDelay: 0, preserveInputState: true });
+    // 清理 draft 指针，防止后续 timer 或 undo 重复提交
+    this._draftText = null;
+    this._draftCursor = null;
+  },
+
+  /**
+   * Flush 2: 立即执行 queueGestureFrame 中待定的 setData
+   *
+   * 取消 16ms timer，直接同步执行待定的 setData
+   * 确保 design.blocks / activeBlock / qrItems 等是最新的
+   */
+  flushGestureDraft() {
+    if (this._gestureFrameTimer) {
+      clearTimeout(this._gestureFrameTimer);
+      this._gestureFrameTimer = null;
+    }
+    const nextUpdates = this._gesturePendingUpdates;
+    this._gesturePendingUpdates = null;
+    this._gesturePendingRenderDelay = null;
+    if (!nextUpdates || !Object.keys(nextUpdates).length) return;
+    // 同步执行待定的 setData，不延迟
+    this.setData(nextUpdates);
+  },
+
+  /**
+   * Flush 3: 提交 QR 草稿数据
+   *
+   * QR 拖动/缩放期间，修改保存在 _qrDraft 中（不直接修改 this.data.design）
+   * 此处将 _qrDraft 中的变更同步写入 design
+   */
+  flushQrDraft() {
+    const draft = this._qrDraft;
+    if (!draft) return;
+    this._qrDraft = null;
+
+    const design = this.data.design;
+    if (draft.type === 'main') {
+      if (design.qrcode) {
+        design.qrcode.x = draft.x != null ? draft.x : design.qrcode.x;
+        design.qrcode.y = draft.y != null ? draft.y : design.qrcode.y;
+        design.qrcode.size = draft.size != null ? draft.size : design.qrcode.size;
+      }
+    } else if (draft.type === 'copy' && draft.id) {
+      const qrIndex = (design.qrcodes || []).findIndex(item => item.id === draft.id);
+      if (qrIndex >= 0) {
+        if (draft.x != null) design.qrcodes[qrIndex].x = draft.x;
+        if (draft.y != null) design.qrcodes[qrIndex].y = draft.y;
+        if (draft.size != null) design.qrcodes[qrIndex].size = draft.size;
+      }
+    }
+    // 通过 setData 将 QR 变更正式写入 data
+    const updates = { 'design.qrcode': design.qrcode };
+    if (design.qrcodes && design.qrcodes.length) {
+      updates['design.qrcodes'] = design.qrcodes;
+    }
+    this.setData(updates);
+  },
+
+  /**
+   * Flush 4: 同步 activeBlock 与 design.blocks
+   *
+   * 确保 this.data.activeBlock 与 this.data.design.blocks 中的对应项一致
+   * 如果 activeBlockId 存在，从 design.blocks 重新读取
+   */
+  syncActiveBlock() {
+    const id = this.data.activeBlockId;
+    if (!id) return;
+    const block = (this.data.design.blocks || []).find(item => item.id === id);
+    if (!block) return;
+    // 只有当 activeBlock 与 design.blocks 中不同步时才 setData
+    if (this.data.activeBlock && this.data.activeBlock.id === id) {
+      // 简单比较关键字段判断是否需要更新
+      const ab = this.data.activeBlock;
+      if (ab.x === block.x && ab.y === block.y && ab.width === block.width && ab.delta === block.delta) return;
+    }
+    this.setData({
+      activeBlock: block,
+      ...getTextPanelState(block, this.data)
+    });
+  },
+
+  /**
+   * Flush 5: 确保 design 已全量 hydrate 并提交
+   *
+   * 执行全量 hydrateDesign，确保所有 preview 字段、qrItems 等都是最新的
+   * 用于 save/export 等需要完整一致状态的场景
+   */
+  ensureDesignCommitted() {
+    const design = this.data.design;
+    if (!design || !design.blocks) return;
+    // 全量 hydrate
+    const hydrated = hydrateDesign(design);
+    const activeBlock = hydrated.blocks.find(item => item.id === this.data.activeBlockId) || hydrated.blocks[0] || this.data.activeBlock;
+    this.setData({
+      design: hydrated,
+      activeBlock,
+      qrItems: hydrated.qrItems || [],
+      qrPreviewX: hydrated._qrPreviewX || 0,
+      qrPreviewY: hydrated._qrPreviewY || 0,
+      qrPreviewSize: hydrated._qrPreviewSize || 88
+    });
+  },
+
+  /**
+   * 统一状态提交入口
+   *
+   * 执行顺序：
+   *   1. flushInputDraft    — 输入草稿 → design.blocks.delta
+   *   2. flushGestureDraft  — 手势待定更新 → this.data (setData)
+   *   3. flushQrDraft       — QR 草稿 → design.qrcode/qrcodes (setData)
+   *   4. syncActiveBlock    — activeBlock 与 design.blocks 同步
+   *   5. ensureDesignCommitted — 全量 hydrate + setData
+   *
+   * 所有 Persist 操作（_saveHistory, saveDraft, goExport, undo, redo）
+   * 必须在此函数执行完成后才能进行
+   */
+  flushAllPendingState() {
+    this.flushInputDraft();
+    this.flushGestureDraft();
+    this.flushQrDraft();
+    this.syncActiveBlock();
+    this.ensureDesignCommitted();
+  },
+
+  /**
+   * 清理所有待定 timer，不执行提交
+   *
+   * 用于 undo/redo 后清理残留的 draft 状态，
+   * 防止旧 timer 触发后覆盖新恢复的状态
+   */
+  clearPendingTimers() {
+    clearTimeout(this._inputCommitTimer);
+    this._inputCommitTimer = null;
+    this._textComposing = false;
+    this._draftText = null;
+    this._draftCursor = null;
+    this._typingHistoryStarted = false;
+
+    if (this._gestureFrameTimer) {
+      clearTimeout(this._gestureFrameTimer);
+      this._gestureFrameTimer = null;
+    }
+    this._gesturePendingUpdates = null;
+    this._gesturePendingRenderDelay = null;
+
+    clearTimeout(this._previewRenderTimer);
+    this._previewRenderTimer = null;
+    if (this._previewFrameTimer) {
+      clearTimeout(this._previewFrameTimer);
+      this._previewFrameTimer = null;
+    }
+
+    this._qrDraft = null;
+  },
+
   schedulePreviewRender(delay) {
     if (!this.data.useCanvasPreview) return;
+    const wait = typeof delay === 'number' ? delay : 80;
     clearTimeout(this._previewRenderTimer);
-    this._previewRenderTimer = setTimeout(() => this.renderPreviewCanvas(), typeof delay === 'number' ? delay : 80);
+    this._previewRenderTimer = setTimeout(() => {
+      if (this._previewFrameTimer) return;
+      this._previewFrameTimer = setTimeout(() => {
+        this._previewFrameTimer = null;
+        this.renderPreviewCanvas();
+      }, 16);
+    }, wait);
+  },
+
+  setInteractionMode(mode) {
+    const nextMode = mode || 'idle';
+    this._interactionMode = nextMode;
+    if (this.data.interactionMode !== nextMode) {
+      this.setData({ interactionMode: nextMode });
+    }
+  },
+
+  queueGestureFrame(updates, options) {
+    this._gesturePendingUpdates = { ...(this._gesturePendingUpdates || {}), ...(updates || {}) };
+    this._gesturePendingRenderDelay = options && typeof options.renderDelay === 'number'
+      ? options.renderDelay
+      : (typeof this._gesturePendingRenderDelay === 'number' ? this._gesturePendingRenderDelay : 80);
+    if (this._gestureFrameTimer) return;
+    this._gestureFrameTimer = setTimeout(() => {
+      this._gestureFrameTimer = null;
+      const nextUpdates = this._gesturePendingUpdates || {};
+      const renderDelay = this._gesturePendingRenderDelay;
+      this._gesturePendingUpdates = null;
+      this._gesturePendingRenderDelay = null;
+      if (!Object.keys(nextUpdates).length) return;
+      this.setData(nextUpdates, () => this.schedulePreviewRender(renderDelay));
+    }, 16);
+  },
+
+  updateBlockDraft(id, patch, options) {
+    const design = this.data.design || {};
+    const previewScale = getPreviewScales(design);
+    let activeBlock = this.data.activeBlock;
+    const blocks = (design.blocks || []).map(block => {
+      if (block.id !== id) return block;
+      const nextBlock = hydrateTextBlockPreview({ ...block, ...(patch || {}) }, previewScale);
+      activeBlock = nextBlock;
+      return nextBlock;
+    });
+    const updates = { 'design.blocks': blocks };
+    if (id === this.data.activeBlockId) {
+      updates.activeBlock = activeBlock;
+      if (options && options.includePanelState) {
+        Object.assign(updates, getTextPanelState(activeBlock, this.data));
+      }
+    }
+    this.queueGestureFrame(updates, { renderDelay: options && typeof options.renderDelay === 'number' ? options.renderDelay : 80 });
   },
 
   async renderPreviewCanvas() {
@@ -1299,6 +1646,7 @@ Page({
   },
 
   onLoad(query) {
+    this.ensureReliabilityLayer();
     try {
       const info = wx.getSystemInfoSync();
       const platform = String(info.platform || info.system || '').toLowerCase();
@@ -1318,8 +1666,14 @@ Page({
       this.setDesign(design, (design.blocks && design.blocks[0] && design.blocks[0].id) || '');
     } else {
       // 没有指定草稿 ID，检查是否有最近的草稿可以继续编辑
+      const recovery = autosave.getRecoveryDraft();
       const latest = cardStorage.getLatestDraft();
-      if (latest && latest.design) {
+      const restoreCandidate = recovery && recovery.design ? {
+        id: (recovery.design && recovery.design.id) || '',
+        name: '上次未保存编辑',
+        design: recovery.design
+      } : latest;
+      if (restoreCandidate && restoreCandidate.design) {
         // 先用模板创建设计并渲染，同时弹出选择弹窗
         design = createBlankDesign(templates.getTemplate(query.templateId || 'solar-term-paper'));
         design.templateId = query.templateId || design.id;
@@ -1329,8 +1683,9 @@ Page({
         // 弹出草稿恢复选择
         this.setData({
           showDraftModal: true,
-          latestDraftName: latest.name || '未命名卡片',
-          latestDraftId: latest.id
+          latestDraftName: restoreCandidate.name || '未命名卡片',
+          latestDraftId: restoreCandidate.id || '',
+          hasAutosaveRecovery: !!(recovery && recovery.design)
         });
       } else {
         design = createBlankDesign(templates.getTemplate(query.templateId || 'solar-term-paper'));
@@ -1345,15 +1700,18 @@ Page({
 
   // 恢复最近草稿
   resumeLatestDraft() {
-    const draft = cardStorage.getDraft(this.data.latestDraftId);
+    const recovery = this.data.hasAutosaveRecovery ? autosave.getRecoveryDraft() : null;
+    const draft = recovery && recovery.design
+      ? { id: recovery.design.id || '', design: recovery.design }
+      : cardStorage.getDraft(this.data.latestDraftId);
     if (draft && draft.design) {
       const design = draft.design;
       design.id = draft.id;
       this._currentDraftId = draft.id;
-      this.setData({ showDraftModal: false });
+      this.setData({ showDraftModal: false, hasAutosaveRecovery: false });
       this.setDesign(design, (design.blocks && design.blocks[0] && design.blocks[0].id) || '');
     } else {
-      this.setData({ showDraftModal: false });
+      this.setData({ showDraftModal: false, hasAutosaveRecovery: false });
       wx.showToast({ title: '草稿已失效', icon: 'none' });
     }
   },
@@ -1362,7 +1720,7 @@ Page({
   dismissDraftModal() {
     const firstBlockId = (this.data.design.blocks && this.data.design.blocks[0] && this.data.design.blocks[0].id) || '';
     this._pendingNewBlockId = firstBlockId;
-    this.setData({ showDraftModal: false }, () => this.enterPendingNewBlock());
+    this.setData({ showDraftModal: false, hasAutosaveRecovery: false }, () => this.enterPendingNewBlock());
   },
 
   // ==================== 草稿列表管理 ====================
@@ -1444,6 +1802,69 @@ Page({
   onReady() {
     this.schedulePreviewRender(0);
     this.cacheStageRect();
+    // 注入 Canvas context 给统一排版引擎的 measureText 缓存
+    try {
+      const page = this;
+      const query = wx.createSelectorQuery().in(this);
+      query.select('#previewCanvas').node().exec(function(res) {
+        if (res && res[0] && res[0].node) {
+          const canvas = res[0].node;
+          const ctx = canvas.getContext('2d');
+          textLayout.setMeasureContext(ctx);
+          page.bumpTypographyVersion('measure-context-ready');
+        }
+      });
+    } catch (e) { /* Canvas not ready yet, layout engine will use estimation fallback */ }
+  },
+
+  setFontReadyState(font, status) {
+    if (!font || !font.family) return;
+    const key = font.id || font.family;
+    const next = { ...(this.data.fontReadyState || {}) };
+    next[key] = {
+      family: font.family,
+      fontUrl: font.fontUrl || '',
+      status,
+      version: Number(this.data.fontMetricsVersion || 0)
+    };
+    this.setData({ fontReadyState: next });
+  },
+
+  bumpTypographyVersion(reason) {
+    textLayout.clearAllCache();
+    const fontMetricsVersion = Number(this.data.fontMetricsVersion || 0) + 1;
+    const layoutVersion = Number(this.data.layoutVersion || 0) + 1;
+    this.setData({ fontMetricsVersion, layoutVersion }, () => {
+      this.refreshTypographyDependentViews(reason);
+    });
+  },
+
+  refreshTypographyDependentViews(reason) {
+    const design = hydrateDesign(clone(this.data.design || {}));
+    const activeBlock = (design.blocks || []).find(item => item.id === this.data.activeBlockId) || this.data.activeBlock || {};
+    const updates = {
+      design,
+      activeBlock,
+      nodeVersion: Number(this.data.nodeVersion || 0) + 1
+    };
+    if (this.data.inlineEditing && this.data.activeBlockId) {
+      const text = this.data.activePlainText || deltaToText(activeBlock && activeBlock.delta);
+      const range = this.getActiveTextSelectionRange(text);
+      if (this.data.selectionModeActive) {
+        const manual = this._manualTextSelection || range;
+        const normalized = normalizeRange(manual.start, manual.end, text.length);
+        updates.selectionRects = this.getSelectionRects(normalized.start, normalized.end, text.length, { ...activeBlock, _previewScale: getPreviewScales(design) });
+        const handles = this.getSelectionHandlePositions(normalized.start, normalized.end, text.length, { ...activeBlock, _previewScale: getPreviewScales(design) });
+        updates.selectionHandleStartX = handles.startX;
+        updates.selectionHandleEndX = handles.endX;
+        updates.selectionHandleStartY = handles.startY;
+        updates.selectionHandleEndY = handles.endY;
+      } else {
+        const cursor = Math.max(0, Math.min(Number(this.data.selectionEnd || range.end || text.length), text.length));
+        Object.assign(updates, this.getCaretState(cursor, text, { ...activeBlock, _previewScale: getPreviewScales(design) }));
+      }
+    }
+    this.setData(updates, () => this.schedulePreviewRender(0));
   },
 
   cacheStageRect() {
@@ -1456,22 +1877,25 @@ Page({
   },
 
   onHide() {
+    this.ensureReliabilityLayer();
+    if (this._autosave) this._autosave.flush();
     this.saveDraft({ silent: true });
   },
 
   onUnload() {
+    this.ensureReliabilityLayer();
+    if (this._autosave) this._autosave.flush();
+    if (this._exportQueue) this._exportQueue.cancel();
     this.saveDraft({ silent: true });
   },
 
   setDesign(design, activeId) {
     const hydrated = hydrateDesign(design);
+    this._eraserRedoStack = [];
     const activeBlock = hydrated.blocks.find(item => item.id === activeId) || hydrated.blocks[0] || {};
     const stage = getPreviewStageSize(hydrated);
     const bgLayout = getBackgroundImageLayout(hydrated.background, hydrated);
-    const attrs = getFirstTextAttrs(activeBlock);
-    if (attrs.fontUrl && attrs.fontFamily) {
-      this.loadPreviewFont({ id: attrs.fontId || attrs.fontFamily, family: attrs.fontFamily, fontUrl: attrs.fontUrl });
-    }
+    this.ensureDesignFontsLoading(hydrated);
     this.setData({
       design: hydrated,
       activeBlockId: activeBlock.id || '',
@@ -1500,6 +1924,8 @@ Page({
       previewStageWidth: stage.width,
       previewStageHeight: stage.height,
       activeCanvasSizeId: detectCanvasSizeId(hydrated.size),
+      canUndoEraser: (hydrated.eraserStrokes || []).length > 0,
+      canRedoEraser: false,
       // 二维码预览坐标（从 hydrateDesign 计算）
       qrPreviewX: hydrated._qrPreviewX || 0,
       qrPreviewY: hydrated._qrPreviewY || 0,
@@ -1511,6 +1937,10 @@ Page({
       this.enterPendingNewBlock();
     });
     this._saveHistory(hydrated);
+  },
+
+  ensureDesignFontsLoading(design) {
+    collectDesignFonts(design).forEach(font => this.loadPreviewFont(font));
   },
 
 getPreviewBackground(bg) {
@@ -1539,6 +1969,7 @@ getPreviewBackground(bg) {
     const activePanel = e.currentTarget.dataset.panel || 'background';
     this.setData({
       activePanel,
+      eraserActive: activePanel === 'style' ? this.data.eraserActive : false,
       activeStyleTool: activePanel === 'style' && this.data.activeStyleTool === 'background' ? 'text' : this.data.activeStyleTool
     });
     if (activePanel === 'font') {
@@ -1547,7 +1978,306 @@ getPreviewBackground(bg) {
   },
 
   switchStyleTool(e) {
-    this.setData({ activeStyleTool: e.currentTarget.dataset.tool || 'text' });
+    const activeStyleTool = e.currentTarget.dataset.tool || 'text';
+    this.setData({
+      activeStyleTool,
+      eraserActive: activeStyleTool === 'eraser' ? this.data.eraserActive : false,
+      eyedropperActive: activeStyleTool === 'text' ? this.data.eyedropperActive : false,
+      textureAdjustActive: activeStyleTool === 'texture' ? this.data.textureAdjustActive : false
+    });
+  },
+
+  noop() {},
+
+  toggleEraser() {
+    const eraserActive = !this.data.eraserActive;
+    this.setData({
+      eraserActive,
+      inlineEditing: eraserActive ? false : this.data.inlineEditing,
+      textInputFocus: eraserActive ? false : this.data.textInputFocus,
+      qrcodeActive: eraserActive ? false : this.data.qrcodeActive
+    }, () => {
+      if (eraserActive) this.cacheStageRect();
+    });
+  },
+
+  toggleEyedropper() {
+    const eyedropperActive = !this.data.eyedropperActive;
+    this.setData({
+      eyedropperActive,
+      eraserActive: false,
+      textureAdjustActive: false,
+      inlineEditing: eyedropperActive ? false : this.data.inlineEditing,
+      textInputFocus: eyedropperActive ? false : this.data.textInputFocus
+    }, () => {
+      if (eyedropperActive) this.cacheStageRect();
+    });
+  },
+
+  rgbToHex(r, g, b) {
+    return `#${[r, g, b].map(v => Math.max(0, Math.min(255, Number(v || 0))).toString(16).padStart(2, '0')).join('')}`;
+  },
+
+  applyTextColor(color) {
+    const value = color || '#4B4038';
+    recordColorUsage(value);
+    const colorPool = Array.from(new Set([value, ...(this.data.colors || [])]));
+    this.setData({
+      activeTextColor: value,
+      colors: getSortedColors(colorPool)
+    });
+    if (this.hasActiveTextSelection()) {
+      this.applyFormatToSelection({ color: value });
+    } else {
+      this.applyFormatToAllText({ color: value });
+    }
+    this._saveHistory(this.data.design);
+    this.schedulePreviewRender(0);
+  },
+
+  onEyedropperPick(e) {
+    const touch = (e.touches && e.touches[0]) || (e.changedTouches && e.changedTouches[0]);
+    if (!touch || !this._stageRect) return;
+    const design = this.data.design || {};
+    const size = design.size || { width: 750, height: 1000 };
+    const rect = this._stageRect;
+    const x = Math.max(0, Math.min(Number(size.width || 750) - 1, Math.round((touch.clientX - rect.left) / Math.max(rect.width, 1) * Number(size.width || 750))));
+    const y = Math.max(0, Math.min(Number(size.height || 1000) - 1, Math.round((touch.clientY - rect.top) / Math.max(rect.height, 1) * Number(size.height || 1000))));
+    wx.createSelectorQuery().in(this).select('#previewCanvas').fields({ node: true, size: true }).exec(res => {
+      const node = res && res[0] && res[0].node;
+      if (!node) return;
+      try {
+        const ctx = node.getContext('2d');
+        const pixel = ctx.getImageData(x, y, 1, 1).data;
+        const hex = this.rgbToHex(pixel[0], pixel[1], pixel[2]);
+        this.applyTextColor(hex);
+        this.setData({ eyedropperActive: false });
+        wx.showToast({ title: hex, icon: 'none', duration: 700 });
+      } catch (err) {
+        wx.showToast({ title: '取色失败', icon: 'none' });
+      }
+    });
+  },
+
+  getActiveTextTexture() {
+    const block = this.data.activeBlock || {};
+    return block.textTexture || { opacity: 1, scale: 1, offsetX: 0, offsetY: 0 };
+  },
+
+  applyTextTexture(texture, save) {
+    const patch = { textTexture: { ...this.getActiveTextTexture(), ...(texture || {}) } };
+    this.updateActiveBlock(patch, { silentEditor: true, renderDelay: 0 });
+    this.setData({
+      textTextureScale: Number(patch.textTexture.scale || 1),
+      textTextureOpacity: Number(patch.textTexture.opacity || 1)
+    });
+    this.schedulePreviewRender(0);
+    if (save) this._saveHistory(this.data.design);
+  },
+
+  chooseTextTexture() {
+    wx.chooseMedia({
+      count: 1,
+      mediaType: ['image'],
+      sizeType: ['compressed'],
+      success: async res => {
+        const file = res.tempFiles && res.tempFiles[0];
+        if (!file || !file.tempFilePath) return;
+        const src = await persistLocalFile(file.tempFilePath);
+        this.applyTextTexture({
+          src: src || file.tempFilePath,
+          preset: '',
+          width: Number(file.width || 0),
+          height: Number(file.height || 0),
+          scale: this.data.textTextureScale || 1,
+          opacity: this.data.textTextureOpacity || 1,
+          offsetX: 0,
+          offsetY: 0
+        }, true);
+      }
+    });
+  },
+
+  setTextTexturePreset(e) {
+    const preset = e.currentTarget.dataset.preset || 'gold';
+    this.applyTextTexture({
+      preset,
+      src: '',
+      scale: this.data.textTextureScale || 1,
+      opacity: this.data.textTextureOpacity || 1,
+      offsetX: 0,
+      offsetY: 0
+    }, true);
+  },
+
+  toggleTextureAdjust() {
+    const textureAdjustActive = !this.data.textureAdjustActive;
+    this.setData({ textureAdjustActive, eraserActive: false, eyedropperActive: false }, () => {
+      if (textureAdjustActive) this.cacheStageRect();
+    });
+  },
+
+  changeTextTextureScale(e) {
+    const scale = Math.max(0.3, Math.min(Number(e.detail && e.detail.value) || 1, 3));
+    this.applyTextTexture({ scale }, e && e.type === 'change');
+  },
+
+  changeTextTextureOpacity(e) {
+    const opacity = Math.max(0.1, Math.min(Number(e.detail && e.detail.value) || 1, 1));
+    this.applyTextTexture({ opacity }, e && e.type === 'change');
+  },
+
+  clearTextTexture() {
+    this.updateActiveBlock({ textTexture: null }, { silentEditor: true, renderDelay: 0 });
+    this.setData({ textTextureScale: 1, textTextureOpacity: 1, textureAdjustActive: false });
+    this._saveHistory(this.data.design);
+    this.schedulePreviewRender(0);
+  },
+
+  onTextureTouchStart(e) {
+    const touch = e.touches && e.touches[0];
+    if (!touch) return;
+    this.setInteractionMode('texture');
+    const texture = this.getActiveTextTexture();
+    this._textureDrag = {
+      x: touch.clientX,
+      y: touch.clientY,
+      offsetX: Number(texture.offsetX || 0),
+      offsetY: Number(texture.offsetY || 0)
+    };
+  },
+
+  onTextureTouchMove(e) {
+    const touch = e.touches && e.touches[0];
+    const drag = this._textureDrag;
+    if (!touch || !drag) return;
+    const rpx = this.getRpxPerPx ? this.getRpxPerPx() : 1;
+    const scale = getPreviewScales(this.data.design || {});
+    const dx = (touch.clientX - drag.x) * rpx / Math.max(scale.x || PREVIEW_SCALE, 0.01);
+    const dy = (touch.clientY - drag.y) * rpx / Math.max(scale.y || PREVIEW_SCALE, 0.01);
+    const textTexture = {
+      ...this.getActiveTextTexture(),
+      offsetX: Math.round((drag.offsetX + dx) * 10) / 10,
+      offsetY: Math.round((drag.offsetY + dy) * 10) / 10
+    };
+    this.updateBlockDraft(this.data.activeBlockId, { textTexture }, { renderDelay: 80 });
+  },
+
+  onTextureTouchEnd() {
+    if (!this._textureDrag) return;
+    this._textureDrag = null;
+    this.setInteractionMode(this.data.inlineEditing ? 'editing' : 'idle');
+    this._saveHistory(this.data.design);
+  },
+
+  setEraserPreset(e) {
+    const preset = e.currentTarget.dataset.preset || 'medium';
+    const sizeMap = { small: 18, medium: 36, large: 72 };
+    this.setData({
+      eraserSizePreset: preset,
+      eraserSize: sizeMap[preset] || 36
+    });
+  },
+
+  changeEraserSize(e) {
+    const size = Math.max(8, Math.min(Number(e.detail && e.detail.value) || 36, 120));
+    let preset = 'medium';
+    if (size <= 24) preset = 'small';
+    if (size >= 56) preset = 'large';
+    this.setData({ eraserSize: size, eraserSizePreset: preset });
+  },
+
+  getEraserCanvasPoint(touch) {
+    if (!touch || !this._stageRect) return null;
+    const design = this.data.design || {};
+    const size = design.size || { width: 750, height: 1000 };
+    const rect = this._stageRect;
+    const x = (Number(touch.clientX || 0) - Number(rect.left || 0)) / Math.max(Number(rect.width || 1), 1) * Number(size.width || 750);
+    const y = (Number(touch.clientY || 0) - Number(rect.top || 0)) / Math.max(Number(rect.height || 1), 1) * Number(size.height || 1000);
+    return {
+      x: Math.max(0, Math.min(Number(size.width || 750), Math.round(x * 10) / 10)),
+      y: Math.max(0, Math.min(Number(size.height || 1000), Math.round(y * 10) / 10))
+    };
+  },
+
+  onEraserTouchStart(e) {
+    const touch = e.touches && e.touches[0];
+    if (!this.data.eraserActive || !touch) return;
+    if (!this._stageRect) this.cacheStageRect();
+    const point = this.getEraserCanvasPoint(touch);
+    if (!point) return;
+    const design = this.data.design;
+    design.eraserStrokes = design.eraserStrokes || [];
+    this._eraserRedoStack = [];
+    this._currentEraserStroke = {
+      size: Number(this.data.eraserSize || 36),
+      points: [point]
+    };
+    design.eraserStrokes.push(this._currentEraserStroke);
+    this.setData({ canUndoEraser: true, canRedoEraser: false });
+    this.schedulePreviewRender(0);
+  },
+
+  onEraserTouchMove(e) {
+    const touch = e.touches && e.touches[0];
+    const stroke = this._currentEraserStroke;
+    if (!this.data.eraserActive || !touch || !stroke) return;
+    const point = this.getEraserCanvasPoint(touch);
+    if (!point) return;
+    const points = stroke.points || [];
+    const last = points[points.length - 1];
+    const dx = point.x - Number(last && last.x || 0);
+    const dy = point.y - Number(last && last.y || 0);
+    const minDistance = Math.max(1.5, Number(stroke.size || 36) * 0.08);
+    if (Math.sqrt(dx * dx + dy * dy) < minDistance) return;
+    points.push(point);
+    stroke.points = points;
+    this.schedulePreviewRender(16);
+  },
+
+  onEraserTouchEnd() {
+    const stroke = this._currentEraserStroke;
+    if (!stroke) return;
+    this._currentEraserStroke = null;
+    const design = clone(this.data.design);
+    design.eraserStrokes = (design.eraserStrokes || []).filter(item => item && (item.points || []).length);
+    this.setData({
+      design,
+      canUndoEraser: design.eraserStrokes.length > 0,
+      canRedoEraser: false
+    }, () => this.schedulePreviewRender(0));
+    this._saveHistory(design);
+  },
+
+  undoEraser() {
+    const design = clone(this.data.design);
+    const strokes = design.eraserStrokes || [];
+    if (!strokes.length) return;
+    this._eraserRedoStack = this._eraserRedoStack || [];
+    this._eraserRedoStack.push(strokes.pop());
+    if (this._eraserRedoStack.length > 20) this._eraserRedoStack.shift();
+    design.eraserStrokes = strokes;
+    this.setData({
+      design,
+      canUndoEraser: strokes.length > 0,
+      canRedoEraser: this._eraserRedoStack.length > 0
+    }, () => this.schedulePreviewRender(0));
+    this._saveHistory(design);
+  },
+
+  redoEraser() {
+    const redoStack = this._eraserRedoStack || [];
+    if (!redoStack.length) return;
+    const design = clone(this.data.design);
+    const strokes = design.eraserStrokes || [];
+    strokes.push(redoStack.pop());
+    design.eraserStrokes = strokes;
+    this.setData({
+      design,
+      canUndoEraser: true,
+      canRedoEraser: redoStack.length > 0
+    }, () => this.schedulePreviewRender(0));
+    this._saveHistory(design);
   },
 
   setCanvasSize(e) {
@@ -1596,7 +2326,7 @@ getPreviewBackground(bg) {
     if (design.background) {
       design.background.offsetX = 0;
       design.background.offsetY = 0;
-      design.background.scale = design.background.scale || 1;
+      design.background.scale = id === 'image' ? 1 : (design.background.scale || 1);
     }
     this.setDesign(design, this.data.activeBlockId);
   },
@@ -1626,7 +2356,7 @@ getPreviewBackground(bg) {
     this.setData({ customHeight: e.detail.value || '' });
   },
 
-  /** 确认自定义尺寸：验证 → 按比例同步到画布和导出 */
+  /** 确认自由裁剪尺寸：只调整画布裁剪框和导出尺寸 */
   confirmCustomSize() {
     let w = parseInt(this.data.customWidth, 10);
     let h = parseInt(this.data.customHeight, 10);
@@ -1645,41 +2375,13 @@ getPreviewBackground(bg) {
       return;
     }
 
-    // 应用自定义尺寸（复用 setCanvasSize 的缩放逻辑）
     const design = clone(this.data.design);
-    const oldSize = design.size || { width: 750, height: 1000 };
-    const oldWidth = Math.max(Number(oldSize.width || 750), 1);
-    const oldHeight = Math.max(Number(oldSize.height || 1000), 1);
-    const scaleX = w / oldWidth;
-    const scaleY = h / oldHeight;
 
     design.size = { width: w, height: h, preset: 'custom' };
-    design.blocks = (design.blocks || []).map(block => ({
-      ...block,
-      x: Math.round(Number(block.x || 0) * scaleX),
-      y: Math.round(Number(block.y || 0) * scaleY),
-      width: Math.max(MIN_TEXT_BOX_WIDTH, Math.round(Number(block.width || DEFAULT_TEXT_BOX_WIDTH) * scaleX)),
-      height: block.height ? Math.max(MIN_TEXT_BOX_HEIGHT, Math.round(Number(block.height || DEFAULT_TEXT_BOX_HEIGHT) * scaleY)) : block.height,
-      manualHeight: block.manualHeight ? Math.max(MIN_TEXT_BOX_HEIGHT, Math.round(Number(block.manualHeight || DEFAULT_TEXT_BOX_HEIGHT) * scaleY)) : block.manualHeight
-    }));
-    if (design.qrcode) {
-      design.qrcode = {
-        ...design.qrcode,
-        x: Math.round(Number(design.qrcode.x || 0) * scaleX),
-        y: Math.round(Number(design.qrcode.y || 0) * scaleY),
-        size: Math.max(40, Math.round(Number(design.qrcode.size || 110) * Math.min(scaleX, scaleY)))
-      };
-    }
-    design.decorations = (design.decorations || []).map(item => ({
-      ...item,
-      x: Math.round(Number(item.x || 0) * scaleX),
-      y: Math.round(Number(item.y || 0) * scaleY),
-      width: item.width ? Math.round(Number(item.width || 0) * scaleX) : item.width
-    }));
     if (design.background) {
       design.background.offsetX = 0;
       design.background.offsetY = 0;
-      design.background.scale = design.background.scale || 1;
+      design.background.scale = 1;
     }
 
     this.setData({
@@ -1694,26 +2396,63 @@ getPreviewBackground(bg) {
     this._manualTextSelection = null;
     this.exitSelectionMode();
     this._typingHistoryStarted = true;
-    const text = e.detail.value || '';
+    const detail = e.detail || {};
+    const text = detail.value || '';
     const block = this.data.activeBlock || {};
-    // 输入时：保留原有 delta 的多 op 格式结构，只替换文本内容
-    // 这样粗体/颜色/字号等差异化格式不会丢失
-    const delta = this.rebuildDeltaWithText(block.delta, text);
-    const cursor = typeof e.detail.cursor === 'number' ? e.cursor : text.length;
-    const newNodeVer = (this.data.nodeVersion || 0) + 1;
-    const caretState = this.getCaretState(cursor, text, { ...block, delta, _previewScale: getPreviewScales(this.data.design) });
+    const rawCursor = typeof detail.cursor === 'number' ? detail.cursor : text.length;
+    const cursor = this.snapTextOffset(text, rawCursor, 'nearest');
+    this._draftText = text;
+    this._draftCursor = cursor;
+    const caretState = this.getCaretState(cursor, text, { ...block, _previewScale: getPreviewScales(this.data.design) });
     this.setData({
       activePlainText: text,
       inputText: text,
+      draftText: text,
       selectionStart: cursor,
       selectionEnd: cursor,
       showPasteTip: false,
-      nodeVersion: newNodeVer,
       ...caretState
     });
-    this.updateActiveBlock({ delta }, { silentEditor: true, renderDelay: 50 });
-    // 快速同步画布：输入/换行/删除后 50ms 内刷新 canvas 预览
-    this.schedulePreviewRender(50);
+    this.scheduleInputDraftCommit();
+  },
+
+  onTextCompositionStart() {
+    this._textComposing = true;
+    clearTimeout(this._inputCommitTimer);
+  },
+
+  onTextCompositionUpdate(e) {
+    const detail = (e && e.detail) || {};
+    if (typeof detail.value === 'string') {
+      this._draftText = detail.value;
+    }
+  },
+
+  onTextCompositionEnd(e) {
+    this._textComposing = false;
+    const detail = (e && e.detail) || {};
+    if (typeof detail.value === 'string') {
+      this._draftText = detail.value;
+      this._draftCursor = this.snapTextOffset(detail.value, typeof detail.cursor === 'number' ? detail.cursor : detail.value.length, 'nearest');
+    }
+    this.scheduleInputDraftCommit(80);
+  },
+
+  scheduleInputDraftCommit(delay) {
+    clearTimeout(this._inputCommitTimer);
+    if (this._textComposing) return;
+    this._inputCommitTimer = setTimeout(() => this.commitInputDraftToDesign(), typeof delay === 'number' ? delay : 160);
+  },
+
+  commitInputDraftToDesign() {
+    clearTimeout(this._inputCommitTimer);
+    this._inputCommitTimer = null;
+    if (this._textComposing || !this.data.inlineEditing || !this.data.activeBlockId) return;
+    const block = this.data.activeBlock || {};
+    const text = typeof this._draftText === 'string' ? this._draftText : this.data.activePlainText || '';
+    if (deltaToText(block.delta) === text) return;
+    const delta = this.rebuildDeltaWithText(block.delta, text);
+    this.updateActiveBlock({ delta }, { silentEditor: true, renderDelay: 120, preserveInputState: true });
   },
 
   /**
@@ -1768,6 +2507,7 @@ getPreviewBackground(bg) {
 
   onTextSelection(e) {
     const detail = e.detail || {};
+    if (this._textComposing) return;
     const start = typeof detail.selectionStart === 'number' ? detail.selectionStart : detail.cursor;
     const end = typeof detail.selectionEnd === 'number' ? detail.selectionEnd : detail.cursor;
     if (typeof start !== 'number') return;
@@ -1883,14 +2623,22 @@ getPreviewBackground(bg) {
     const max = current.length;
     const manual = this._manualTextSelection;
     if (manual && hasTextSelection(manual.start, manual.end)) {
-      const start = Math.max(0, Math.min(manual.start, manual.end, max));
-      const end = Math.max(start, Math.min(Math.max(manual.start, manual.end), max));
+      const snapped = {
+        start: graphemeUtils.snapCodeUnitOffset(text, Math.min(manual.start, manual.end, max), 'backward'),
+        end: graphemeUtils.snapCodeUnitOffset(text, Math.min(Math.max(manual.start, manual.end), max), 'forward')
+      };
+      const start = Math.max(0, Math.min(snapped.start, snapped.end, max));
+      const end = Math.max(start, Math.min(Math.max(snapped.start, snapped.end), max));
       if (end > start) return { start, end, manual: true };
     }
     const rawStart = typeof this.data.selectionStart === 'number' ? this.data.selectionStart : max;
     const rawEnd = typeof this.data.selectionEnd === 'number' ? this.data.selectionEnd : rawStart;
-    const start = Math.max(0, Math.min(rawStart, rawEnd, max));
-    const end = Math.max(start, Math.min(Math.max(rawStart, rawEnd), max));
+    const snapped = graphemeUtils ? {
+      start: graphemeUtils.snapCodeUnitOffset(text, Math.min(rawStart, rawEnd, max), 'backward'),
+      end: graphemeUtils.snapCodeUnitOffset(text, Math.min(Math.max(rawStart, rawEnd), max), 'forward')
+    } : { start: Math.min(rawStart, rawEnd, max), end: Math.min(Math.max(rawStart, rawEnd), max) };
+    const start = Math.max(0, Math.min(snapped.start, snapped.end, max));
+    const end = Math.max(start, Math.min(Math.max(snapped.start, snapped.end), max));
     return { start, end, manual: false };
   },
 
@@ -1900,155 +2648,149 @@ getPreviewBackground(bg) {
   },
 
   estimateSelectionCharWidth(ch, fontSize) {
-    if (!ch) return 0;
-    if (/[\u4e00-\u9fff\u3400-\u4dbf\uff00-\uffef]/.test(ch)) return fontSize;
-    if (/\s/.test(ch)) return fontSize * 0.34;
-    if (/[ilI.,:;!|]/.test(ch)) return fontSize * 0.32;
-    if (/[mwMW@#%&]/.test(ch)) return fontSize * 0.82;
-    return fontSize * 0.58;
+    // 委托给统一排版引擎的估算回退
+    return textLayout._estimateCharWidth(ch, fontSize);
   },
 
   getSelectionStyledChars(text, block) {
-    const value = String(text || '');
-    const chars = [];
-    const ops = block && block.delta && Array.isArray(block.delta.ops) ? block.delta.ops : [];
-    const fallbackAttrs = getFirstTextAttrs(block);
+    // 委托给统一排版引擎（使用 measureTextCached 替代估算）
     const previewScale = block && block._previewScale ? block._previewScale : getPreviewScales(this.data.design);
     const scaleX = Number(previewScale.x || PREVIEW_SCALE);
-    let offset = 0;
-    const pushChar = (ch, attrs) => {
-      if (offset >= value.length) return;
-      const rawSize = parseInt(attrs.size || attrs.fontSize || fallbackAttrs.size || fallbackAttrs.fontSize || 30, 10) || 30;
-      const fontSize = Math.max(Math.round(rawSize * scaleX), 12);
-      const letterSpacing = Number(attrs.letterSpacing || (block && block.letterSpacing) || 0) * scaleX;
-      chars[offset] = {
-        ch,
-        fontSize,
-        letterSpacing,
-        width: Math.max(this.estimateSelectionCharWidth(ch, fontSize) * (attrs.bold ? 1.08 : 1) + Math.max(letterSpacing, 0), 1)
-      };
-      offset += 1;
-    };
-    ops.forEach(op => {
-      const attrs = { ...(op.attributes || {}) };
-      String(op.insert || '').split('').forEach(ch => pushChar(ch, attrs));
-    });
-    while (offset < value.length) pushChar(value[offset], fallbackAttrs || {});
-    return chars;
+    return textLayout.buildStyledChars(text, block, scaleX);
   },
 
   getSelectionLayout(text, blockOverride) {
     const block = blockOverride || this.data.activeBlock || {};
+    const previewScale = block && block._previewScale ? block._previewScale : getPreviewScales(this.data.design);
+    const scaleX = Number(previewScale.x || PREVIEW_SCALE);
     const width = Math.max(Number(block.previewWidth || Math.round(Number(block.width || DEFAULT_TEXT_BOX_WIDTH) * PREVIEW_SCALE)) || 0, 120);
-    const padX = 0;
-    const padY = 0;
-    const usable = Math.max(width - padX * 2, 40);
-    const fontSize = Math.max(Math.round(getBlockFontSize(block) * getPreviewScales(this.data.design).x), 12);
-    const lineHeight = Math.max(fontSize * Number(block.lineHeight || 1.6), fontSize + 6);
-    const align = block.align || 'left';
-    const value = String(text || '');
-    const styledChars = this.getSelectionStyledChars(value, block);
-    const lines = [];
-    let current = { chars: [], width: 0, startIndex: 0, fontSize, lineHeight };
-    // 中文禁则标点：这些符号不应出现在行首（应与前一个字符粘连）
-    const PROHIBIT_LINE_START = /[，。；：！？、》』】）…~\-–—]/;
-    for (let i = 0; i < value.length; i++) {
-      const ch = value[i];
-      if (ch === '\n') {
-        lines.push(current);
-        current = { chars: [], width: 0, startIndex: i + 1, fontSize, lineHeight };
-        continue;
-      }
-      const styled = styledChars[i] || { fontSize, width: this.estimateSelectionCharWidth(ch, fontSize) };
-      const chWidth = Math.max(Number(styled.width || 0), 1);
-      if (current.chars.length && current.width + chWidth > usable) {
-        // 禁止标点符号出现在行首：将标点挤到上一行末尾
-        if (PROHIBIT_LINE_START.test(ch)) {
-          current.chars.push({ index: i, width: chWidth, fontSize: styled.fontSize || fontSize });
-          current.width += chWidth;
-          lines.push(current);
-          current = { chars: [], width: 0, startIndex: i + 1, fontSize, lineHeight };
-        } else {
-          lines.push(current);
-          current = { chars: [], width: 0, startIndex: i, fontSize, lineHeight };
-        }
-      }
-      current.fontSize = Math.max(Number(current.fontSize || fontSize), Number(styled.fontSize || fontSize));
-      current.lineHeight = Math.max(Number(current.lineHeight || lineHeight), Number(styled.fontSize || fontSize) * Number(block.lineHeight || 1.6), Number(styled.fontSize || fontSize) + 6);
-      current.chars.push({ index: i, width: chWidth, fontSize: styled.fontSize || fontSize });
-      current.width += chWidth;
-    }
-    if (current.chars.length || !lines.length || value.endsWith('\n')) lines.push(current);
+    const fontSize = Math.max(Math.round(getBlockFontSize(block) * scaleX), 12);
+    const lineHeight = Number(block.lineHeight || 1.6);
 
-    const offsets = [];
-    let y = padY;
-    lines.forEach((item, line) => {
-      let offsetX = padX;
-      if (align === 'center') offsetX = padX + Math.max((usable - item.width) / 2, 0);
-      if (align === 'right') offsetX = padX + Math.max(usable - item.width, 0);
-      let x = offsetX;
-      const itemLineHeight = Math.max(Number(item.lineHeight || lineHeight), lineHeight);
-      offsets[item.startIndex] = { index: item.startIndex, x, y, line, fontSize: item.fontSize || fontSize, lineHeight: itemLineHeight };
-      item.chars.forEach(ch => {
-        x += ch.width;
-        offsets[ch.index + 1] = { index: ch.index + 1, x, y, line, fontSize: item.fontSize || fontSize, lineHeight: itemLineHeight };
-      });
-      item.y = y;
-      item.lineHeight = itemLineHeight;
-      y += itemLineHeight;
+    // 委托给统一排版引擎（带缓存）
+    const layoutBlock = {
+      ...block,
+      _fontMetricsVersion: this.data.fontMetricsVersion || 0,
+      _layoutVersion: this.data.layoutVersion || 0
+    };
+    return textLayout.layoutTextBlockCached({
+      text: String(text || ''),
+      block: layoutBlock,
+      width: width,
+      fontSize: fontSize,
+      lineHeight: lineHeight,
+      align: block.align || 'left',
+      padX: 0,
+      padY: 0,
+      scaleX: scaleX
     });
+  },
 
+  getGraphemeIndex(text, codeUnitOffset, affinity) {
+    return graphemeUtils.codeUnitToGraphemeIndex(text, codeUnitOffset, affinity || 'nearest');
+  },
+
+  getCodeUnitOffset(text, graphemeIndex) {
+    return graphemeUtils.graphemeIndexToCodeUnitOffset(text, graphemeIndex);
+  },
+
+  snapTextOffset(text, codeUnitOffset, affinity) {
+    return graphemeUtils.snapCodeUnitOffset(text, codeUnitOffset, affinity || 'nearest');
+  },
+
+  normalizeTextRangeToGraphemes(text, start, end) {
+    const value = String(text || '');
+    const rawStart = Math.max(0, Math.min(Number(start || 0), value.length));
+    const rawEnd = Math.max(0, Math.min(Number(end || 0), value.length));
+    const gStart = this.getGraphemeIndex(value, Math.min(rawStart, rawEnd), 'backward');
+    const gEnd = this.getGraphemeIndex(value, Math.max(rawStart, rawEnd), 'forward');
     return {
-      offsets,
-      lines,
-      padX,
-      padY,
-      usable,
-      fontSize,
-      lineHeight
+      start: this.getCodeUnitOffset(value, gStart),
+      end: this.getCodeUnitOffset(value, gEnd),
+      graphemeStart: gStart,
+      graphemeEnd: gEnd
     };
   },
 
   getLineCaretPosition(layout, lineIndex, x, blockOverride) {
-    const line = layout.lines[Math.max(0, Math.min(Number(lineIndex || 0), layout.lines.length - 1))] || { width: 0 };
-    const align = (blockOverride && blockOverride.align) || (this.data.activeBlock && this.data.activeBlock.align) || 'left';
-    const charCount = Array.isArray(line.chars) ? line.chars.length : 0;
-    // 光标在行末时，紧贴最后一个字符右侧，仅保留微小视觉间距（4-8rpx）
-    const endCompensation = charCount ? Math.max(layout.fontSize * 0.18, 5) : 0;
-    let offsetX = layout.padX || 0;
-    if (align === 'center') offsetX = (layout.padX || 0) + Math.max(((layout.usable || 0) - Number(line.width || 0)) / 2, 0);
-    if (align === 'right') offsetX = (layout.padX || 0) + Math.max((layout.usable || 0) - Number(line.width || 0), 0);
-    const maxX = (layout.padX || 0) + (layout.usable || 0);
-    // iOS 和 Android 统一使用紧凑定位，不再额外偏移
-    const endX = Math.min(maxX, offsetX + Number(line.width || 0) + endCompensation);
+    const safeLine = Math.max(0, Math.min(Number(lineIndex || 0), Math.max((layout.lines || []).length - 1, 0)));
+    const line = (layout.lines || [])[safeLine] || { width: 0, y: layout.padY || 0 };
+    const lineStart = Number(line.startIndex || 0);
+    const lineEnd = Array.isArray(line.chars) && line.chars.length
+      ? Number(line.chars[line.chars.length - 1].index || 0) + 1
+      : lineStart;
+    const startPos = (layout.offsets || [])[lineStart] || { x: layout.padX || 0, y: line.y || 0 };
+    const endPos = (layout.offsets || [])[lineEnd] || startPos;
     return {
-      x: typeof x === 'number' ? x : endX,
-      y: Number(line.y || 0),
-      line: Number(lineIndex || 0),
+      x: typeof x === 'number' ? x : Number(endPos.x || startPos.x || 0),
+      y: Number((endPos && endPos.y) || line.y || 0),
+      line: safeLine,
       fontSize: Number(line.fontSize || layout.fontSize),
       lineHeight: Number(line.lineHeight || layout.lineHeight)
     };
   },
 
+  getLayoutPosition(layout, index) {
+    const offsets = layout && layout.offsets ? layout.offsets : [];
+    if (offsets[index]) return offsets[index];
+    for (let i = Math.min(Number(index || 0), offsets.length - 1); i >= 0; i--) {
+      if (offsets[i]) return offsets[i];
+    }
+    return offsets[0] || { index: 0, x: layout.padX || 0, y: layout.padY || 0, line: 0, fontSize: layout.fontSize, lineHeight: layout.lineHeight };
+  },
+
+  getLayoutLineAtY(layout, y) {
+    const lines = layout && layout.lines ? layout.lines : [];
+    if (!lines.length) return 0;
+    const targetY = Number(y || 0);
+    let bestLine = 0;
+    let bestDistance = Infinity;
+    for (let i = 0; i < lines.length; i++) {
+      const lineTop = Number(lines[i].y || 0);
+      const lineHeight = Number(lines[i].lineHeight || layout.lineHeight || 0);
+      const lineBottom = lineTop + Math.max(lineHeight, 1);
+      if (targetY >= lineTop && targetY <= lineBottom) return i;
+      const distance = targetY < lineTop ? lineTop - targetY : targetY - lineBottom;
+      if (distance < bestDistance) {
+        bestDistance = distance;
+        bestLine = i;
+      }
+    }
+    return bestLine;
+  },
+
+  getLayoutOffsetAtPoint(layout, x, y) {
+    const lineIndex = this.getLayoutLineAtY(layout, y);
+    const line = (layout.lines || [])[lineIndex];
+    if (!line) return 0;
+    const lineStart = Number(line.startIndex || 0);
+    const chars = Array.isArray(line.chars) ? line.chars : [];
+    if (!chars.length) return lineStart;
+    const glyphsByIndex = {};
+    (layout.glyphs || []).forEach(glyph => {
+      if ((glyph.line || 0) === lineIndex) glyphsByIndex[glyph.index] = glyph;
+    });
+    const localX = Number(x || 0);
+    for (let i = 0; i < chars.length; i++) {
+      const glyph = glyphsByIndex[chars[i].index];
+      if (!glyph) continue;
+      const midpoint = Number(glyph.x || 0) + Number(glyph.width || 0) / 2;
+      if (localX < midpoint) return Math.max(0, Number(glyph.index || 0));
+    }
+    const last = chars[chars.length - 1];
+    return Math.max(0, Number(last.index || 0) + 1);
+  },
+
   getCaretState(cursor, text, blockOverride) {
     const value = String(text || '');
     const layout = this.getSelectionLayout(value, blockOverride);
-    const max = value.length;
-    const index = Math.max(0, Math.min(Number(cursor || 0), max));
+    const max = Math.max(Number(layout.graphemeCount || 0), 0);
+    const index = Math.max(0, Math.min(this.getGraphemeIndex(value, cursor, 'nearest'), max));
     // 优先使用 offsets 中精确计算的字符位置
-    let pos = layout.offsets[index];
-    // 只有当 offsets 中没有该位置时，才 fallback 到行末估算
-    // （例如文本以 \n 结尾时 offsets 可能缺少末尾位置）
+    let pos = this.getLayoutPosition(layout, index);
+    // 换行结尾等边界位置仍由 layout 行末 offset 推导，不做宽度估算。
     if (!pos && index === max && layout.lines.length) {
       pos = this.getLineCaretPosition(layout, layout.lines.length - 1, undefined, blockOverride);
-    }
-    if (!pos) {
-      for (let i = index; i >= 0; i--) {
-        if (layout.offsets[i]) {
-          pos = layout.offsets[i];
-          break;
-        }
-      }
     }
     pos = pos || layout.offsets[0] || { x: layout.padX || 0, y: 0, line: 0 };
     const posFontSize = Number(pos.fontSize || layout.fontSize);
@@ -2064,13 +2806,15 @@ getPreviewBackground(bg) {
   },
 
   getSelectionHandlePositions(start, end, textLength, blockOverride) {
-    const text = String(this.data.activePlainText || '').slice(0, Math.max(Number(textLength || 0), 0));
+    const sourceText = String(this.data.activePlainText || '');
+    const text = sourceText.slice(0, this.snapTextOffset(sourceText, Math.max(Number(textLength || 0), 0), 'forward'));
     const layout = this.getSelectionLayout(text, blockOverride);
-    const max = Math.max(text.length, 0);
-    const startIndex = Math.max(0, Math.min(start, max));
-    const endIndex = Math.max(0, Math.min(end, max));
-    const startPos = layout.offsets[startIndex] || layout.offsets[0];
-    const endPos = layout.offsets[endIndex] || layout.offsets[layout.offsets.length - 1] || startPos;
+    const range = this.normalizeTextRangeToGraphemes(text, start, end);
+    const max = Math.max(Number(layout.graphemeCount || 0), 0);
+    const startIndex = Math.max(0, Math.min(range.graphemeStart, max));
+    const endIndex = Math.max(0, Math.min(range.graphemeEnd, max));
+    const startPos = this.getLayoutPosition(layout, startIndex);
+    const endPos = this.getLayoutPosition(layout, endIndex) || startPos;
     return {
       startX: Math.round(startPos.x),
       endX: Math.round(endPos.x),
@@ -2082,23 +2826,33 @@ getPreviewBackground(bg) {
   },
 
   getSelectionRects(start, end, textLength, blockOverride) {
-    const text = String(this.data.activePlainText || '').slice(0, Math.max(Number(textLength || 0), 0));
+    const sourceText = String(this.data.activePlainText || '');
+    const text = sourceText.slice(0, this.snapTextOffset(sourceText, Math.max(Number(textLength || 0), 0), 'forward'));
     const layout = this.getSelectionLayout(text, blockOverride);
-    const rangeStart = Math.max(0, Math.min(start, end, text.length));
-    const rangeEnd = Math.max(rangeStart + 1, Math.min(Math.max(start, end), text.length));
+    const range = this.normalizeTextRangeToGraphemes(text, start, end);
+    const rangeStart = Math.max(0, Math.min(range.graphemeStart, range.graphemeEnd, Number(layout.graphemeCount || 0)));
+    const rangeEnd = Math.max(rangeStart + 1, Math.min(Math.max(range.graphemeStart, range.graphemeEnd), Number(layout.graphemeCount || 0)));
     const rects = [];
     const lines = {};
+    const glyphsByIndex = {};
+    (layout.glyphs || []).forEach(glyph => { glyphsByIndex[glyph.index] = glyph; });
     for (let i = rangeStart; i < rangeEnd; i++) {
-      const from = layout.offsets[i];
-      const to = layout.offsets[i + 1];
+      const from = this.getLayoutPosition(layout, i);
+      const to = this.getLayoutPosition(layout, i + 1);
       if (!from || !to) continue;
-      const line = from.line || 0;
-      if (!lines[line]) lines[line] = { left: from.x, right: to.x, y: from.y, fontSize: from.fontSize || layout.fontSize, lineHeight: from.lineHeight || layout.lineHeight };
-      lines[line].left = Math.min(lines[line].left, from.x);
-      lines[line].right = Math.max(lines[line].right, to.x);
-      lines[line].y = from.y;
-      lines[line].fontSize = Math.max(Number(lines[line].fontSize || layout.fontSize), Number(from.fontSize || layout.fontSize), Number(to.fontSize || layout.fontSize));
-      lines[line].lineHeight = Math.max(Number(lines[line].lineHeight || layout.lineHeight), Number(from.lineHeight || layout.lineHeight), Number(to.lineHeight || layout.lineHeight));
+      const glyph = glyphsByIndex[i];
+      const line = (glyph && glyph.line) || from.line || 0;
+      const leftX = glyph ? Number(glyph.x || 0) : Number(from.x || 0);
+      const rightX = glyph ? leftX + Number(glyph.width || 0) : Math.max(leftX + 4, Number(to.x || leftX));
+      const topY = glyph ? Number(glyph.y || 0) : Number(from.y || 0);
+      const fontSize = Number((glyph && glyph.fontSize) || from.fontSize || to.fontSize || layout.fontSize);
+      const lineHeight = Number(from.lineHeight || to.lineHeight || layout.lineHeight);
+      if (!lines[line]) lines[line] = { left: leftX, right: rightX, y: topY, fontSize, lineHeight };
+      lines[line].left = Math.min(lines[line].left, leftX);
+      lines[line].right = Math.max(lines[line].right, rightX);
+      lines[line].y = topY;
+      lines[line].fontSize = Math.max(Number(lines[line].fontSize || layout.fontSize), fontSize);
+      lines[line].lineHeight = Math.max(Number(lines[line].lineHeight || layout.lineHeight), lineHeight);
     }
     Object.keys(lines).forEach(key => {
       const item = lines[key];
@@ -2113,21 +2867,14 @@ getPreviewBackground(bg) {
     return rects;
   },
 
-  getSelectionIndexFromPoint(x, line) {
-    const text = this.data.activePlainText || '';
-    const layout = this.getSelectionLayout(text);
-    const targetLine = Math.max(0, Number(line || 0));
-    let best = layout.offsets[0] || { index: 0, x: layout.padX, line: 0 };
-    let bestDistance = Infinity;
-    layout.offsets.forEach(pos => {
-      if ((pos.line || 0) !== targetLine) return;
-      const distance = Math.abs(Number(pos.x || 0) - x);
-      if (distance < bestDistance) {
-        bestDistance = distance;
-        best = pos;
-      }
-    });
-    return Math.max(0, Math.min(best.index || 0, text.length));
+  getSelectionIndexFromPoint(x, line, layoutOverride, textOverride) {
+    const text = typeof textOverride === 'string' ? textOverride : (this.data.activePlainText || '');
+    const layout = layoutOverride || this.getSelectionLayout(text);
+    const targetLine = Math.max(0, Math.min(Number(line || 0), Math.max((layout.lines || []).length - 1, 0)));
+    const lineInfo = (layout.lines || [])[targetLine] || {};
+    const y = Number(lineInfo.y || 0) + Number(lineInfo.lineHeight || layout.lineHeight || 0) / 2;
+    const index = this.getLayoutOffsetAtPoint(layout, x, y);
+    return this.getCodeUnitOffset(text, Math.max(0, Math.min(index || 0, Number(layout.graphemeCount || 0))));
   },
 
   getSelectionIndexFromPagePoint(pageX, pageY, blockOverride) {
@@ -2135,19 +2882,16 @@ getPreviewBackground(bg) {
     const text = this.data.activePlainText || deltaToText(block && block.delta);
     if (!text) return 0;
     const stageRect = this._stageRect;
-    if (!stageRect) return Math.max(0, Math.min(Number(this.data.selectionEnd || 0), text.length));
+    if (!stageRect) return this.snapTextOffset(text, Math.max(0, Math.min(Number(this.data.selectionEnd || 0), text.length)), 'nearest');
 
     const rpxPerPx = this.getRpxPerPx();
     const scales = getPreviewScales(this.data.design);
     const blockWithScale = { ...block, _previewScale: scales };
-    const pointX = typeof pageX === 'number' ? pageX : 0;
-    const pointY = typeof pageY === 'number' ? pageY : 0;
-    const localX = (pointX - stageRect.left) * rpxPerPx - Number(block.previewX || 0);
-    const localY = (pointY - stageRect.top) * rpxPerPx - Number(block.previewY || 0);
+    // 统一坐标转换：screen → local（含逆旋转）
+    const local = coord.screenToLocal(pageX, pageY, block, stageRect, rpxPerPx);
     const layout = this.getSelectionLayout(text, blockWithScale);
-    const lineCount = Math.max(layout.lines.length, 1);
-    const targetLine = Math.max(0, Math.min(Math.floor(localY / layout.lineHeight), lineCount - 1));
-    return this.getSelectionIndexFromPoint(localX, targetLine);
+    const index = this.getLayoutOffsetAtPoint(layout, local.x, local.y);
+    return this.getCodeUnitOffset(text, Math.max(0, Math.min(index || 0, Number(layout.graphemeCount || 0))));
   },
 
   getRpxPerPx() {
@@ -2165,8 +2909,9 @@ getPreviewBackground(bg) {
       return;
     }
     const max = text.length;
-    const rangeStart = Math.max(0, Math.min(start, end, max));
-    const rangeEnd = Math.max(rangeStart + 1, Math.min(Math.max(start, end), max));
+    const snapped = this.normalizeTextRangeToGraphemes(text, start, end);
+    const rangeStart = Math.max(0, Math.min(snapped.start, snapped.end, max));
+    const rangeEnd = Math.max(this.getCodeUnitOffset(text, snapped.graphemeStart + 1), Math.min(Math.max(snapped.start, snapped.end), max));
     const block = this.data.activeBlock || {};
     const highlightedDelta = applyTemporarySelectionHighlight(block.delta, rangeStart, rangeEnd);
     const previewBlock = { ...block, _previewScale: getPreviewScales(this.data.design) };
@@ -2194,8 +2939,9 @@ getPreviewBackground(bg) {
   refreshSelectionPreview(delta, start, end, hint, blockPatch) {
     const text = this.data.activePlainText || deltaToText(delta);
     const max = text.length;
-    const rangeStart = Math.max(0, Math.min(start, end, max));
-    const rangeEnd = Math.max(rangeStart + 1, Math.min(Math.max(start, end), max));
+    const snapped = this.normalizeTextRangeToGraphemes(text, start, end);
+    const rangeStart = Math.max(0, Math.min(snapped.start, snapped.end, max));
+    const rangeEnd = Math.max(this.getCodeUnitOffset(text, snapped.graphemeStart + 1), Math.min(Math.max(snapped.start, snapped.end), max));
     const block = { ...(this.data.activeBlock || {}), ...(blockPatch || {}), delta };
     const highlightedDelta = applyTemporarySelectionHighlight(delta, rangeStart, rangeEnd);
     const previewBlock = { ...block, _previewScale: getPreviewScales(this.data.design) };
@@ -2287,8 +3033,6 @@ getPreviewBackground(bg) {
     const handle = (e.currentTarget && e.currentTarget.dataset && e.currentTarget.dataset.handle) || 'end';
     const touch = e.touches && e.touches[0];
     if (!touch) return;
-    const block = this.data.activeBlock || {};
-    const width = Math.max(Number(block.previewWidth || Math.round(Number(block.width || DEFAULT_TEXT_BOX_WIDTH) * PREVIEW_SCALE)) || 0, 120);
     const currentPos = this.getSelectionHandlePositions(
       Number(this.data.selectionStart || 0),
       Number(this.data.selectionEnd || 0),
@@ -2300,8 +3044,7 @@ getPreviewBackground(bg) {
       startClientY: touch.clientY,
       startIndex: handle === 'start' ? Number(this.data.selectionStart || 0) : Number(this.data.selectionEnd || 0),
       anchorIndex: handle === 'start' ? Number(this.data.selectionEnd || 0) : Number(this.data.selectionStart || 0),
-      line: handle === 'start' ? currentPos.startLine : currentPos.endLine,
-      width
+      line: handle === 'start' ? currentPos.startLine : currentPos.endLine
     };
   },
 
@@ -2311,28 +3054,18 @@ getPreviewBackground(bg) {
     const text = this.data.activePlainText || '';
     if (!touch || !text) return;
     const drag = this._selectionDrag;
-    const currentPos = this.getSelectionHandlePositions(
-      Number(this.data.selectionStart || 0),
-      Number(this.data.selectionEnd || 0),
-      text.length
-    );
-    const baseX = drag.handle === 'start' ? currentPos.startX : currentPos.endX;
-    const dxRpx = (touch.clientX - drag.startClientX) * this.getRpxPerPx();
-    const dyPx = Math.abs(touch.clientY - Number(drag.startClientY || touch.clientY));
-    const dxPx = Math.abs(touch.clientX - Number(drag.startClientX || touch.clientX));
     const pageX = typeof touch.pageX === 'number' ? touch.pageX : touch.clientX;
     const pageY = typeof touch.pageY === 'number' ? touch.pageY : touch.clientY;
-    const index = dyPx > 4 || dxPx > 4
-      ? this.getSelectionIndexFromPagePoint(pageX, pageY)
-      : this.getSelectionIndexFromPoint(baseX + dxRpx, drag.line);
+    const index = this.getSelectionIndexFromPagePoint(pageX, pageY);
     const max = text.length;
     const anchor = Math.max(0, Math.min(Number(drag.anchorIndex), max));
     const moving = Math.max(0, Math.min(index, max));
     let start = Math.min(anchor, moving);
     let end = Math.max(anchor, moving);
     if (start === end) {
-      if (drag.handle === 'start') start = Math.max(0, end - 1);
-      else end = Math.min(max, start + 1);
+      const gIndex = this.getGraphemeIndex(text, start, drag.handle === 'start' ? 'backward' : 'forward');
+      if (drag.handle === 'start') start = this.getCodeUnitOffset(text, Math.max(0, gIndex - 1));
+      else end = this.getCodeUnitOffset(text, gIndex + 1);
     }
     this.enterSelectionMode(start, end, `已选中 ${Math.max(end - start, 0)} 个字`);
     this._selectionDrag = { ...drag, startClientX: touch.clientX, startClientY: touch.clientY };
@@ -2430,9 +3163,10 @@ getPreviewBackground(bg) {
     const rawCursor = typeof this.data.selectionEnd === 'number'
       ? this.data.selectionEnd
       : (typeof this.data.selectionStart === 'number' ? this.data.selectionStart : text.length);
-    const cursor = Math.max(0, Math.min(rawCursor, text.length));
-    const start = cursor >= text.length ? Math.max(0, text.length - 1) : cursor;
-    const end = Math.min(text.length, start + 1);
+    const cursor = this.snapTextOffset(text, Math.max(0, Math.min(rawCursor, text.length)), 'nearest');
+    const gCursor = this.getGraphemeIndex(text, cursor >= text.length ? text.length - 1 : cursor, cursor >= text.length ? 'backward' : 'forward');
+    const start = this.getCodeUnitOffset(text, Math.max(0, Math.min(gCursor, graphemeUtils.splitGraphemes(text).length - 1)));
+    const end = this.getCodeUnitOffset(text, this.getGraphemeIndex(text, start, 'forward') + 1);
     const selectedText = text.slice(start, end);
     const hint = end > start ? `已选中 ${end - start} 个字：${selectedText}` : '';
     this.enterSelectionMode(start, end, hint);
@@ -2442,7 +3176,7 @@ getPreviewBackground(bg) {
   selectTextBeforeCursor() {
     if (this.shouldSkipFormatAction('selectBefore')) return;
     const text = this.data.activePlainText || '';
-    const cursor = Math.max(0, Math.min(Number(this.data.selectionEnd || this.data.selectionStart || text.length), text.length));
+    const cursor = this.snapTextOffset(text, Math.max(0, Math.min(Number(this.data.selectionEnd || this.data.selectionStart || text.length), text.length)), 'nearest');
     this.setData({
       textInputFocus: true,
       selectionStart: 0,
@@ -2455,7 +3189,7 @@ getPreviewBackground(bg) {
   selectTextAfterCursor() {
     if (this.shouldSkipFormatAction('selectAfter')) return;
     const text = this.data.activePlainText || '';
-    const cursor = Math.max(0, Math.min(Number(this.data.selectionEnd || this.data.selectionStart || 0), text.length));
+    const cursor = this.snapTextOffset(text, Math.max(0, Math.min(Number(this.data.selectionEnd || this.data.selectionStart || 0), text.length)), 'nearest');
     this.setData({
       textInputFocus: true,
       selectionStart: cursor,
@@ -2483,8 +3217,11 @@ getPreviewBackground(bg) {
       start = 0;
       end = 0;
     } else if (start === end) {
-      // 无选区：删除光标前 1 个字符
-      if (start > 0) start -= 1;
+      // 无选区：删除光标前 1 个 grapheme
+      if (start > 0) {
+        const gStart = this.getGraphemeIndex(current, start, 'backward');
+        start = this.getCodeUnitOffset(current, Math.max(0, gStart - 1));
+      }
       text = current.slice(0, start) + current.slice(end);
     } else {
       // 有选区：删除选中部分
@@ -2674,6 +3411,8 @@ getPreviewBackground(bg) {
   },
 
   _doFinishInlineEditing() {
+    this._textComposing = false;
+    this.commitInputDraftToDesign();
     this.editorCtx = null;
     this._manualTextSelection = null;
     this._switchBlockTouch = null;
@@ -2707,6 +3446,8 @@ getPreviewBackground(bg) {
     // 标记正在从菜单完成，防止 blur 事件抢先退出编辑模式
     this._finishingFromMenu = true;
     this._ignoreNextEditorBlur = true;
+    this._textComposing = false;
+    this.commitInputDraftToDesign();
     this.editorCtx = null;
     this._manualTextSelection = null;
     const hadTyping = this._typingHistoryStarted;
@@ -2791,6 +3532,7 @@ getPreviewBackground(bg) {
       activeBlockId: id,
       activeBlock: block || {},
       activePlainText: text,
+      draftText: text,
       selectionModeActive: false,
       selectionPreviewNodes: [],
       selectionFlowNodes: [],
@@ -2815,68 +3557,19 @@ getPreviewBackground(bg) {
   // 根据页面点击坐标计算字符偏移量
   getCharOffsetFromPagePoint(block, pageX, pageY) {
     try {
+      const stageRect = this._stageRect;
+      if (!stageRect) return null;
       const rpxPerPx = this.getRpxPerPx();
       const scales = getPreviewScales(this.data.design);
-      const blockX = Number(block.previewX || 0);
-      const blockY = Number(block.previewY || 0);
-      return this._calcCharOffsetSync(block, pageX, pageY, rpxPerPx, blockX, blockY, scales);
+      // 统一坐标转换：screen → local（含逆旋转）
+      const local = coord.screenToLocal(pageX, pageY, block, stageRect, rpxPerPx);
+      const blockWithScale = { ...block, _previewScale: scales };
+      var text = deltaToText(block && block.delta);
+      var layout = this.getSelectionLayout(text, blockWithScale);
+      var index = this.getLayoutOffsetAtPoint(layout, local.x, local.y);
+      return this.getCodeUnitOffset(text, Math.max(0, Math.min(index || 0, Number(layout.graphemeCount || 0))));
     } catch (e) {
       return null;
-    }
-  },
-
-  // 同步计算字符偏移（使用缓存的 stage 位置或近似值）
-  _calcCharOffsetSync(block, pageX, pageY, rpxPerPx, blockX, blockY, scales) {
-    // 获取文字块相对于 stage 的 rpx 偏移
-    const stageRect = this._stageRect;
-    if (!stageRect) return null;
-
-    // 将页面坐标转换为相对于 stage 的 rpx 坐标
-    const relPxX = pageX - stageRect.left;
-    const relPxY = pageY - stageRect.top;
-    const relRpxX = relPxX * rpxPerPx;
-    const relRpxY = relPxY * rpxPerPx;
-
-    // 减去文字块偏移，得到文字块内的坐标
-    const localX = relRpxX - blockX;
-    const localY = relRpxY - blockY;
-
-    // 使用布局信息计算最近字符
-    var text = deltaToText(block && block.delta);
-    var blockWithScale = { ...block, _previewScale: scales };
-    var layout = this.getSelectionLayout(text, blockWithScale);
-    var lineHeight = layout.lineHeight;
-
-    // 计算点击位置所在的行
-    var targetLine = Math.max(0, Math.min(Math.floor(localY / lineHeight), layout.lines.length - 1));
-
-    // 在该行中找最近的两个相邻字符位置，根据点击在左侧还是右侧决定偏移
-    var bestLeft = 0;      // 点击点左侧最近的字符间隙索引
-    var bestRight = text.length; // 点击点右侧最近的字符间隙索引
-    var leftDist = Infinity;
-    var rightDist = Infinity;
-
-    var offsets = layout.offsets || [];
-    for (var i = 0; i < offsets.length; i++) {
-      var pos = offsets[i];
-      if ((pos.line || 0) !== targetLine) continue;
-      var dist = Number(pos.x || 0) - localX;
-      if (dist <= 0 && -dist < leftDist) {
-        leftDist = -dist;
-        bestLeft = pos.index || 0;
-      }
-      if (dist >= 0 && dist < rightDist) {
-        rightDist = dist;
-        bestRight = pos.index || 0;
-      }
-    }
-
-    // 如果点击点更靠近某个位置的左侧还是右侧来决定返回哪个索引
-    // 这让拖拽选择时"往左往右"的扩展更精确、更跟手
-    if (leftDist <= rightDist) {
-      return Math.max(0, Math.min(bestLeft, text.length));
-    } else {
-      return Math.max(0, Math.min(bestRight, text.length));
     }
   },
 
@@ -3173,22 +3866,18 @@ getPreviewBackground(bg) {
     const dy = (touch.clientY - drag.startY) * rpxPerPx;
     const previewScale = getPreviewScales(this.data.design);
     const stage = getPreviewStageSize(this.data.design);
-    const blocks = (this.data.design.blocks || []).map(block => {
-      if (block.id !== id) return block;
-      const maxX = stage.width - Number(block.previewWidth || 0);
-      const maxY = stage.height - Number(block.previewHeight || 0);
-      const previewX = Math.max(0, Math.min(maxX, Math.round(Number(drag.startPreviewX || 0) + dx)));
-      const previewY = Math.max(0, Math.min(maxY, Math.round(Number(drag.startPreviewY || 0) + dy)));
-      return {
-        ...block,
-        previewX,
-        previewY,
-        x: Math.round(previewX / previewScale.x),
-        y: Math.round(previewY / previewScale.y)
-      };
-    });
-    const activeBlock = blocks.find(item => item.id === id) || this.data.activeBlock;
-    this.setData({ 'design.blocks': blocks, activeBlock }, () => this.schedulePreviewRender(0));
+    const block = (this.data.design.blocks || []).find(b => b.id === id);
+    if (!block) return;
+    const maxX = stage.width - Number(block.previewWidth || 0);
+    const maxY = stage.height - Number(block.previewHeight || 0);
+    const previewX = Math.max(0, Math.min(maxX, Math.round(Number(drag.startPreviewX || 0) + dx)));
+    const previewY = Math.max(0, Math.min(maxY, Math.round(Number(drag.startPreviewY || 0) + dy)));
+    this.updateBlockDraft(id, {
+      previewX,
+      previewY,
+      x: Math.round(previewX / previewScale.x),
+      y: Math.round(previewY / previewScale.y)
+    }, { renderDelay: 80 });
   },
 
   updateActiveBlock(patch, options) {
@@ -3202,13 +3891,16 @@ getPreviewBackground(bg) {
     if (options && options.silentEditor) {
       const hydrated = hydrateDesign(design);
       const activeBlock = hydrated.blocks.find(item => item.id === this.data.activeBlockId) || {};
-      this.setData({
+      const updates = {
         design: hydrated,
         activeBlock,
-        activePlainText: deltaToText(activeBlock.delta),
         nodeVersion: (this.data.nodeVersion || 0) + 1,
         ...getTextPanelState(activeBlock, this.data)
-      }, () => this.schedulePreviewRender(options && typeof options.renderDelay === 'number' ? options.renderDelay : undefined));
+      };
+      if (!(options && options.preserveInputState)) {
+        updates.activePlainText = deltaToText(activeBlock.delta);
+      }
+      this.setData(updates, () => this.schedulePreviewRender(options && typeof options.renderDelay === 'number' ? options.renderDelay : undefined));
       return;
     }
     this.setDesign(design, design.blocks[index].id);
@@ -3220,6 +3912,7 @@ getPreviewBackground(bg) {
     const block = (this.data.design.blocks || []).find(item => item.id === id);
     const touches = e.touches || [];
     if (touches.length >= 2 && block) {
+      this.setInteractionMode('resizing');
       this.startBlockPinchResize(block, touches);
       this._dragBlockId = id;
       this._dragMoved = true;
@@ -3227,6 +3920,7 @@ getPreviewBackground(bg) {
     }
     this._dragBlockId = id;
     this._dragMoved = false;
+    if (id) this.setInteractionMode('dragging');
     const touch = touches[0];
     if (touch && block) {
       this._dragStartX = touch.clientX;
@@ -3267,21 +3961,18 @@ getPreviewBackground(bg) {
 
     const previewScale = getPreviewScales(this.data.design);
     const stage = getPreviewStageSize(this.data.design);
-    const blocks = (this.data.design.blocks || []).map(block => {
-      if (block.id !== id) return block;
-      const maxX = stage.width - Number(block.previewWidth || 0);
-      const maxY = stage.height - Number(block.previewHeight || 0);
-      const previewX = Math.max(0, Math.min(maxX, Math.round((this._dragStartPreviewX || 0) + dx)));
-      const previewY = Math.max(0, Math.min(maxY, Math.round((this._dragStartPreviewY || 0) + dy)));
-      return {
-        ...block,
-        previewX,
-        previewY,
-        x: Math.round(previewX / previewScale.x),
-        y: Math.round(previewY / previewScale.y)
-      };
-    });
-    this.setData({ 'design.blocks': blocks }, () => this.schedulePreviewRender(16));
+    const block = (this.data.design.blocks || []).find(item => item.id === id);
+    if (!block) return;
+    const maxX = stage.width - Number(block.previewWidth || 0);
+    const maxY = stage.height - Number(block.previewHeight || 0);
+    const previewX = Math.max(0, Math.min(maxX, Math.round((this._dragStartPreviewX || 0) + dx)));
+    const previewY = Math.max(0, Math.min(maxY, Math.round((this._dragStartPreviewY || 0) + dy)));
+    this.updateBlockDraft(id, {
+      previewX,
+      previewY,
+      x: Math.round(previewX / previewScale.x),
+      y: Math.round(previewY / previewScale.y)
+    }, { renderDelay: 80 });
   },
 
   onBlockTouchEnd(e) {
@@ -3296,6 +3987,7 @@ getPreviewBackground(bg) {
       this._dragStartPreviewX = null;
       this._dragStartPreviewY = null;
       this._suppressNextTap = true;
+      this.setInteractionMode('idle');
       setTimeout(() => {
         this._suppressNextTap = false;
       }, 120);
@@ -3310,6 +4002,7 @@ getPreviewBackground(bg) {
     this._dragStartPreviewX = null;
     this._dragStartPreviewY = null;
     if (!id) return;
+    this.setInteractionMode('idle');
     if (!moved) {
       const block = (this.data.design.blocks || []).find(b => b.id === id);
       if (block) this.enterEditMode(id, block);
@@ -3358,7 +4051,7 @@ getPreviewBackground(bg) {
     });
   },
 
-  onEditBlockMove(e) {
+    onEditBlockMove(e) {
     if (e && typeof e.stopPropagation === 'function') e.stopPropagation();
     const state = this._editBlockMove;
     const touch = e.touches && e.touches[0];
@@ -3371,22 +4064,18 @@ getPreviewBackground(bg) {
 
     const previewScale = getPreviewScales(this.data.design);
     const stage = getPreviewStageSize(this.data.design);
-    const blocks = (this.data.design.blocks || []).map(block => {
-      if (block.id !== id) return block;
-      const maxX = stage.width - Number(block.previewWidth || 0);
-      const maxY = stage.height - Number(block.previewHeight || 0);
-      const previewX = Math.max(0, Math.min(maxX, Math.round(state.startPreviewX + dx)));
-      const previewY = Math.max(0, Math.min(maxY, Math.round(state.startPreviewY + dy)));
-      return {
-        ...block,
-        previewX,
-        previewY,
-        x: Math.round(previewX / previewScale.x),
-        y: Math.round(previewY / previewScale.y)
-      };
-    });
-    const activeBlock = blocks.find(item => item.id === id) || this.data.activeBlock;
-    this.setData({ 'design.blocks': blocks, activeBlock }, () => this.schedulePreviewRender(0));
+    const block = (this.data.design.blocks || []).find(b => b.id === id);
+    if (!block) return;
+    const maxX = stage.width - Number(block.previewWidth || 0);
+    const maxY = stage.height - Number(block.previewHeight || 0);
+    const previewX = Math.max(0, Math.min(maxX, Math.round(state.startPreviewX + dx)));
+    const previewY = Math.max(0, Math.min(maxY, Math.round(state.startPreviewY + dy)));
+    this.updateBlockDraft(id, {
+      previewX,
+      previewY,
+      x: Math.round(previewX / previewScale.x),
+      y: Math.round(previewY / previewScale.y)
+    }, { renderDelay: 80 });
   },
 
   onEditBlockMoveEnd(e) {
@@ -3395,6 +4084,7 @@ getPreviewBackground(bg) {
     this._editBlockMove = null;
     if (!state) return;
     if (state.moved) {
+      this.flushGestureDraft();
       this._saveHistory(this.data.design);
       this.schedulePreviewRender(0);
     }
@@ -3510,7 +4200,7 @@ getPreviewBackground(bg) {
       const newHeight = Math.max(MIN_TEXT_BOX_HEIGHT, Math.min(MAX_TEXT_BOX_HEIGHT, Math.round(state.baseHeight * scale)));
       const newFontSize = clampFontSize(Math.round(state.baseFontSize * scale));
       const delta = scaleDeltaFontSizes(state.baseDelta, scale);
-      this.updateActiveBlock({ width: newWidth, manualHeight: newHeight, delta }, { silentEditor: true });
+      this.updateBlockDraft(state.id, { width: newWidth, manualHeight: newHeight, delta }, { renderDelay: 80 });
       this.setData({ fontSize: newFontSize });
       return;
     }
@@ -3521,6 +4211,8 @@ getPreviewBackground(bg) {
       const edge = state.edge || 'br';
       const dx = (touch.clientX - state.startX) * state.rpxPerPx / (state.previewScaleX || PREVIEW_SCALE);
       const dy = (touch.clientY - state.startY) * state.rpxPerPx / (state.previewScaleY || PREVIEW_SCALE);
+      const adjustsWidth = edge.indexOf('l') >= 0 || edge.indexOf('r') >= 0;
+      const adjustsHeight = edge.indexOf('t') >= 0 || edge.indexOf('b') >= 0;
 
       let newX = state.x;
       let newY = state.y;
@@ -3543,17 +4235,28 @@ getPreviewBackground(bg) {
 
       const widthScale = newWidth / state.baseWidth;
       const heightScale = newHeight / state.baseHeight;
-      const fontScale = (edge === 'tm' || edge === 'bm') ? heightScale : widthScale;
+      const fontScale = adjustsHeight && !adjustsWidth ? heightScale : widthScale;
       const newFontSize = clampFontSize(Math.round(state.baseFontSize * fontScale));
       const delta = scaleDeltaFontSizes(state.baseDelta, fontScale);
-      this.updateActiveBlock({ x: newX, y: newY, width: newWidth, manualHeight: newHeight, delta }, { silentEditor: true });
+      const patch = { delta };
+      if (adjustsWidth) {
+        patch.x = newX;
+        patch.width = newWidth;
+      }
+      if (adjustsHeight) {
+        patch.y = newY;
+        patch.manualHeight = newHeight;
+      }
+      this.updateBlockDraft(state.id, patch, { renderDelay: 80 });
       this.setData({ fontSize: newFontSize });
     }
   },
 
   onResizeEnd() {
     if (this.resizeState) {
+      this.flushGestureDraft();
       this._saveHistory(this.data.design);
+      this.schedulePreviewRender(0);
     }
     this.resizeState = null;
   },
@@ -3832,27 +4535,50 @@ getPreviewBackground(bg) {
 
   loadPreviewFont(font) {
     if (!font || !font.fontUrl) return Promise.resolve(true);
-    if (this.loadedFonts && this.loadedFonts[font.id]) return Promise.resolve(true);
+    const key = `${font.family}|${font.fontUrl}`;
+    if (this.loadedFonts && this.loadedFonts[key]) return Promise.resolve(true);
+    if (this.loadingFonts && this.loadingFonts[key]) return this.loadingFonts[key];
     this.loadedFonts = this.loadedFonts || {};
-    return new Promise(resolve => {
-      wx.loadFontFace({
-        family: font.family,
-        source: `url("${font.fontUrl}")`,
-        global: true,
-        success: () => {
-          this.loadedFonts[font.id] = true;
-          this.setData({ design: hydrateDesign(clone(this.data.design)) }, () => this.schedulePreviewRender(0));
-          resolve(true);
-        },
-        fail: () => resolve(false)
+    this.loadingFonts = this.loadingFonts || {};
+    this.setFontReadyState(font, 'loading');
+    const promise = new Promise(resolve => {
+      resolveFontFaceSource(font.fontUrl).then(source => {
+        if (!source) {
+          this.setFontReadyState(font, 'failed');
+          this.bumpTypographyVersion('font-source-missing');
+          resolve(false);
+          return;
+        }
+        wx.loadFontFace({
+          family: font.family,
+          source,
+          global: true,
+          success: () => {
+            this.loadedFonts[key] = true;
+            if (font.id) this.loadedFonts[font.id] = true;
+            this.setFontReadyState(font, 'ready');
+            this.bumpTypographyVersion('font-ready');
+            resolve(true);
+          },
+          fail: () => {
+            this.setFontReadyState(font, 'failed');
+            this.bumpTypographyVersion('font-failed');
+            resolve(false);
+          }
+        });
       });
     });
+    this.loadingFonts[key] = promise;
+    promise.then(() => { if (this.loadingFonts) delete this.loadingFonts[key]; });
+    return promise;
   },
 
   preloadVisibleFonts() {
-    (this.data.fonts || [])
-      .filter(font => font && font.fontUrl)
-      .slice(0, 12)
+    const fonts = this.data.fonts || [];
+    const priority = fonts.filter(font => font && font.managed && font.fontUrl);
+    const visible = fonts.filter(font => font && font.fontUrl).slice(0, 12);
+    [...priority, ...visible]
+      .filter((font, index, list) => list.findIndex(item => item.id === font.id) === index)
       .forEach(font => this.loadPreviewFont(font));
   },
 
@@ -3884,12 +4610,7 @@ getPreviewBackground(bg) {
 
   setBgColor(e) {
     const activeBackground = e.currentTarget.dataset.value || '#FFF2C7';
-    this.setData({ activeBackground });
-    if (this.hasActiveTextSelection()) {
-      this.applyFormatToSelection({ background: activeBackground, backgroundColor: activeBackground });
-    } else {
-      this.applyFormatToAllText({ background: activeBackground, backgroundColor: activeBackground });
-    }
+    this.applyTextBackground(activeBackground);
     this._saveHistory(this.data.design);
   },
 
@@ -3900,18 +4621,42 @@ getPreviewBackground(bg) {
   changeBgOpacity(e) {
     const bgOpacity = Number(e.detail.value || 0.8);
     this.setData({ bgOpacity });
-    // 背景透明度通过调整颜色的 alpha 值实现
-    const hex = this.data.activeBackground || '#FFF2C7';
-    const r = parseInt(hex.slice(1, 3), 16);
-    const g = parseInt(hex.slice(3, 5), 16);
-    const b = parseInt(hex.slice(5, 7), 16);
-    const rgba = `rgba(${r},${g},${b},${bgOpacity})`;
-    if (this.hasActiveTextSelection()) {
-      this.applyFormatToSelection({ background: rgba, backgroundColor: rgba });
-    } else {
-      this.applyFormatToAllText({ background: rgba, backgroundColor: rgba });
-    }
+    const rgba = this.withBackgroundOpacity(this.data.activeBackground || '#FFF2C7', bgOpacity);
+    this.applyTextBackground(rgba, { keepActiveColor: true });
     if (e && e.type === 'change') this._saveHistory(this.data.design);
+  },
+
+  withBackgroundOpacity(color, opacity) {
+    const alpha = Math.max(0.05, Math.min(Number(opacity || 0.8), 1));
+    const hex = String(color || '#FFF2C7').trim();
+    const rgbaMatch = hex.match(/^rgba?\(([^)]+)\)$/i);
+    if (rgbaMatch) {
+      const parts = rgbaMatch[1].split(',').map(part => part.trim());
+      const r = Number(parts[0] || 255);
+      const g = Number(parts[1] || 242);
+      const b = Number(parts[2] || 199);
+      return `rgba(${r},${g},${b},${alpha})`;
+    }
+    const normalized = /^#[0-9a-f]{6}$/i.test(hex) ? hex : '#FFF2C7';
+    const r = parseInt(normalized.slice(1, 3), 16);
+    const g = parseInt(normalized.slice(3, 5), 16);
+    const b = parseInt(normalized.slice(5, 7), 16);
+    return `rgba(${r},${g},${b},${alpha})`;
+  },
+
+  applyTextBackground(color, options = {}) {
+    const activeBackground = color || '#FFF2C7';
+    if (!options.keepActiveColor) this.setData({ activeBackground });
+    if (this.hasActiveTextSelection()) {
+      this.applyFormatToSelection({ background: activeBackground, backgroundColor: activeBackground });
+      return;
+    }
+    this.updateActiveBlock({
+      textBackground: activeBackground,
+      textBackgroundColor: activeBackground,
+      textBackgroundRadius: 8
+    }, { silentEditor: true, renderDelay: 0 });
+    this.schedulePreviewRender(0);
   },
 
   setShadowColor(e) {
@@ -3977,12 +4722,8 @@ getPreviewBackground(bg) {
     } else if (target === 'stroke') {
       this.applyStrokeColor(color);
     } else if (target === 'bg') {
-      this.setData({ activeBackground: color });
-      if (this.hasActiveTextSelection()) {
-        this.applyFormatToSelection({ background: color, backgroundColor: color });
-      } else {
-        this.applyFormatToAllText({ background: color, backgroundColor: color });
-      }
+      this.applyTextBackground(color);
+      this._saveHistory(this.data.design);
     } else if (target === 'shadow') {
       const r = parseInt(color.slice(1, 3), 16);
       const g = parseInt(color.slice(3, 5), 16);
@@ -4343,7 +5084,8 @@ getPreviewBackground(bg) {
         if (this.data.activeCanvasSizeId === 'image' && bgWidth && bgHeight) {
           design.size = { ...normalizeAspectSize(bgWidth, bgHeight), preset: 'image' };
         }
-        const scale = Math.max(0.2, Math.min(Number(prevBg.scale || 1), 1));
+        const isFollowImage = this.data.activeCanvasSizeId === 'image';
+        const scale = isFollowImage ? 1 : Math.max(0.2, Math.min(Number(prevBg.scale || 1), 1));
         const layout = getBackgroundImageLayout({ bgWidth, bgHeight, scale }, design);
 
         design.background = {
@@ -4614,20 +5356,26 @@ getPreviewBackground(bg) {
     const previewX = Math.max(0, Math.min(Math.max(stage.width - previewSize, 0), Math.round(state.startPreviewX + dx)));
     const previewY = Math.max(0, Math.min(Math.max(stage.height - previewSize, 0), Math.round(state.startPreviewY + dy)));
     const previewScale = getPreviewScales(this.data.design);
-    const design = clone(this.data.design);
-    this.updateQrLayerById(design, state.id, {
-      x: Math.round(previewX / previewScale.x),
-      y: Math.round(previewY / previewScale.y)
+    const newX = Math.round(previewX / previewScale.x);
+    const newY = Math.round(previewY / previewScale.y);
+
+    // Draft 模式：写入 _qrDraft，不直接修改 this.data.design
+    const isMain = state.id === 'qrcode_main' || !state.id;
+    this._qrDraft = { type: isMain ? 'main' : 'copy', id: isMain ? null : state.id, x: newX, y: newY };
+
+    // 更新 qrItems 中对应项的预览坐标
+    const qrItems = (this.data.qrItems || []).map(item => {
+      if (item.id !== state.id) return item;
+      return { ...item, previewX, previewY };
     });
-    const hydrated = hydrateDesign(design);
-    this.setData({
-      design: hydrated,
-      qrItems: hydrated.qrItems || [],
+
+    this.queueGestureFrame({
       qrPreviewX: previewX,
       qrPreviewY: previewY,
       qrcodeActive: true,
-      activeQrId: state.id
-    }, () => this.schedulePreviewRender(0));
+      activeQrId: state.id,
+      qrItems
+    }, { renderDelay: 80 });
   },
 
   onQrDragEnd(e) {
@@ -4635,6 +5383,8 @@ getPreviewBackground(bg) {
     const state = this._qrDragState;
     this._qrDragState = null;
     if (state && state.moved) {
+      this.flushQrDraft();
+      this.flushGestureDraft();
       this._saveHistory(this.data.design);
       this.schedulePreviewRender(0);
     }
@@ -4652,24 +5402,14 @@ getPreviewBackground(bg) {
       var newX = Math.round(e.detail.x * rpxPerPx);
       var newY = Math.round(e.detail.y * rpxPerPx);
       var newSize = Math.round(Number(qr.size || 110) * PREVIEW_SCALE);
-      // 拖拽时保持选中态，确保操作按钮和缩放手柄可见
-      var updateData = {
+      // Draft 模式：写入 _qrDraft，不直接修改 this.data.design
+      this._qrDraft = { type: 'main', x: newX, y: newY };
+      this.queueGestureFrame({
         qrPreviewX: e.detail.x,
         qrPreviewY: e.detail.y,
-        qrPreviewSize: newSize
-      };
-      if (!this.data.qrcodeActive) {
-        updateData.qrcodeActive = true;
-      }
-      this.setData(updateData);
-      // 同步到 design
-      var design = clone(this.data.design);
-      if (design.qrcode) {
-        design.qrcode.x = newX;
-        design.qrcode.y = newY;
-        this.setData({ 'design.qrcode': design.qrcode });
-        this.schedulePreviewRender(16);
-      }
+        qrPreviewSize: newSize,
+        ...(this.data.qrcodeActive ? {} : { qrcodeActive: true })
+      }, { renderDelay: 80 });
     } catch (err) {}
   },
 
@@ -4700,19 +5440,25 @@ getPreviewBackground(bg) {
     var newPreviewSize = Math.max(40, Math.min(240, this._qrResizeStartSize + delta * 0.5));
     // 将预览尺寸反算回设计尺寸
     var newDesignSize = Math.max(40, Math.min(300, Math.round(newPreviewSize / getPreviewScales(this.data.design).x)));
-    // 同步到 design
-    var design = clone(this.data.design);
-    this.updateQrLayerById(design, this._qrResizeId, { size: newDesignSize });
-    const hydrated = hydrateDesign(design);
-    this.setData({ design: hydrated, qrItems: hydrated.qrItems || [], qrPreviewSize: newPreviewSize });
-    this.schedulePreviewRender(16);
+    // Draft 模式：写入 _qrDraft，不直接修改 this.data.design
+    const id = this._qrResizeId || 'qrcode_main';
+    const isMain = id === 'qrcode_main' || !id;
+    this._qrDraft = { type: isMain ? 'main' : 'copy', id: isMain ? null : id, size: newDesignSize };
+    // 更新 qrItems 中对应项的预览尺寸
+    const qrItems = (this.data.qrItems || []).map(item => {
+      if (item.id !== id) return item;
+      return { ...item, previewSize: newPreviewSize };
+    });
+    this.queueGestureFrame({ qrPreviewSize: newPreviewSize, qrItems }, { renderDelay: 80 });
   },
 
   /** 二维码缩放结束 */
   onQrResizeEnd() {
     if (this._qrResizeStartSize != null) {
-      var design = clone(this.data.design);
-      this._saveHistory(design);
+      this.flushQrDraft();
+      this.flushGestureDraft();
+      this._saveHistory(this.data.design);
+      this.schedulePreviewRender(0);
     }
     this._qrResizeStartSize = null;
     this._qrResizeStartX = null;
@@ -4809,10 +5555,14 @@ getPreviewBackground(bg) {
   },
 
   saveDraft(options) {
+    this.flushAllPendingState();
     const design = clone(this.data.design);
     design.id = design.id || this._currentDraftId || '';
     const saved = cardStorage.saveDraft(design);
     this._currentDraftId = saved.id;
+    this.ensureReliabilityLayer();
+    if (this._checkpointManager) this._checkpointManager.snapshot('draft-save', saved.design);
+    if (this._autosave) this._autosave.clear();
     this.setData({ 'design.id': saved.id, draftListCount: cardStorage.getDraftCount() });
     if (!options || !options.silent) {
       wx.showToast({ title: '已保存草稿', icon: 'success' });
@@ -4842,31 +5592,46 @@ getPreviewBackground(bg) {
   },
 
   async goExport() {
+    this.ensureReliabilityLayer();
+    if (this._exportQueue && this._exportQueue.isLocked()) {
+      wx.showToast({ title: '正在导出，请稍候', icon: 'none' });
+      return;
+    }
     if (this.data.inlineEditing) {
       this.finishInlineEditing();
     }
+    this.flushAllPendingState();
     const saved = this.saveDraft({ silent: true });
     const exportDesign = clone(this.data.design);
     exportDesign.id = saved.id;
     cardStorage.setCurrentExportDesign(exportDesign);
+    autosave.markExportRecovery(exportDesign, { draftId: saved.id });
     wx.showLoading({ title: '生成图片中...' });
+    const exportOptions = {
+      scale: 1.5,
+      cropToBackgroundImage: false
+    };
     try {
+      const startedAt = Date.now();
       // scale=1.5 足够清晰（原 scale=2 会产出 4x 像素，较慢）
-      const shouldCropToBackground = !!(
-        exportDesign.background &&
-        exportDesign.background.type === 'image' &&
-        exportDesign.background.src
-      );
-      const imagePath = await renderer.exportPoster(this, '#exportCanvas', exportDesign, {
-        scale: 1.5,
-        cropToBackgroundImage: shouldCropToBackground
+      const imagePath = await this._exportQueue.run(exportDesign, exportOptions, async token => {
+        token.throwIfCancelled();
+        const output = await renderer.exportPoster(this, '#exportCanvas', exportDesign, exportOptions);
+        token.throwIfCancelled();
+        return output;
       });
+      this._lastExportBenchmark = {
+        exportCost: Date.now() - startedAt,
+        engine: renderer.getEngineTelemetry ? renderer.getEngineTelemetry() : null
+      };
+      autosave.clearExportRecovery();
       wx.hideLoading();
       this.saveImageToAlbum(imagePath);
     } catch (e) {
       console.error('导出失败', e);
       wx.hideLoading();
-      wx.showToast({ title: '导出失败', icon: 'none' });
+      const message = String((e && e.message) || '');
+      wx.showToast({ title: message.indexOf('frequent') >= 0 ? '请稍后再导出' : '导出失败', icon: 'none' });
     }
   }
 });

@@ -1,3 +1,12 @@
+const { resolveFontFaceSource } = require('./fontLoader');
+const textLayout = require('./text-layout');
+const rendererGrapheme = require('./renderer-grapheme-adapter');
+const glyphRender = require('./glyph-render-adapter');
+const fontMetrics = require('./font-metrics');
+const telemetry = require('./engine-telemetry');
+const debugOverlay = require('./debug-overlay-hooks');
+const cacheManager = require('./cache-manager');
+
 function copy(value) {
   return JSON.parse(JSON.stringify(value || {}));
 }
@@ -78,7 +87,99 @@ function drawRoundRect(ctx, x, y, w, h, r) {
   ctx.closePath();
 }
 
-function drawVerticalGlyph(ctx, glyph, style, block, design, x, y, columnWidth) {
+function getTextureConfig(style, block) {
+  const texture = (style && style.textTexture) || (block && block.textTexture);
+  return texture && texture.src ? texture : null;
+}
+
+function hasTextTexture(block) {
+  if (getTextureConfig(null, block)) return true;
+  return normalizeOps(block && block.delta).some(op => !!getTextureConfig(op.attributes || {}, block));
+}
+
+async function drawTextureFill(canvas, ctx, texture, rect) {
+  if (!texture || !rect || rect.width <= 0 || rect.height <= 0) return false;
+  if (texture.preset && !texture.src) {
+    const preset = texture.preset;
+    let gradient = ctx.createLinearGradient(rect.x, rect.y, rect.x + rect.width, rect.y + rect.height);
+    if (preset === 'gold') {
+      gradient.addColorStop(0, '#7D5520');
+      gradient.addColorStop(0.35, '#F5D37A');
+      gradient.addColorStop(0.7, '#B9822C');
+      gradient.addColorStop(1, '#FFF0B8');
+    } else if (preset === 'ink') {
+      gradient.addColorStop(0, '#1F2623');
+      gradient.addColorStop(0.55, '#56625A');
+      gradient.addColorStop(1, '#111511');
+    } else if (preset === 'paper') {
+      gradient.addColorStop(0, '#F5E8D0');
+      gradient.addColorStop(0.5, '#D9BE8D');
+      gradient.addColorStop(1, '#FFF7E8');
+    } else if (preset === 'landscape') {
+      gradient.addColorStop(0, '#314538');
+      gradient.addColorStop(0.5, '#9BAF9C');
+      gradient.addColorStop(1, '#E9D7BF');
+    } else {
+      gradient.addColorStop(0, '#FFF3D6');
+      gradient.addColorStop(0.5, '#DAA520');
+      gradient.addColorStop(1, '#F7C7CE');
+    }
+    ctx.save();
+    ctx.globalAlpha = Math.max(0.05, Math.min(Number(texture.opacity || 1), 1));
+    ctx.fillStyle = gradient;
+    ctx.fillRect(rect.x, rect.y, rect.width, rect.height);
+    ctx.restore();
+    return true;
+  }
+  if (!texture.src) return false;
+  const path = await getImagePath(texture.src);
+  const image = await loadCanvasImage(canvas, path);
+  if (!image) return false;
+  const sourceWidth = Number(texture.width || image.width || rect.width);
+  const sourceHeight = Number(texture.height || image.height || rect.height);
+  const scale = Math.max(0.1, Number(texture.scale || 1));
+  const fit = Math.max(rect.width / Math.max(sourceWidth, 1), rect.height / Math.max(sourceHeight, 1)) * scale;
+  const drawWidth = sourceWidth * fit;
+  const drawHeight = sourceHeight * fit;
+  const drawX = rect.x + (rect.width - drawWidth) / 2 + Number(texture.offsetX || 0);
+  const drawY = rect.y + (rect.height - drawHeight) / 2 + Number(texture.offsetY || 0);
+  ctx.save();
+  ctx.globalAlpha = Math.max(0.05, Math.min(Number(texture.opacity || 1), 1));
+  ctx.drawImage(image, drawX, drawY, drawWidth, drawHeight);
+  ctx.restore();
+  return true;
+}
+
+async function fillTextWithTexture(canvas, ctx, text, x, y, style, block, rect) {
+  const texture = getTextureConfig(style, block);
+  if (!texture) return false;
+  if (typeof wx === 'undefined' || !wx.createOffscreenCanvas) return false;
+  const width = Math.max(1, Math.ceil(rect.width + 8));
+  const height = Math.max(1, Math.ceil(rect.height + 8));
+  const offscreen = wx.createOffscreenCanvas({ type: '2d', width, height });
+  const offCtx = offscreen.getContext('2d');
+  offCtx.clearRect(0, 0, width, height);
+  offCtx.save();
+  offCtx.translate(-rect.x + 4, -rect.y + 4);
+  await drawTextureFill(canvas, offCtx, texture, rect);
+  offCtx.restore();
+  offCtx.save();
+  offCtx.globalCompositeOperation = 'destination-in';
+  offCtx.translate(-rect.x + 4, -rect.y + 4);
+  offCtx.font = ctx.font;
+  offCtx.textBaseline = ctx.textBaseline;
+  offCtx.fillStyle = '#000000';
+  offCtx.fillText(text, x, y);
+  if (style && style.bold) {
+    const fontSize = parseInt(style.size || style.fontSize || 30, 10) || 30;
+    offCtx.fillText(text, x + Math.max(fontSize * 0.035, 0.8), y);
+  }
+  offCtx.restore();
+  ctx.drawImage(offscreen, rect.x - 4, rect.y - 4, width, height);
+  return true;
+}
+
+async function drawVerticalGlyph(canvas, ctx, glyph, style, block, design, x, y, columnWidth) {
   const fontSize = parseInt(style.size || style.fontSize || 30, 10) || 30;
   const opacity = Number(style.opacity || 1);
   ctx.font = pickFont(style, design);
@@ -114,10 +215,18 @@ function drawVerticalGlyph(ctx, glyph, style, block, design, x, y, columnWidth) 
     ctx.strokeText(glyph, drawX, y);
   }
 
-  ctx.fillStyle = style.color || block.color || '#333333';
-  ctx.fillText(glyph, drawX, y);
-  if (style.bold) {
-    ctx.fillText(glyph, drawX + Math.max(fontSize * 0.035, 0.8), y);
+  const textured = await fillTextWithTexture(canvas, ctx, glyph, drawX, y, style, block, {
+    x: Number(block.x || 0),
+    y: Number(block.y || 0),
+    width: Number(block.width || columnWidth),
+    height: Number(block.height || fontSize)
+  });
+  if (!textured) {
+    ctx.fillStyle = style.color || block.color || '#333333';
+    ctx.fillText(glyph, drawX, y);
+    if (style.bold) {
+      ctx.fillText(glyph, drawX + Math.max(fontSize * 0.035, 0.8), y);
+    }
   }
   if (style.underline) {
     ctx.shadowColor = 'transparent';
@@ -173,7 +282,7 @@ function splitTextForVertical(text) {
   return segments;
 }
 
-function drawVerticalTextBlock(ctx, block, design) {
+async function drawVerticalTextBlock(canvas, ctx, block, design) {
   const ops = normalizeOps(block.delta);
   const sourceX = Number(block.x || 0);
   const sourceY = Number(block.y || 0);
@@ -245,20 +354,21 @@ function drawVerticalTextBlock(ctx, block, design) {
   });
 
   const visibleColumns = columns.filter(column => column.length);
-  visibleColumns.forEach((column, columnIndex) => {
+  for (let columnIndex = 0; columnIndex < visibleColumns.length; columnIndex++) {
+    const column = visibleColumns[columnIndex];
     const cursorX = x + maxWidth - columnWidth * (columnIndex + 1);
     const columnHeight = column.reduce((sum, item) => sum + item.text.length * item.stepY, 0);
     let cursorY = y;
     if (verticalAlign === 'middle') cursorY = y + Math.max((boxHeight - columnHeight) / 2, 0);
     if (verticalAlign === 'bottom') cursorY = y + Math.max(boxHeight - columnHeight, 0);
-    column.forEach(item => {
+    for (const item of column) {
       // 将片段中的每个字符绘制在同一列
       for (let c = 0; c < item.text.length; c++) {
-        drawVerticalGlyph(ctx, item.text[c], item.style, block, design, cursorX, cursorY, columnWidth);
+        await drawVerticalGlyph(canvas, ctx, item.text[c], item.style, block, design, cursorX, cursorY, columnWidth);
         cursorY += item.stepY;
       }
-    });
-  });
+    }
+  }
 
   ctx.shadowColor = 'transparent';
   ctx.shadowBlur = 0;
@@ -345,26 +455,27 @@ function layoutText(ctx, block, design) {
   return lines;
 }
 
-function drawTextBlock(ctx, block, design) {
+async function drawTextBlock(canvas, ctx, block, design) {
+  const renderStartedAt = telemetry.start();
   if (isVerticalTextBlock(block)) {
-    drawVerticalTextBlock(ctx, block, design);
+    await drawVerticalTextBlock(canvas, ctx, block, design);
+    telemetry.recordCost('render', renderStartedAt);
     return;
   }
-  const lines = layoutText(ctx, block, design);
+  // 普通横排文本使用 grapheme-aware adapter，避免 export 拆分 emoji/ZWJ。
+  // 纹理文字保持旧路径，本阶段不触碰 texture renderer。
+  const useGlyphPipeline = !hasTextTexture(block);
+  const layoutResult = !useGlyphPipeline
+    ? textLayout.layoutTextBlockForDesign(ctx, block, design)
+    : rendererGrapheme.layoutHorizontalText(ctx, block, design);
+  const lines = layoutResult.lines;
+  const lineHeights = layoutResult.lineHeights;
   const baseSize = 30;
   const sourceY = Number(block.y || 0);
   const sourceX = Number(block.x || 0);
   const maxWidth = Number(block.width || 500);
   const align = block.align || 'left';
-  const lineHeights = lines.map(line => {
-    let lineHeight = 0;
-    line.runs.forEach(run => {
-      const size = parseInt(run.style.size || run.style.fontSize || baseSize, 10) || baseSize;
-      lineHeight = Math.max(lineHeight, size * Number(block.lineHeight || 1.6));
-    });
-    return lineHeight || baseSize * Number(block.lineHeight || 1.6);
-  });
-  const contentHeight = lineHeights.reduce((sum, item) => sum + item, 0);
+  const contentHeight = layoutResult.contentHeight;
   const boxHeight = Number(block.height || contentHeight || 1);
   const rotation = Number(block.rotation || 0);
   const verticalAlign = block.verticalAlign || 'top';
@@ -379,27 +490,72 @@ function drawTextBlock(ctx, block, design) {
     y = -boxHeight / 2;
   }
 
+  const blockBoxX = x;
+  const blockBoxY = y;
+
   if (verticalAlign === 'middle') {
     y += Math.max((boxHeight - contentHeight) / 2, 0);
   } else if (verticalAlign === 'bottom') {
     y += Math.max(boxHeight - contentHeight, 0);
   }
 
+  if (debugOverlay.isEnabled('layoutBox')) {
+    debugOverlay.drawRect(ctx, { x, y, width: maxWidth, height: contentHeight }, 'rgba(255,0,0,0.55)');
+  }
+  if (debugOverlay.isEnabled('transformOrigin')) {
+    debugOverlay.drawPoint(ctx, x + maxWidth / 2, y + boxHeight / 2, 'rgba(255,0,255,0.8)');
+  }
+
+  const blockBackground = block.textBackgroundColor || block.textBackground;
+  if (blockBackground) {
+    ctx.save();
+    ctx.shadowColor = 'transparent';
+    ctx.shadowBlur = 0;
+    ctx.shadowOffsetX = 0;
+    ctx.shadowOffsetY = 0;
+    ctx.fillStyle = blockBackground;
+    drawRoundRect(ctx, blockBoxX, blockBoxY, maxWidth, boxHeight, Number(block.textBackgroundRadius || 8));
+    ctx.fill();
+    ctx.restore();
+  }
+
   // ===== 绘制每一行文字 =====
-  lines.forEach((line, lineIndex) => {
+  for (let lineIndex = 0; lineIndex < lines.length; lineIndex++) {
+    const line = lines[lineIndex];
     const lineHeight = lineHeights[lineIndex];
+    const lineMetrics = useGlyphPipeline ? fontMetrics.getLineMetrics(ctx, line.runs, lineHeight) : null;
+    const baselineY = lineMetrics ? y + lineMetrics.baselineY : null;
     let cursorX = x;
     if (align === 'center') cursorX = x + (maxWidth - line.width) / 2;
     if (align === 'right') cursorX = x + maxWidth - line.width;
+    if (debugOverlay.isEnabled('baseline') && baselineY != null) {
+      debugOverlay.drawLine(ctx, cursorX, baselineY, cursorX + line.width, baselineY, 'rgba(0,128,255,0.75)');
+    }
 
-    line.runs.forEach(run => {
+    for (const run of line.runs) {
       const style = run.style || {};
       const fontSize = parseInt(style.size || style.fontSize || baseSize, 10) || baseSize;
       const letterSpacing = Number(style.letterSpacing || block.letterSpacing || 0);
       const opacity = Number(style.opacity || 1);
       ctx.font = pickFont(style, design);
-      ctx.textBaseline = 'top';
-      const textWidth = Math.max(Number(run.width || 0), ctx.measureText(run.text).width);
+      ctx.textBaseline = useGlyphPipeline ? 'alphabetic' : 'top';
+      const runMetrics = useGlyphPipeline ? fontMetrics.getRunMetrics(ctx, style, run.text || 'Mg') : null;
+      const runTop = runMetrics ? baselineY - runMetrics.ascent : y + (lineHeight - fontSize) / 2;
+      const runHeight = runMetrics ? runMetrics.ascent + runMetrics.descent : fontSize;
+      const glyphMetrics = useGlyphPipeline ? glyphRender.getRunGlyphMetrics(run) : null;
+      const textWidth = glyphMetrics && glyphMetrics.canDrawGlyphs
+        ? glyphMetrics.width
+        : Math.max(Number(run.width || 0), ctx.measureText(run.text).width);
+      if (debugOverlay.isEnabled('glyphBounds') && glyphMetrics && glyphMetrics.canDrawGlyphs) {
+        glyphMetrics.glyphs.forEach(glyph => {
+          debugOverlay.drawRect(ctx, {
+            x: cursorX + Number(glyph.x || 0) - Number(glyphMetrics.glyphs[0].x || 0),
+            y: runTop,
+            width: Number(glyph.width || 0),
+            height: runHeight
+          }, 'rgba(0,200,120,0.55)');
+        });
+      }
       ctx.save();
       ctx.globalAlpha = Math.max(0.05, Math.min(opacity, 1));
 
@@ -410,7 +566,7 @@ function drawTextBlock(ctx, block, design) {
         ctx.shadowOffsetX = 0;
         ctx.shadowOffsetY = 0;
         ctx.fillStyle = bgStyle;
-        ctx.fillRect(cursorX - 2, y + (lineHeight - fontSize) / 2 - 2, textWidth + 4, fontSize + 4);
+        ctx.fillRect(cursorX - 2, runTop - 2, textWidth + 4, runHeight + 4);
       }
 
       const shadowEnabled = typeof style.shadow === 'boolean' ? style.shadow : !!block.shadow;
@@ -431,34 +587,50 @@ function drawTextBlock(ctx, block, design) {
       if (strokeEnabled) {
         ctx.strokeStyle = style.strokeColor || block.strokeColor || '#FFFFFF';
         ctx.lineWidth = Number(style.strokeWidth || block.strokeWidth || 2);
-        ctx.strokeText(run.text, cursorX, y + (lineHeight - fontSize) / 2);
+        if (!useGlyphPipeline || !glyphRender.strokeGlyphs(ctx, run, cursorX, baselineY)) {
+          ctx.strokeText(run.text, cursorX, y + (lineHeight - fontSize) / 2);
+        }
       }
 
-      ctx.fillStyle = style.color || block.color || '#333333';
-      ctx.fillText(run.text, cursorX, y + (lineHeight - fontSize) / 2);
-      if (style.bold) {
-        ctx.fillText(run.text, cursorX + Math.max(fontSize * 0.035, 0.8), y + (lineHeight - fontSize) / 2);
+      const textY = useGlyphPipeline ? baselineY : y + (lineHeight - fontSize) / 2;
+      const textured = await fillTextWithTexture(canvas, ctx, run.text, cursorX, textY, style, block, {
+        x: sourceX,
+        y: sourceY,
+        width: maxWidth,
+        height: boxHeight
+      });
+      if (!textured) {
+        ctx.fillStyle = style.color || block.color || '#333333';
+        if (!useGlyphPipeline || !glyphRender.drawGlyphs(ctx, run, cursorX, textY, {
+          boldOffset: style.bold ? Math.max(fontSize * 0.035, 0.8) : 0
+        })) {
+          ctx.fillText(run.text, cursorX, textY);
+          if (style.bold) {
+            ctx.fillText(run.text, cursorX + Math.max(fontSize * 0.035, 0.8), textY);
+          }
+        }
       }
       if (style.underline) {
         ctx.shadowColor = 'transparent';
         ctx.strokeStyle = ctx.fillStyle;
         ctx.lineWidth = Math.max(1, fontSize / 16);
-        const underlineY = y + (lineHeight - fontSize) / 2 + fontSize + 3;
+        const underlineY = useGlyphPipeline ? baselineY + Math.max(Number(runMetrics && runMetrics.descent || 0) * 0.45, 2) : y + (lineHeight - fontSize) / 2 + fontSize + 3;
         ctx.beginPath();
         ctx.moveTo(cursorX, underlineY);
         ctx.lineTo(cursorX + textWidth, underlineY);
         ctx.stroke();
       }
       ctx.restore();
-      cursorX += textWidth + letterSpacing;
-    });
+      cursorX += useGlyphPipeline ? textWidth : textWidth + letterSpacing;
+    }
 
     y += lineHeight;
-  });
+  }
 
   ctx.shadowColor = 'transparent';
   ctx.shadowBlur = 0;
   if (rotation) ctx.restore();
+  telemetry.recordCost('render', renderStartedAt);
 }
 
 function drawGradient(ctx, bg, width, height) {
@@ -563,10 +735,22 @@ async function drawBackground(canvas, ctx, design, width, height) {
     const image = await loadCanvasImage(canvas, path);
     try {
       if (!image) throw new Error('background image load failed');
+      if (design && design.size && design.size.preset === 'image') {
+        ctx.drawImage(image, 0, 0, width, height);
+        if (bg.blur) {
+          ctx.fillStyle = glassFillStyle(bg, 0.24);
+          ctx.fillRect(0, 0, width, height);
+        }
+        return;
+      }
       const sourceWidth = Number(bg.bgWidth || image.width || width);
       const sourceHeight = Number(bg.bgHeight || image.height || height);
       const imageScale = Math.max(0.2, Math.min(Number(bg.scale || 1), 1));
-      const scale = Math.min(width / sourceWidth, height / sourceHeight) * imageScale;
+      const fit = design && design.size && design.size.preset === 'custom' ? 'cover' : 'contain';
+      const baseScale = fit === 'cover'
+        ? Math.max(width / sourceWidth, height / sourceHeight)
+        : Math.min(width / sourceWidth, height / sourceHeight);
+      const scale = baseScale * imageScale;
       const drawWidth = sourceWidth * scale;
       const drawHeight = sourceHeight * scale;
       const maxOffsetX = Math.max(0, (width - drawWidth) / 2);
@@ -657,6 +841,60 @@ function drawDecorations(ctx, decorations) {
   });
 }
 
+function drawEraserPath(ctx, strokes) {
+  (strokes || []).forEach(stroke => {
+    const points = stroke.points || [];
+    const size = Math.max(1, Number(stroke.size || 36));
+    ctx.lineWidth = size;
+    ctx.beginPath();
+    if (points.length === 1) {
+      const p = points[0];
+      ctx.arc(Number(p.x || 0), Number(p.y || 0), size / 2, 0, Math.PI * 2);
+      ctx.fill();
+      return;
+    }
+    ctx.moveTo(Number(points[0].x || 0), Number(points[0].y || 0));
+    for (let i = 1; i < points.length; i++) {
+      const prev = points[i - 1];
+      const curr = points[i];
+      const midX = (Number(prev.x || 0) + Number(curr.x || 0)) / 2;
+      const midY = (Number(prev.y || 0) + Number(curr.y || 0)) / 2;
+      ctx.quadraticCurveTo(Number(prev.x || 0), Number(prev.y || 0), midX, midY);
+    }
+    const last = points[points.length - 1];
+    ctx.lineTo(Number(last.x || 0), Number(last.y || 0));
+    ctx.stroke();
+  });
+}
+
+function drawEraserStrokes(ctx, strokes, width, height) {
+  const list = (strokes || []).filter(stroke => stroke && (stroke.points || []).length);
+  if (!list.length) return;
+  if (typeof wx !== 'undefined' && wx.createOffscreenCanvas) {
+    try {
+      const mask = wx.createOffscreenCanvas({ type: '2d', width, height });
+      const maskCtx = mask.getContext('2d');
+      maskCtx.clearRect(0, 0, width, height);
+      maskCtx.fillStyle = '#000000';
+      maskCtx.strokeStyle = '#000000';
+      maskCtx.lineCap = 'round';
+      maskCtx.lineJoin = 'round';
+      drawEraserPath(maskCtx, list);
+      ctx.save();
+      ctx.globalCompositeOperation = 'destination-out';
+      ctx.drawImage(mask, 0, 0, width, height);
+      ctx.restore();
+      return;
+    } catch (e) {}
+  }
+  ctx.save();
+  ctx.globalCompositeOperation = 'destination-out';
+  ctx.lineCap = 'round';
+  ctx.lineJoin = 'round';
+  drawEraserPath(ctx, list);
+  ctx.restore();
+}
+
 function collectFonts(design) {
   const map = {};
   if (design.fontUrl) {
@@ -685,19 +923,26 @@ async function preloadFont(design) {
     const timer = setTimeout(() => {
       resolve();
     }, 8000);
-    wx.loadFontFace({
-      family: font.family,
-      source: `url("${font.url}")`,
-      global: true,
-      success: () => {
-        fontLoadCache[key] = true;
+    resolveFontFaceSource(font.url).then(source => {
+      if (!source) {
         clearTimeout(timer);
         resolve();
-      },
-      fail: () => {
-        clearTimeout(timer);
-        resolve();
+        return;
       }
+      wx.loadFontFace({
+        family: font.family,
+        source,
+        global: true,
+        success: () => {
+          fontLoadCache[key] = true;
+          clearTimeout(timer);
+          resolve();
+        },
+        fail: () => {
+          clearTimeout(timer);
+          resolve();
+        }
+      });
     });
   })));
   design.fontFamily = design.fontFamily || 'CardSerif';
@@ -737,19 +982,21 @@ async function drawPosterToCanvas(page, selector, sourceDesign, options) {
   await drawImageLayer(node, ctx, design.avatar);
   await drawImageLayer(node, ctx, design.overlayImage);
   const hiddenBlockIds = new Set((options && options.hiddenBlockIds) || []);
-  (design.blocks || []).forEach(block => {
-    if (hiddenBlockIds.has(block.id)) return;
-    if (block.type === 'text') drawTextBlock(ctx, block, design);
-  });
+  for (const block of (design.blocks || [])) {
+    if (hiddenBlockIds.has(block.id)) continue;
+    if (block.type === 'text') await drawTextBlock(node, ctx, block, design);
+  }
   await drawImageLayer(node, ctx, design.qrcode);
   for (const qr of (design.qrcodes || [])) {
     await drawImageLayer(node, ctx, qr);
   }
+  drawEraserStrokes(ctx, design.eraserStrokes, fullWidth, fullHeight);
   ctx.restore();
   return { node, width, height, scale };
 }
 
 async function exportPoster(page, selector, sourceDesign, options) {
+  const exportStartedAt = telemetry.start();
   const result = await drawPosterToCanvas(page, selector, sourceDesign, options);
   const node = result.node;
   const width = result.width;
@@ -765,7 +1012,10 @@ async function exportPoster(page, selector, sourceDesign, options) {
       destHeight: height * scale,
       fileType: 'png',
       quality: 1,
-      success: res => resolve(res.tempFilePath),
+      success: res => {
+        telemetry.recordCost('export', exportStartedAt);
+        resolve(res.tempFilePath);
+      },
       fail: reject
     });
   });
@@ -790,5 +1040,8 @@ function _drawRoundedRect(ctx, x, y, w, h, r) {
 module.exports = {
   exportPoster,
   drawPosterToCanvas,
-  layoutText
+  layoutText, // deprecated: use textLayout.layoutTextBlockForDesign instead
+  configureDebugOverlay: debugOverlay.configure,
+  setTelemetryEnabled: telemetry.setEnabled,
+  getEngineTelemetry: () => telemetry.snapshot(cacheManager.allStats())
 };

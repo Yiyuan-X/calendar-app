@@ -1,0 +1,61 @@
+@import url("https://fontsapi.zeoseven.com/741/main/result.css");
+
+/*
+ * Unified web font declarations.
+ *
+ * Runtime policy:
+ * - Only fonts with clear open-source / free commercial distribution rights are declared here.
+ * - Keep font binaries outside the mini program main package when possible.
+ * - Prefer WOFF2 subsets and lazy loading; do not block first render.
+ *
+ * Not included until license/provenance is confirmed:
+ * - MaoKen ZhuYuan
+ * - Canger Shuyuan
+ * - Yanshi Youran Xiaokai
+ */
+
+@font-face {
+  font-family: "CardSourceHanSansSC";
+  src: url("https://cdn.jsdelivr.net/fontsource/fonts/noto-sans-sc@latest/chinese-simplified-400-normal.woff2") format("woff2");
+  font-weight: 400;
+  font-style: normal;
+  font-display: swap;
+  /* open-commercial: Source Han Sans / Noto Sans CJK, keep upstream license with binary. */
+}
+
+@font-face {
+  font-family: "CardLXGWWenKai";
+  src: url("https://cdn.jsdelivr.net/gh/lxgw/LxgwWenKai@latest/fonts/TTF/LXGWWenKai-Regular.ttf") format("truetype");
+  font-weight: 400;
+  font-style: normal;
+  font-display: swap;
+  /* open-commercial: LXGW WenKai, keep upstream license with binary. */
+}
+
+@font-face {
+  font-family: "CardSourceHanSerifSCManaged";
+  src: url("https://cdn.jsdelivr.net/fontsource/fonts/noto-serif-sc@latest/chinese-simplified-400-normal.woff2") format("woff2");
+  font-weight: 400;
+  font-style: normal;
+  font-display: swap;
+  /* open-commercial: Source Han Serif / Noto Serif CJK, keep upstream license with binary. */
+}
+
+@font-face {
+  font-family: "CardAlibabaPuHuiTi";
+  src: url("https://static.cdn.sunmi.com/assets/fonts/Alibaba-PuHuiTi-Regular.ttf") format("truetype");
+  font-weight: 400;
+  font-style: normal;
+  font-display: swap;
+  /* open-commercial: Alibaba PuHuiTi, keep upstream license with binary. */
+}
+
+:root {
+  --font-body-cjk: "CardSourceHanSansSC", "CardAlibabaPuHuiTi", "LINE Seed TW_TTF Regular", "Source Han Sans SC", "Noto Sans SC", "PingFang SC", sans-serif;
+  --font-zen-cjk: "CardLXGWWenKai", "CardSourceHanSerifSCManaged", "CardSourceHanSansSC", "PingFang SC", serif;
+  --font-ui-cjk: "LINE Seed TW_TTF Regular", "CardSourceHanSansSC", "PingFang SC", "Noto Sans SC", sans-serif;
+  --font-latin-clean: Verdana, Geneva, sans-serif;
+  --font-latin-soft: "Trebuchet MS", Trebuchet, sans-serif;
+  --font-latin-mono: "Courier New", Courier, monospace;
+  --font-latin-serif: "Times New Roman", Times, serif;
+}
