@@ -143,6 +143,27 @@ async function getAll(table) {
 }
 
 /**
+ * 获取整个列表的原始云端文档
+ * 返回包含 key/data/_id 的完整记录，便于需要恢复映射关系的场景
+ * @param {string} table - 表名
+ * @returns {Promise<Array>}
+ */
+async function getAllRaw(table) {
+  if (_isOnline && _cloudInitialized) {
+    try {
+      const db = wx.cloud.database();
+      const res = await db.collection(table)
+        .orderBy('createdAt', 'desc')
+        .get();
+      if (res.data) return res.data;
+    } catch (e) {
+      console.warn(`[Cloud] ${table} 原始列表读取失败:`, e);
+    }
+  }
+  return [];
+}
+
+/**
  * 设置/保存数据（同时写云端和本地）
  * @param {string} table - 表名
  * @param {string} key - 数据键
@@ -462,6 +483,7 @@ module.exports = {
   // 列表操作
   setList,
   getList,
+  getAllRaw,
 
   // 工具方法
   getOpenId,

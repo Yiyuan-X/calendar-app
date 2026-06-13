@@ -16,10 +16,16 @@ App({
     // 2. 检查本地存储初始化
     this.checkStorageInit();
 
-    // 3. 将本地已有数据补同步到云端
+    // 3. 首次重装/空本地时，稍后再拉云端，避免把云端数据误当空数据处理
+    const restoreDelay = this.hasLocalChantingData() ? 0 : 800;
     setTimeout(() => {
-      storage.syncLocalDataToCloud();
-    }, 0);
+      (async () => {
+        try {
+          await storage.restoreChantingDataFromCloud();
+        } catch (e) {}
+        storage.syncLocalDataToCloud();
+      })();
+    }, restoreDelay);
   },
 
   onShow() {
@@ -58,6 +64,19 @@ App({
       elderMode: false,
       privacyContractName: '用户隐私保护指引'
     };
+  },
+
+  hasLocalChantingData() {
+    try {
+      const tasks = wx.getStorageSync('chanting_tasks') || [];
+      const records = wx.getStorageSync('chanting_records') || {};
+      const daily = wx.getStorageSync('chanting_daily') || {};
+      return Array.isArray(tasks) && tasks.length > 0
+        || (records && typeof records === 'object' && Object.keys(records).length > 0)
+        || (daily && typeof daily === 'object' && Object.keys(daily).length > 0);
+    } catch (e) {
+      return false;
+    }
   },
 
   applyDisplaySettings(page) {

@@ -220,7 +220,7 @@ Page({
   saveNote() { this.saveDaily('note'); },
 
   saveDaily(field) {
-    const d = chant.getDailyDetail(chant.getToday(), this.data.taskId) || {};
+    const d = { ...(chant.getDailyDetail(chant.getToday(), this.data.taskId) || {}) };
     d[field] = this.data.detail[field];
     chant.saveDailyDetail(chant.getToday(), d, this.data.taskId);
     wx.showToast({ title: '已保存', icon: 'success' });

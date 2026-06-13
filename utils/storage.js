@@ -125,6 +125,100 @@ function syncLocalDataToCloud() {
   }
 }
 
+/**
+ * 启动时从云端恢复功课数据到本地。
+ * 仅在本地没有对应数据时回填，避免覆盖用户本地更新。
+ */
+async function restoreChantingDataFromCloud() {
+  try {
+    const localTasks = wx.getStorageSync('chanting_tasks') || [];
+    const localRecords = wx.getStorageSync('chanting_records') || {};
+    const localDaily = wx.getStorageSync('chanting_daily') || {};
+
+    const hasLocalTasks = Array.isArray(localTasks) && localTasks.length > 0;
+    const hasLocalRecords = isPlainObjectWithData(localRecords);
+    const hasLocalDaily = isPlainObjectWithData(localDaily);
+
+    const remoteTasks = await cloud.getAllRaw(cloud.TABLES.TASKS);
+    const remoteTaskList = remoteTasks.map(item => item.data || item).filter(Boolean);
+
+    const mergedTasks = mergeTaskList(localTasks, remoteTaskList);
+    const restoredTasks = mergedTasks.length > 0 && !sameTaskList(localTasks, mergedTasks);
+    if (restoredTasks) {
+      wx.setStorageSync('chanting_tasks', mergedTasks);
+    }
+
+    const remoteRecords = await cloud.getAllRaw(cloud.TABLES.RECORDS);
+    const remoteRecordMap = {};
+    remoteRecords.forEach(item => {
+      const key = item.key;
+      const value = item.data || {};
+      if (key) remoteRecordMap[key] = value;
+    });
+    const mergedRecords = mergeObjectMap(localRecords, remoteRecordMap);
+    const restoredRecords = Object.keys(mergedRecords).length > 0 && !sameObjectMap(localRecords, mergedRecords);
+    if (restoredRecords) {
+      wx.setStorageSync('chanting_records', mergedRecords);
+      wx.setStorageSync('chanting_records_backup', {
+        updatedAt: Date.now(),
+        records: mergedRecords
+      });
+    }
+
+    const remoteDaily = await cloud.getAllRaw(cloud.TABLES.DAILY_DETAIL);
+    const remoteDailyMap = {};
+    remoteDaily.forEach(item => {
+      const key = item.key;
+      const value = item.data || {};
+      if (key) remoteDailyMap[key] = value;
+    });
+    const mergedDaily = mergeObjectMap(localDaily, remoteDailyMap);
+    const restoredDaily = Object.keys(mergedDaily).length > 0 && !sameObjectMap(localDaily, mergedDaily);
+    if (restoredDaily) {
+      wx.setStorageSync('chanting_daily', mergedDaily);
+    }
+
+    return {
+      restored: restoredTasks || restoredRecords || restoredDaily,
+      restoredTasks,
+      restoredRecords,
+      restoredDaily
+    };
+  } catch (e) {
+    console.warn('[Storage] 从云端恢复功课数据失败:', e);
+    return { restored: false, error: e };
+  }
+}
+
+function mergeTaskList(localList, remoteList) {
+  const merged = Array.isArray(localList) ? localList.slice() : [];
+  const seen = new Set(merged.map(item => item && (item.id || item.builtinId)).filter(Boolean));
+  (Array.isArray(remoteList) ? remoteList : []).forEach(item => {
+    const key = item && (item.id || item.builtinId);
+    if (!key || seen.has(key)) return;
+    merged.push(item);
+    seen.add(key);
+  });
+  return merged;
+}
+
+function mergeObjectMap(localMap, remoteMap) {
+  const merged = { ...(localMap && typeof localMap === 'object' ? localMap : {}) };
+  Object.keys(remoteMap || {}).forEach(key => {
+    if (merged[key] === undefined) merged[key] = remoteMap[key];
+  });
+  return merged;
+}
+
+function sameTaskList(a, b) {
+  return JSON.stringify((a || []).map(item => item && (item.id || item.builtinId)).sort())
+    === JSON.stringify((b || []).map(item => item && (item.id || item.builtinId)).sort());
+}
+
+function sameObjectMap(a, b) {
+  return JSON.stringify(Object.keys(a || {}).sort()) === JSON.stringify(Object.keys(b || {}).sort());
+}
+
 // ==================== 事件（重要日子）管理 ====================
 
 function getEvents() {
@@ -442,6 +536,7 @@ module.exports = {
   setStorage,
   removeStorage,
   syncLocalDataToCloud,
+  restoreChantingDataFromCloud,
   getEvents,
   getEventsAsync,
   addEvent,

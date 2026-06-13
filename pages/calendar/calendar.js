@@ -356,7 +356,7 @@ Page({
       return;
     }
 
-    this.selectDate(dateStr, { scrollToHuangli: true });
+    this.selectDate(dateStr, { scrollToSelectedDate: true });
   },
 
   selectDate(dateStr, options) {
@@ -464,7 +464,11 @@ Page({
         },
         selectedNote: note
       }, () => {
-        if (opts.scrollToHuangli) this.scrollToHuangliDetail();
+        if (opts.scrollToSelectedDate) {
+          this.scrollToSelector('#selected-date-anchor', 2, 280);
+        } else if (opts.scrollToHuangli) {
+          this.scrollToHuangliDetail();
+        }
       });
     } else {
       this.setData({
@@ -479,12 +483,30 @@ Page({
   scrollToHuangliDetail() {
     clearTimeout(this._scrollHuangliTimer);
     this._scrollHuangliTimer = setTimeout(() => {
-      wx.pageScrollTo({
-        selector: '#huangli-detail',
-        offsetTop: -12,
-        duration: 320
-      });
+      this.scrollToSelector('#huangli-detail', -12, 320);
     }, 80);
+  },
+
+  scrollToSelector(selector, offsetTop, duration) {
+    try {
+      wx.pageScrollTo({
+        selector,
+        duration: typeof duration === 'number' ? duration : 280,
+        offsetTop: typeof offsetTop === 'number' ? offsetTop : 0
+      });
+      return;
+    } catch (e) {}
+
+    try {
+      const query = wx.createSelectorQuery().in(this);
+      query.select(selector).boundingClientRect(rect => {
+        if (!rect) return;
+        wx.pageScrollTo({
+          scrollTop: Math.max(0, rect.top + (this.data.scrollTop || 0) - (offsetTop || 0)),
+          duration: typeof duration === 'number' ? duration : 280
+        });
+      }).exec();
+    } catch (err) {}
   },
 
   // ==================== 工具方法 ====================

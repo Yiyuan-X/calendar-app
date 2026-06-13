@@ -434,7 +434,7 @@ function getDailyDetail(dateStr, taskId) {
   if (!dayData || !taskId) return dayData;
   // 返回该 taskId 对应的详情（兼容旧数据：无 _byTask 字段时返回全局数据）
   if (dayData._byTask && dayData._byTask[taskId]) {
-    return dayData._byTask[taskId];
+    return { ...dayData._byTask[taskId] };
   }
   // 兼容旧数据：如果只有一个任务，返回全局数据
   return { wish: dayData.wish, note: dayData.note };

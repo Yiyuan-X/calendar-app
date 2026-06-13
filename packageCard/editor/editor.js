@@ -1393,6 +1393,7 @@ Page({
     this._textComposing = false;
 
     if (!this.data.inlineEditing || !this.data.activeBlockId) return;
+    if (this._draftBlockId && this._draftBlockId !== this.data.activeBlockId) return;
     const block = this.data.activeBlock || {};
     const text = typeof this._draftText === 'string' ? this._draftText : this.data.activePlainText || '';
     if (deltaToText(block.delta) === text) return;
@@ -1403,6 +1404,7 @@ Page({
     // 清理 draft 指针，防止后续 timer 或 undo 重复提交
     this._draftText = null;
     this._draftCursor = null;
+    this._draftBlockId = null;
   },
 
   /**
@@ -1536,6 +1538,7 @@ Page({
     this._textComposing = false;
     this._draftText = null;
     this._draftCursor = null;
+    this._draftBlockId = null;
     this._typingHistoryStarted = false;
 
     if (this._gestureFrameTimer) {
@@ -1674,6 +1677,11 @@ Page({
         design: recovery.design
       } : latest;
       if (restoreCandidate && restoreCandidate.design) {
+        this._pendingResumeDraft = {
+          id: restoreCandidate.id || '',
+          name: restoreCandidate.name || '未命名卡片',
+          design: clone(restoreCandidate.design)
+        };
         // 先用模板创建设计并渲染，同时弹出选择弹窗
         design = createBlankDesign(templates.getTemplate(query.templateId || 'solar-term-paper'));
         design.templateId = query.templateId || design.id;
@@ -1700,10 +1708,13 @@ Page({
 
   // 恢复最近草稿
   resumeLatestDraft() {
-    const recovery = this.data.hasAutosaveRecovery ? autosave.getRecoveryDraft() : null;
-    const draft = recovery && recovery.design
-      ? { id: recovery.design.id || '', design: recovery.design }
-      : cardStorage.getDraft(this.data.latestDraftId);
+    const draft = this._pendingResumeDraft
+      || (() => {
+        const recovery = this.data.hasAutosaveRecovery ? autosave.getRecoveryDraft() : null;
+        return recovery && recovery.design
+          ? { id: recovery.design.id || '', design: recovery.design }
+          : cardStorage.getDraft(this.data.latestDraftId);
+      })();
     if (draft && draft.design) {
       const design = draft.design;
       design.id = draft.id;
@@ -1720,6 +1731,7 @@ Page({
   dismissDraftModal() {
     const firstBlockId = (this.data.design.blocks && this.data.design.blocks[0] && this.data.design.blocks[0].id) || '';
     this._pendingNewBlockId = firstBlockId;
+    this._pendingResumeDraft = null;
     this.setData({ showDraftModal: false, hasAutosaveRecovery: false }, () => this.enterPendingNewBlock());
   },
 
@@ -1754,6 +1766,7 @@ Page({
       const design = draft.design;
       design.id = draft.id;
       this._currentDraftId = draft.id;
+      this._pendingResumeDraft = null;
       this.setData({ showDraftList: false, inlineEditing: false, textInputFocus: false, caretVisible: false });
       this.setDesign(design, (design.blocks && design.blocks[0] && design.blocks[0].id) || '');
     } else {
@@ -2403,6 +2416,7 @@ getPreviewBackground(bg) {
     const cursor = this.snapTextOffset(text, rawCursor, 'nearest');
     this._draftText = text;
     this._draftCursor = cursor;
+    this._draftBlockId = this.data.activeBlockId;
     const caretState = this.getCaretState(cursor, text, { ...block, _previewScale: getPreviewScales(this.data.design) });
     this.setData({
       activePlainText: text,
@@ -2448,6 +2462,7 @@ getPreviewBackground(bg) {
     clearTimeout(this._inputCommitTimer);
     this._inputCommitTimer = null;
     if (this._textComposing || !this.data.inlineEditing || !this.data.activeBlockId) return;
+    if (this._draftBlockId && this._draftBlockId !== this.data.activeBlockId) return;
     const block = this.data.activeBlock || {};
     const text = typeof this._draftText === 'string' ? this._draftText : this.data.activePlainText || '';
     if (deltaToText(block.delta) === text) return;
@@ -3414,6 +3429,7 @@ getPreviewBackground(bg) {
     this._textComposing = false;
     this.commitInputDraftToDesign();
     this.editorCtx = null;
+    this._draftBlockId = null;
     this._manualTextSelection = null;
     this._switchBlockTouch = null;
     this.setData({
@@ -3449,6 +3465,7 @@ getPreviewBackground(bg) {
     this._textComposing = false;
     this.commitInputDraftToDesign();
     this.editorCtx = null;
+    this._draftBlockId = null;
     this._manualTextSelection = null;
     const hadTyping = this._typingHistoryStarted;
     if (hadTyping) this._typingHistoryStarted = false;
@@ -3524,6 +3541,7 @@ getPreviewBackground(bg) {
     // 防止 finishInlineEditing 将 inlineEditing 设为 false 导致新 textarea 无法渲染
     var isSwitching = this.data.inlineEditing && this.data.activeBlockId !== id;
     if (isSwitching) {
+      this.flushInputDraft();
       this._ignoreNextEditorBlur = true;
     }
 
@@ -3545,6 +3563,7 @@ getPreviewBackground(bg) {
       ...caretState,
       ...getTextPanelState(block, this.data)
     }, () => {
+      this._draftBlockId = id;
       this.schedulePreviewRender(0);
       // 延迟聚焦：确保 textarea 渲染完成后用正确的 selectionStart/End 定位光标
       setTimeout(() => {
