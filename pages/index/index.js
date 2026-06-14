@@ -8,6 +8,7 @@ const chant = require('../../utils/chanting');
 const privacy = require('../../utils/privacy');
 const share = require('../../utils/share');
 const poster = require('../../utils/poster');
+const contentSecurity = require('../../utils/content-security');
 const analytics = require('../../utils/analytics');
 
 Page({
@@ -990,7 +991,7 @@ goToMerit() {
   },
 
   /** 生成分享海报（首页版 — 含节气卡片 / 今日签内容 + 自定义二维码） */
-  generateShareImage(options, callback) {
+  async generateShareImage(options, callback) {
     if (typeof options === 'function') {
       callback = options;
       options = {};
@@ -1027,6 +1028,55 @@ goToMerit() {
     var mode = options.mode || 'home';
     var isDailySign = mode === 'quote' || mode === 'note' || mode === 'reflection';
     var signExtra = this._getDailySignExtra(mode);
+    const riskResult = await contentSecurity.checkUserRiskRank();
+    if (!riskResult || riskResult.ok === false) {
+      if (contentSecurity.shouldSoftFailSecurity(riskResult)) {
+        contentSecurity.logSecurityFailure('pages/index/share/risk', riskResult, { mode });
+        riskResult.ok = true;
+      } else {
+        contentSecurity.logSecurityFailure('pages/index/share/risk', riskResult, { mode });
+        wx.showModal({
+          title: '内容提示',
+          content: '内容安全检查失败，请稍后重试。',
+          showCancel: false,
+          confirmText: '知道了'
+        });
+        callback({ success: false });
+        return;
+      }
+    }
+    const riskRank = Number(riskResult.riskRank || 0);
+    if (Number.isFinite(riskRank) && riskRank >= 2) {
+      wx.showModal({
+        title: '内容提示',
+        content: '当前操作暂时无法完成，请稍后重试。',
+        showCancel: false,
+        confirmText: '知道了'
+      });
+      callback({ success: false });
+      return;
+    }
+    if (isDailySign && signExtra && signExtra.text) {
+      const securityResult = await contentSecurity.checkTextContentSecurity([signExtra.text]);
+      if (!securityResult || securityResult.ok === false) {
+        if (contentSecurity.shouldSoftFailSecurity(securityResult)) {
+          contentSecurity.logSecurityFailure('pages/index/share/text', securityResult, { mode, textLength: String(signExtra.text || '').length });
+          // allow export to continue on non-violation failures
+        } else {
+          contentSecurity.logSecurityFailure('pages/index/share/text', securityResult, { mode, textLength: String(signExtra.text || '').length });
+          wx.showModal({
+            title: '内容提示',
+            content: securityResult && securityResult.reason === 'content_violation'
+              ? '所发布内容含违规信息，请修改后重试。'
+              : '内容安全检查失败，请稍后重试。',
+            showCancel: false,
+            confirmText: '知道了'
+          });
+          callback({ success: false });
+          return;
+        }
+      }
+    }
     // 节气数据
     var stName = that.data.todaySolarTermName || that.data.currentSolarTermName || '';
     var stHealth = that.data.todaySolarTermHealth || null;

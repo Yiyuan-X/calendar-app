@@ -3,6 +3,7 @@ const chant = require('../../utils/chanting');
 const privacy = require('../../utils/privacy');
 const share = require('../../utils/share');
 const poster = require('../../utils/poster');
+const contentSecurity = require('../../utils/content-security');
 const cloud = require('../../utils/cloud');
 const analytics = require('../../utils/analytics');
 
@@ -523,7 +524,7 @@ Page({
   noop() {},
 
   /** 生成朋友圈分享图（大字优化版 + 自定义二维码） */
-  generateShareImage(callback) {
+  async generateShareImage(callback) {
     const that = this;
     const tasks = that.data.tasks;
     const taskData = that.data.taskData;
@@ -538,6 +539,50 @@ Page({
 
     // 获取随机金句
     const quote = chant.getRandomQuote();
+    const taskNames = taskData.map(item => item && item.name).filter(Boolean);
+
+    const riskResult = await contentSecurity.checkUserRiskRank();
+    if (!riskResult || riskResult.ok === false) {
+      if (!contentSecurity.shouldSoftFailSecurity(riskResult)) {
+      contentSecurity.logSecurityFailure('pages/chanting/share/risk', riskResult, {});
+      wx.showModal({
+        title: '内容提示',
+        content: '内容安全检查失败，请稍后重试。',
+        showCancel: false,
+        confirmText: '知道了'
+      });
+      callback({ success: false });
+      return;
+      }
+    }
+    const riskRank = Number(riskResult.riskRank || 0);
+    if (Number.isFinite(riskRank) && riskRank >= 2) {
+      wx.showModal({
+        title: '内容提示',
+        content: '当前操作暂时无法完成，请稍后重试。',
+        showCancel: false,
+        confirmText: '知道了'
+      });
+      callback({ success: false });
+      return;
+    }
+
+    const securityResult = await contentSecurity.checkTextContentSecurity(taskNames);
+    if (!securityResult || securityResult.ok === false) {
+      if (!contentSecurity.shouldSoftFailSecurity(securityResult)) {
+      contentSecurity.logSecurityFailure('pages/chanting/share/text', securityResult, { taskCount: taskNames.length });
+      wx.showModal({
+        title: '内容提示',
+        content: securityResult && securityResult.reason === 'content_violation'
+          ? '所发布内容含违规信息，请修改后重试。'
+          : '内容安全检查失败，请稍后重试。',
+        showCancel: false,
+        confirmText: '知道了'
+      });
+      callback({ success: false });
+      return;
+      }
+    }
 
     // 格式化日期
     const now = new Date();

@@ -1,5 +1,6 @@
 const cardStorage = require('../common/storage');
 const renderer = require('../common/renderer');
+const contentSecurity = require('../../utils/content-security');
 
 Page({
   data: {
@@ -25,6 +26,57 @@ Page({
     if (!this.data.design) return;
     wx.showLoading({ title: '生成中...' });
     try {
+      const softFail = true;
+      const riskResult = await contentSecurity.checkUserRiskRank();
+      if (!riskResult || riskResult.ok === false) {
+        contentSecurity.logSecurityFailure('packageCard/export/risk', riskResult, { softFail });
+        if (softFail && riskResult && riskResult.reason !== 'risk_rank_high') return;
+        wx.showModal({
+          title: '内容提示',
+          content: '内容安全检查失败，请稍后重试。',
+          showCancel: false,
+          confirmText: '知道了'
+        });
+        return;
+      }
+      const riskRank = Number(riskResult.riskRank || 0);
+      if (Number.isFinite(riskRank) && riskRank >= 2) {
+        wx.showModal({
+          title: '内容提示',
+          content: '当前操作暂时无法完成，请稍后重试。',
+          showCancel: false,
+          confirmText: '知道了'
+        });
+        return;
+      }
+      const securityResult = await contentSecurity.checkPosterContentSecurity(this.data.design);
+      if (!securityResult || securityResult.ok === false) {
+        contentSecurity.logSecurityFailure('packageCard/export/text', securityResult, { softFail });
+        if (softFail && securityResult && securityResult.reason !== 'content_violation') return;
+        wx.showModal({
+          title: '内容提示',
+          content: securityResult && securityResult.reason === 'content_violation'
+            ? '所发布内容含违规信息，请修改后重试。'
+            : '内容安全检查失败，请稍后重试。',
+          showCancel: false,
+          confirmText: '知道了'
+        });
+        return;
+      }
+      const imageResult = await contentSecurity.checkImageContentSecurity(this.data.design);
+      if (!imageResult || imageResult.ok === false) {
+        contentSecurity.logSecurityFailure('packageCard/export/image', imageResult, { softFail });
+        if (softFail && imageResult && imageResult.reason !== 'content_violation') return;
+        wx.showModal({
+          title: '内容提示',
+          content: imageResult && imageResult.reason === 'content_violation'
+            ? '所发布内容含违规信息，请修改后重试。'
+            : '内容安全检查失败，请稍后重试。',
+          showCancel: false,
+          confirmText: '知道了'
+        });
+        return;
+      }
       const imagePath = await renderer.exportPoster(this, '#exportCanvas', this.data.design, { scale: 2 });
       this.setData({ imagePath });
     } catch (e) {

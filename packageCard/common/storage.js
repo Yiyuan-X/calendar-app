@@ -96,7 +96,11 @@ function isPersistentLocalImage(image) {
 function sanitizeImageConfig(image) {
   if (!image) return null;
   if (isLocalImage(image.src) && !isPersistentLocalImage(image)) return null;
-  return { ...image };
+  return {
+    ...image,
+    securityChecked: !!image.securityChecked,
+    securityCheckedAt: image.securityCheckedAt || 0
+  };
 }
 
 function getDraftSignature(design) {
@@ -166,7 +170,8 @@ function sanitizeDesign(design) {
       delta: block.delta || { ops: [] }
     })),
     decorations: design.decorations || [],
-    qrcode: sanitizeImageConfig(design.qrcode) || { visible: false, src: '' }
+    qrcode: sanitizeImageConfig(design.qrcode) || { visible: false, src: '' },
+    qrcodes: (design.qrcodes || []).map(item => sanitizeImageConfig(item)).filter(Boolean)
   };
 
   if (

@@ -5,6 +5,7 @@ const solarTerms = require('../../utils/solar-terms');
 const privacy = require('../../utils/privacy');
 const share = require('../../utils/share');
 const poster = require('../../utils/poster');
+const contentSecurity = require('../../utils/content-security');
 const analytics = require('../../utils/analytics');
 
 Page({
@@ -640,13 +641,40 @@ Page({
    * 生成分享海报图片（Canvas 绘制）
    * @param {Function} callback 回调函数，参数 {success, tempFilePath}
    */
-  generateShareImage(callback) {
+  async generateShareImage(callback) {
     var that = this;
     var sd = this.data.selectedDate;
     var hl = (sd && sd.huangli) ? sd.huangli : null;
 
     // 显示加载提示
     wx.showLoading({ title: '正在生成...' });
+    const riskResult = await contentSecurity.checkUserRiskRank();
+    if (!riskResult || riskResult.ok === false) {
+      if (!contentSecurity.shouldSoftFailSecurity(riskResult)) {
+      contentSecurity.logSecurityFailure('pages/calendar/share/risk', riskResult, {});
+      wx.hideLoading();
+      wx.showModal({
+        title: '内容提示',
+        content: '内容安全检查失败，请稍后重试。',
+        showCancel: false,
+        confirmText: '知道了'
+      });
+      callback({ success: false });
+      return;
+      }
+    }
+    const riskRank = Number(riskResult.riskRank || 0);
+    if (Number.isFinite(riskRank) && riskRank >= 2) {
+      wx.hideLoading();
+      wx.showModal({
+        title: '内容提示',
+        content: '当前操作暂时无法完成，请稍后重试。',
+        showCancel: false,
+        confirmText: '知道了'
+      });
+      callback({ success: false });
+      return;
+    }
 
     // 使用 Canvas 绘制分享图
     var query = wx.createSelectorQuery();

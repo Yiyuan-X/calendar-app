@@ -5,6 +5,7 @@ const meritUtil = require('../../utils/merit');
 const privacy = require('../../utils/privacy');
 const share = require('../../utils/share');
 const poster = require('../../utils/poster');
+const contentSecurity = require('../../utils/content-security');
 const analytics = require('../../utils/analytics');
 
 Page({
@@ -1108,7 +1109,7 @@ Page({
   },
 
   /** 生成分享海报（功过格版 — 垂直居中布局 + 金句卡片 + 自定义二维码） */
-  generateShareImage(callback) {
+  async generateShareImage(callback) {
     var that = this;
     var dd = that.data.displayDate || '';
     var quote = (that.data.dailyQuote && that.data.dailyQuote.text) || '';
@@ -1120,6 +1121,50 @@ Page({
     var totalDays = that.data.totalDays || 0;
 
     wx.showLoading({ title: '正在生成...' });
+    const riskResult = await contentSecurity.checkUserRiskRank();
+    if (!riskResult || riskResult.ok === false) {
+      wx.hideLoading();
+      wx.showModal({
+        title: '内容提示',
+        content: '安全检查失败，请稍后重试。',
+        showCancel: false,
+        confirmText: '知道了'
+      });
+      callback({ success: false });
+      return;
+    }
+    const riskRank = Number(riskResult.riskRank || 0);
+    if (Number.isFinite(riskRank) && riskRank >= 2) {
+      wx.hideLoading();
+      wx.showModal({
+        title: '内容提示',
+        content: '当前操作暂时无法完成，请稍后重试。',
+        showCancel: false,
+        confirmText: '知道了'
+      });
+      callback({ success: false });
+      return;
+    }
+    const quoteResult = await contentSecurity.checkTextContentSecurity([quote]);
+    if (!quoteResult || quoteResult.ok === false) {
+      if (contentSecurity.shouldSoftFailSecurity(quoteResult)) {
+        contentSecurity.logSecurityFailure('pages/merit/share/text', quoteResult, { quoteLength: String(quote || '').length });
+        // allow export to continue on non-violation failures
+      } else {
+      contentSecurity.logSecurityFailure('pages/merit/share/text', quoteResult, { quoteLength: String(quote || '').length });
+      wx.hideLoading();
+      wx.showModal({
+        title: '内容提示',
+        content: quoteResult && quoteResult.reason === 'content_violation'
+          ? '所发布内容含违规信息，请修改后重试。'
+          : '内容安全检查失败，请稍后重试。',
+        showCancel: false,
+        confirmText: '知道了'
+      });
+      callback({ success: false });
+      return;
+      }
+    }
 
     var query = wx.createSelectorQuery();
     query.select('#shareCanvas').fields({ node: true, size: true }).exec(function(res) {

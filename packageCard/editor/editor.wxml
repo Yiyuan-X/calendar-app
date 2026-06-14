@@ -59,6 +59,7 @@
         <view class="bg-drag-hint">☝ 可拖动调整背景位置</view>
       </view>
       <view class="cross-guide" wx:if="{{previewBackgroundImage && !useCanvasPreview}}"></view>
+      <view class="cross-guide text-guide" wx:if="{{inlineEditing && activeBlockId && !selectionModeActive}}"></view>
       <view wx:if="{{!useCanvasPreview}}" class="stage-mask {{design.background.blur ? 'blur' : ''}}" style="{{previewBlurStyle}}"></view>
       <movable-area
         class="movable-area"
@@ -263,7 +264,10 @@
           <button class="bg-btn" data-type="blur" bindtap="setBackgroundType">毛玻璃</button>
         </view>
         <view wx:if="{{previewBackgroundImage}}" class="bg-scale-row">
-          <text class="bg-scale-label">背景比例</text>
+          <view class="bg-scale-text">
+            <text class="bg-scale-label">背景适配</text>
+            <text class="bg-scale-hint">{{activeCanvasSizeId === 'custom' ? '当前为自由裁剪，可手动调整裁剪框' : '当前默认跟随图片，滑条可微调显示范围'}}</text>
+          </view>
           <slider class="slider neon bg-scale-slider" min="0.2" max="1" step="0.02" value="{{bgScale || 1}}" bindchanging="changeBackgroundScale" bindchange="changeBackgroundScale" activeColor="#DAA520" backgroundColor="#E8DCCB"></slider>
         </view>
         <view class="size-row">
@@ -529,7 +533,7 @@
         <text class="draft-entry-text">我的草稿</text>
         <text wx:if="{{draftListCount > 0}}" class="draft-entry-count">{{draftListCount}}</text>
       </view>
-      <button class="action ghost" bindtap="saveDraft">存草稿</button>
+      <button class="action ghost" bindtap="saveDraftWithSecurity">存草稿</button>
       <button class="action primary" bindtap="goExport">导出分享图</button>
     </view>
   </view>

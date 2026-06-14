@@ -5,6 +5,7 @@ const autosave = require('../common/autosave');
 const exportQueue = require('../common/export-queue');
 const checkpoint = require('../common/engine-checkpoint');
 const benchmark = require('../common/performance-benchmark');
+const contentSecurity = require('../../utils/content-security');
 const { mergeFontCatalog } = require('../common/fontRegistry');
 const { resolveFontFaceSource } = require('../common/fontLoader');
 const coord = require('../common/coordinate');
@@ -33,6 +34,7 @@ const FIRST_PASTE_TEXT_FONT_SIZE = 44;
 const FONT_CDN = 'https://cdn.jsdelivr.net/fontsource/fonts';
 const EMPTY_TEXT_PLACEHOLDER = '输入文字...';
 const SELECTION_HIGHLIGHT_COLOR = 'rgba(255, 211, 78, 0.56)';
+const RISK_RANK_BLOCK_THRESHOLD = 2;
 const FONT_USAGE_KEY = 'card_tool_font_usage';
 const FONT_USAGE_SORT_THRESHOLD = 3;
 const BASE_FONT_CATALOG = [
@@ -236,6 +238,15 @@ function recordColorUsage(color) {
     lastUsed: Date.now()
   };
   writeColorUsage(usage);
+}
+
+function sanitizeClipboardText(text) {
+  return String(text || '')
+    .replace(/\r\n?/g, '\n')
+    .replace(/[\u200B-\u200D\uFEFF]/g, '')
+    .replace(/[ \t]+\n/g, '\n')
+    .replace(/[ \t]+$/g, '')
+    .trim();
 }
 
 function normalizeHex(hex) {
@@ -2097,15 +2108,19 @@ getPreviewBackground(bg) {
         const file = res.tempFiles && res.tempFiles[0];
         if (!file || !file.tempFilePath) return;
         const src = await persistLocalFile(file.tempFilePath);
+        const textureSrc = src || file.tempFilePath;
+        if (!(await this.ensureImageSecurity(textureSrc, 'texture'))) return;
         this.applyTextTexture({
-          src: src || file.tempFilePath,
+          src: textureSrc,
           preset: '',
           width: Number(file.width || 0),
           height: Number(file.height || 0),
           scale: this.data.textTextureScale || 1,
           opacity: this.data.textTextureOpacity || 1,
           offsetX: 0,
-          offsetY: 0
+          offsetY: 0,
+          securityChecked: true,
+          securityCheckedAt: Date.now()
         }, true);
       }
     });
@@ -2340,6 +2355,7 @@ getPreviewBackground(bg) {
       design.background.offsetX = 0;
       design.background.offsetY = 0;
       design.background.scale = id === 'image' ? 1 : (design.background.scale || 1);
+      if (id === 'image') design.background.cropMode = 'follow';
     }
     this.setDesign(design, this.data.activeBlockId);
   },
@@ -2395,6 +2411,7 @@ getPreviewBackground(bg) {
       design.background.offsetX = 0;
       design.background.offsetY = 0;
       design.background.scale = 1;
+      design.background.cropMode = 'free';
     }
 
     this.setData({
@@ -2605,7 +2622,7 @@ getPreviewBackground(bg) {
     this.setData({ textInputFocus: false });
     wx.getClipboardData({
       success: res => {
-        const insertText = String((res && res.data) || '');
+        const insertText = sanitizeClipboardText(res && res.data);
         if (!insertText) {
           wx.showToast({ title: '剪贴板为空', icon: 'none' });
           return;
@@ -3096,7 +3113,8 @@ getPreviewBackground(bg) {
     const range = this.getActiveTextSelectionRange(current);
     const start = range.start;
     const end = range.end;
-    const text = current.slice(0, start) + String(insertText || '') + current.slice(end);
+    const normalizedInsertText = sanitizeClipboardText(insertText);
+    const text = current.slice(0, start) + normalizedInsertText + current.slice(end);
     const cursor = text.length;
 
     // 粘贴时：用完整文本创建干净的单 op delta，避免多 op 重叠
@@ -5100,17 +5118,25 @@ getPreviewBackground(bg) {
         const prevBg = design.background || {};
         const bgWidth = Number(file.width || 0);
         const bgHeight = Number(file.height || 0);
-        if (this.data.activeCanvasSizeId === 'image' && bgWidth && bgHeight) {
+        const sizePreset = (design.size && design.size.preset) || this.data.activeCanvasSizeId || '';
+        const shouldFollowImage = sizePreset !== 'custom' && bgWidth && bgHeight;
+        if (shouldFollowImage) {
           design.size = { ...normalizeAspectSize(bgWidth, bgHeight), preset: 'image' };
         }
-        const isFollowImage = this.data.activeCanvasSizeId === 'image';
+        const isFollowImage = shouldFollowImage || sizePreset === 'image';
         const scale = isFollowImage ? 1 : Math.max(0.2, Math.min(Number(prevBg.scale || 1), 1));
         const layout = getBackgroundImageLayout({ bgWidth, bgHeight, scale }, design);
+        const persistentPath = await persistLocalFile(tempPath);
+        const finalPath = persistentPath || tempPath;
+        this._backgroundSecuritySoftFailed = false;
+        if (!(await this.ensureImageSecurity(finalPath, 'background', { softFail: true }))) return;
 
         design.background = {
           type: 'image',
-          src: tempPath,
-          persistent: false,
+          src: finalPath,
+          persistent: !!persistentPath && persistentPath !== tempPath,
+          securityChecked: !this._backgroundSecuritySoftFailed,
+          securityCheckedAt: Date.now(),
           blur: !!prevBg.blur,
           color: prevBg.color || '#F7F1EA',
           glassColor: prevBg.glassColor,
@@ -5118,13 +5144,14 @@ getPreviewBackground(bg) {
           offsetX: 0,
           offsetY: 0,
           scale,
+          cropMode: shouldFollowImage ? 'follow' : (prevBg.cropMode || 'free'),
           bgWidth,
           bgHeight
         };
 
         // 先用临时路径立即上屏；持久化和精确尺寸在后台补齐。
         this.setData({
-          previewBackgroundImage: tempPath,
+          previewBackgroundImage: finalPath,
           realtimeBackgroundPreview: true,
           bgOffsetX: 0,
           bgOffsetY: 0,
@@ -5133,18 +5160,18 @@ getPreviewBackground(bg) {
           bgDisplayHeight: layout.height
         });
         this.setDesign(design, this.data.activeBlockId);
-        Promise.all([persistLocalFile(tempPath), getImageInfo(tempPath)]).then(([persistentPath, info]) => {
+        getImageInfo(tempPath).then(info => {
           if (this._backgroundChooseToken !== token) return;
           const current = clone(this.data.design);
-          if (!current.background || current.background.src !== tempPath) return;
+          if (!current.background || current.background.src !== finalPath) return;
           const finalWidth = Number(file.width || (info && info.width) || current.background.bgWidth || 0);
           const finalHeight = Number(file.height || (info && info.height) || current.background.bgHeight || 0);
           current.background = {
             ...current.background,
-            src: persistentPath || tempPath,
-            persistent: !!persistentPath && persistentPath !== tempPath,
             bgWidth: finalWidth,
-            bgHeight: finalHeight
+            bgHeight: finalHeight,
+            securityChecked: true,
+            securityCheckedAt: Date.now()
           };
           const finalLayout = getBackgroundImageLayout(current.background, current);
           this.setData({
@@ -5262,9 +5289,23 @@ getPreviewBackground(bg) {
       success: res => {
         const file = res.tempFiles && res.tempFiles[0];
         if (!file) return;
-        const design = clone(this.data.design);
-        design.avatar = { visible: true, src: file.tempFilePath, x: 76, y: 760, size: 112, radius: 56 };
-        this.setDesign(design, this.data.activeBlockId);
+        persistLocalFile(file.tempFilePath).then(async persistentPath => {
+          const finalPath = persistentPath || file.tempFilePath;
+          if (!(await this.ensureImageSecurity(finalPath, 'avatar'))) return;
+          const design = clone(this.data.design);
+          design.avatar = {
+            visible: true,
+            src: finalPath,
+            persistent: !!persistentPath && persistentPath !== file.tempFilePath,
+            x: 76,
+            y: 760,
+            size: 112,
+            radius: 56,
+            securityChecked: true,
+            securityCheckedAt: Date.now()
+          };
+          this.setDesign(design, this.data.activeBlockId);
+        });
       }
     });
   },
@@ -5276,21 +5317,28 @@ getPreviewBackground(bg) {
       success: res => {
         const file = res.tempFiles && res.tempFiles[0];
         if (!file) return;
-        const design = clone(this.data.design);
-        const size = design.size || { width: 750, height: 1000 };
-        const defaultSize = 110;
-        // 默认位置：右下角，留出边距
-        const defaultX = Number(size.width || 750) - defaultSize - 40;
-        const defaultY = Number(size.height || 1000) - defaultSize - 40;
-        design.qrcode = {
-          visible: true,
-          src: file.tempFilePath,
-          x: Math.round(defaultX),
-          y: Math.round(defaultY),
-          size: defaultSize
-        };
-        this.setData({ qrcodeActive: true, activeQrId: 'qrcode_main' });
-        this.setDesign(design, this.data.activeBlockId);
+        persistLocalFile(file.tempFilePath).then(async persistentPath => {
+          const finalPath = persistentPath || file.tempFilePath;
+          if (!(await this.ensureImageSecurity(finalPath, 'qrcode'))) return;
+          const design = clone(this.data.design);
+          const size = design.size || { width: 750, height: 1000 };
+          const defaultSize = 110;
+          // 默认位置：右下角，留出边距
+          const defaultX = Number(size.width || 750) - defaultSize - 40;
+          const defaultY = Number(size.height || 1000) - defaultSize - 40;
+          design.qrcode = {
+            visible: true,
+            src: finalPath,
+            persistent: !!persistentPath && persistentPath !== file.tempFilePath,
+            x: Math.round(defaultX),
+            y: Math.round(defaultY),
+            size: defaultSize,
+            securityChecked: true,
+            securityCheckedAt: Date.now()
+          };
+          this.setData({ qrcodeActive: true, activeQrId: 'qrcode_main' });
+          this.setDesign(design, this.data.activeBlockId);
+        });
       }
     });
   },
@@ -5589,6 +5637,117 @@ getPreviewBackground(bg) {
     return saved;
   },
 
+  async ensurePosterContentSecurity(options = {}) {
+    wx.showLoading({ title: '安全检查中...' });
+    try {
+      const softFail = !!options.softFail;
+      const riskResult = await contentSecurity.checkUserRiskRank();
+      if (!riskResult || riskResult.ok === false) {
+        contentSecurity.logSecurityFailure('packageCard/editor/risk', riskResult, { softFail });
+        if (softFail && riskResult && riskResult.reason !== 'risk_rank_high') return true;
+        wx.showModal({
+          title: '内容提示',
+          content: riskResult && riskResult.reason === 'risk_rank_high'
+            ? '当前操作暂时无法完成，请稍后重试。'
+            : '内容安全检查失败，请稍后重试。',
+          showCancel: false,
+          confirmText: '知道了'
+        });
+        return false;
+      }
+      const riskRank = Number(riskResult.riskRank || 0);
+      if (Number.isFinite(riskRank) && riskRank >= RISK_RANK_BLOCK_THRESHOLD) {
+        wx.showModal({
+          title: '内容提示',
+          content: '当前操作暂时无法完成，请稍后重试。',
+          showCancel: false,
+          confirmText: '知道了'
+        });
+        return false;
+      }
+      const securityResult = await contentSecurity.checkPosterContentSecurity(this.data.design);
+      if (!securityResult || securityResult.ok === false) {
+        contentSecurity.logSecurityFailure('packageCard/editor/text', securityResult, { softFail });
+        if (softFail && securityResult && securityResult.reason !== 'content_violation') return true;
+        wx.showModal({
+          title: '内容提示',
+          content: securityResult && securityResult.reason === 'content_violation'
+            ? '所发布内容含违规信息，请修改后重试。'
+            : '内容安全检查失败，请稍后重试。',
+          showCancel: false,
+          confirmText: '知道了'
+        });
+        return false;
+      }
+      const imageResult = await contentSecurity.checkImageContentSecurity(this.data.design);
+      if (!imageResult || imageResult.ok === false) {
+        contentSecurity.logSecurityFailure('packageCard/editor/image', imageResult, { softFail });
+        if (softFail && imageResult && imageResult.reason !== 'content_violation') return true;
+        wx.showModal({
+          title: '内容提示',
+          content: imageResult && imageResult.reason === 'content_violation'
+            ? '所发布内容含违规信息，请修改后重试。'
+            : '内容安全检查失败，请稍后重试。',
+          showCancel: false,
+          confirmText: '知道了'
+        });
+        return false;
+      }
+      return true;
+    } finally {
+      wx.hideLoading();
+    }
+  },
+
+  async ensureImageSecurity(imagePath, slotName, options = {}) {
+    if (!imagePath) return false;
+    wx.showLoading({ title: '安全检查中...' });
+    try {
+      const payload = {};
+      if (slotName === 'avatar') {
+        payload.avatar = { src: imagePath };
+      } else if (slotName === 'qrcode') {
+        payload.qrcode = { src: imagePath };
+      } else if (slotName === 'texture') {
+        payload.blocks = [{ textTexture: { src: imagePath } }];
+      } else {
+        payload.background = { src: imagePath };
+      }
+      const result = await contentSecurity.checkImageContentSecurity(payload);
+      if (!result || result.ok === false) {
+        contentSecurity.logSecurityFailure(`packageCard/editor/${slotName || 'image'}`, result, { options });
+        const canSoftFail = options && options.softFail && slotName === 'background' && result && result.reason !== 'content_violation';
+        if (canSoftFail) {
+          this._backgroundSecuritySoftFailed = true;
+          return true;
+        }
+        wx.showModal({
+          title: '内容提示',
+          content: result && result.reason === 'content_violation'
+            ? '所发布内容含违规信息，请修改后重试。'
+            : '内容安全检查失败，请稍后重试。',
+          showCancel: false,
+          confirmText: '知道了'
+        });
+        return false;
+      }
+      return true;
+    } finally {
+      wx.hideLoading();
+    }
+  },
+
+  async saveDraftWithSecurity() {
+    this.flushAllPendingState();
+    if (this.data.inlineEditing) {
+      this.finishInlineEditing();
+      this.flushAllPendingState();
+    }
+    const ok = await this.ensurePosterContentSecurity();
+    if (!ok) return;
+    this.saveDraft();
+  },
+
   saveImageToAlbum(filePath) {
     wx.saveImageToPhotosAlbum({
       filePath,
@@ -5620,6 +5779,10 @@ getPreviewBackground(bg) {
       this.finishInlineEditing();
     }
     this.flushAllPendingState();
+    const ok = await this.ensurePosterContentSecurity({ softFail: true });
+    if (!ok) {
+      return;
+    }
     const saved = this.saveDraft({ silent: true });
     const exportDesign = clone(this.data.design);
     exportDesign.id = saved.id;

@@ -1,6 +1,7 @@
 const storage = require('../../utils/storage');
 const share = require('../../utils/share');
 const poster = require('../../utils/poster');
+const contentSecurity = require('../../utils/content-security');
 const analytics = require('../../utils/analytics');
 
 Page({
@@ -57,8 +58,49 @@ Page({
     });
   },
 
-  drawQuotePoster(text, callback) {
+  async drawQuotePoster(text, callback) {
     const that = this;
+    const riskResult = await contentSecurity.checkUserRiskRank();
+    if (!riskResult || riskResult.ok === false) {
+      if (!contentSecurity.shouldSoftFailSecurity(riskResult)) {
+      contentSecurity.logSecurityFailure('pages/favorite-quotes/share/risk', riskResult, {});
+      wx.showModal({
+        title: '内容提示',
+        content: '内容安全检查失败，请稍后重试。',
+        showCancel: false,
+        confirmText: '知道了'
+      });
+      callback({ success: false });
+      return;
+      }
+    }
+    const riskRank = Number(riskResult.riskRank || 0);
+    if (Number.isFinite(riskRank) && riskRank >= 2) {
+      wx.showModal({
+        title: '内容提示',
+        content: '当前操作暂时无法完成，请稍后重试。',
+        showCancel: false,
+        confirmText: '知道了'
+      });
+      callback({ success: false });
+      return;
+    }
+    const securityResult = await contentSecurity.checkTextContentSecurity([text]);
+    if (!securityResult || securityResult.ok === false) {
+      if (!contentSecurity.shouldSoftFailSecurity(securityResult)) {
+      contentSecurity.logSecurityFailure('pages/favorite-quotes/share/text', securityResult, { textLength: String(text || '').length });
+      wx.showModal({
+        title: '内容提示',
+        content: securityResult && securityResult.reason === 'content_violation'
+          ? '所发布内容含违规信息，请修改后重试。'
+          : '内容安全检查失败，请稍后重试。',
+        showCancel: false,
+        confirmText: '知道了'
+      });
+      callback({ success: false });
+      return;
+      }
+    }
     wx.showLoading({ title: '正在生成...' });
     wx.createSelectorQuery().select('#quoteCanvas').fields({ node: true, size: true }).exec(function(res) {
       if (!res || !res[0] || !res[0].node) {
